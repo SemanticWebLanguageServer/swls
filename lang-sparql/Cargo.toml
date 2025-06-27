@@ -9,29 +9,15 @@ version = "0.1.0"
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 chumsky.workspace      = true
-enum-methods.workspace = true
 futures.workspace      = true
-hashbrown.workspace    = true
 lazy_static.workspace  = true
 logos.workspace = true
 lsp-types.workspace    = true
-reqwest.workspace      = true
 ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
-
-# bytes          = "1.4.0"
-# iref           = "2.2.3"
-# json-ld        = { version = "0.21", features = ["reqwest"] }
-# json-ld-syntax = { version = "0.21" }
-# json-ld-syntax = "0.14.0"
-# json-syntax = "0.9.1"jsonldtoml
-# locspan     = "0.7.13"
-# mime        = "0.3.16"
-# once_cell   = "1.17.1"
-# rdf-types   = "0.14.2"
 
 lang-turtle   = { path = "../lang-turtle/" }
 lsp-core      = { path = "../core/" }

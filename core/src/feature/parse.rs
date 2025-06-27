@@ -1,7 +1,7 @@
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 
 pub use crate::systems::{
-    derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
+    derive_classes, derive_prefix_links, derive_properties, extract_type_hierarchy,
     fetch_lov_properties, infer_types,
 };
 use crate::{
@@ -30,9 +30,11 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         fetch_lov_properties::<C>.after(prefixes),
         extract_type_hierarchy.after(triples),
         infer_types.after(triples),
-        derive_shapes.after(triples),
         check_added_ontology_extract.after(triples),
         open_imports::<C>.after(triples),
     ));
+
+    #[cfg(feature = "shapes")]
+    parse_schedule.add_systems((crate::systems::derive_shapes.after(triples),));
     world.add_schedule(parse_schedule);
 }

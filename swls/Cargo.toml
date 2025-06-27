@@ -8,9 +8,7 @@ version = "0.1.0"
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 chumsky.workspace      = true
-enum-methods.workspace = true
 futures.workspace      = true
-hashbrown.workspace    = true
 lsp-types.workspace    = true
 reqwest.workspace      = true
 ropey.workspace        = true
@@ -30,4 +28,5 @@ tracing-subscriber = { version = "0.3", features = ["json"] }
 tracing-flame = "0.2.0"
 
 [features]
+shapes = ["lsp-core/shapes"]
 default = ["tower-lsp/runtime-tokio"]

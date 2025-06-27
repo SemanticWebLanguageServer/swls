@@ -1,8 +1,7 @@
 use std::ops::Range;
 
 use bevy_ecs::prelude::*;
-use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
+use derive_more::{AsMut, AsRef, Deref, DerefMut, IsVariant};
 use tracing::{debug, instrument};
 
 use crate::{components::*, lang::TokenTrait, prelude::*};
@@ -202,7 +201,7 @@ pub mod semantic_token {
 }
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug)]
     pub enum SparqlExpr {
         Or @ "||",
         And @ "&&",
@@ -223,7 +222,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq, Hash,Ord, PartialOrd, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq, Hash,Ord, PartialOrd, Debug)]
     pub enum SparqlCall {
         Str => "STR",
         Lang => "LANG",
@@ -287,7 +286,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug)]
     pub enum SparqlAggregate {
         Count => "COUNT",
         Sum => "SUM",
@@ -300,7 +299,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug)]
     pub enum SparqlKeyword {
         Regex => "REGEX",
         Substr => "SUBSTR",
@@ -351,9 +350,7 @@ derive_enum!(
     }
 );
 
-#[derive(
-    Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters,
-)]
+#[derive(Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug, IsVariant)]
 pub enum Token {
     /// Sparql expression
     SparqlExpr(SparqlExpr),
@@ -507,9 +504,7 @@ impl TokenTrait for Token {
     }
 }
 
-#[derive(
-    Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters,
-)]
+#[derive(Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug)]
 pub enum StringStyle {
     /// """..."""
     DoubleLong,

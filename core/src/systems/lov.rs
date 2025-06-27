@@ -1,7 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
-use hashbrown::HashSet;
 use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use sophia_api::{

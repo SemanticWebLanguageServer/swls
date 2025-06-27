@@ -373,7 +373,7 @@ impl<'a> Triples2<'a> {
     }
 }
 
-impl<'a> Deref for Triples2<'a> {
+impl<'a> std::ops::Deref for Triples2<'a> {
     type Target = Vec<MyQuad<'a>>;
 
     fn deref(&self) -> &Self::Target {

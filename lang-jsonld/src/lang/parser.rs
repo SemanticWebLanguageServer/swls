@@ -4,7 +4,6 @@ use std::{
 };
 
 use chumsky::{prelude::*, Error, Parser, Stream};
-use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 use lsp_core::prelude::{spanned, MyTerm, Spanned, Token};
 use Token::*;
 
@@ -162,7 +161,7 @@ impl<'a> ObjectMemberManager<'a> {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ObjectMember {
     Full(Spanned<Token>, Spanned<Json>),
     Partial(Spanned<Token>, Option<Spanned<()>>, Option<Spanned<Json>>),
@@ -183,7 +182,7 @@ impl ObjectMember {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Json {
     Invalid,
     Token(Token),

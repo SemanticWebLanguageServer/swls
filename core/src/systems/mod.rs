@@ -2,8 +2,10 @@ use bevy_ecs::prelude::*;
 
 use crate::prelude::*;
 
+#[cfg(feature = "shapes")]
 mod shapes;
 use completion::{CompletionRequest, SimpleCompletion};
+#[cfg(feature = "shapes")]
 pub use shapes::*;
 mod typed;
 pub use typed::*;

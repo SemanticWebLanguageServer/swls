@@ -18,9 +18,12 @@ pub fn format_turtle_system(
         info!("Formatting with turtle format system");
         let comments: Vec<_> = tokens
             .iter()
-            .filter(|x| x.is_comment())
-            .cloned()
-            .map(|Spanned(x, span)| Spanned(x.into_comment(), span))
+            .flat_map(|x| {
+                x.try_map_ref(|inner| match inner {
+                    Token::Comment(c) => Some(c.to_string()),
+                    _ => None,
+                })
+            })
             .collect();
 
         let formatted = format_turtle(
