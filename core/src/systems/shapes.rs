@@ -35,7 +35,11 @@ type ShaclShapes = Wrapped<Vec<CompiledShape<RdfData>>>;
 pub fn derive_shapes(
     query: Query<(Entity, &RopeC, &Label), (Changed<Triples>, Without<Dirty>)>,
     mut commands: Commands,
+    res: Res<ServerConfig>,
 ) {
+    if res.config.local.disabled.contains(&Disabled::Shapes) {
+        return;
+    }
     for (e, rope, label) in &query {
         commands.entity(e).remove::<ShaclShapes>();
 
@@ -257,7 +261,11 @@ pub fn validate_shapes(
     >,
     other: Query<(&Label, &ShaclShapes, &Prefixes)>,
     mut client: ResMut<DiagnosticPublisher>,
+    res: Res<ServerConfig>,
 ) {
+    if res.config.local.disabled.contains(&Disabled::Shapes) {
+        return;
+    }
     for (rope, label, links, item, triples) in &query {
         info!("Validate shapes {}", label.as_str());
         derive_shapes_diagnostics_for(rope, label, links, item, triples, &other, &mut client);
@@ -280,7 +288,11 @@ pub fn validate_with_updated_shapes(
     >,
     other: Query<(&Label, &ShaclShapes, &Prefixes)>,
     mut client: ResMut<DiagnosticPublisher>,
+    res: Res<ServerConfig>,
 ) {
+    if res.config.local.disabled.contains(&Disabled::Shapes) {
+        return;
+    }
     for l in &changed_schemas {
         info!("Changed schema {}", l.as_str());
         for (rope, label, links, item, triples) in &query {

@@ -139,7 +139,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(Schedule::new(Tasks));
 
     let mut schedule = Schedule::new(Startup);
-    schedule.add_systems(init_onology_extractor);
+    schedule.add_systems((init_onology_extractor, populate_known_prefixes_prefix_cc));
     world.add_schedule(schedule);
 }
 

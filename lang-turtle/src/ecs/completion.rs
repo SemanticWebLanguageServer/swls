@@ -13,6 +13,7 @@ pub fn turtle_lov_undefined_prefix_completion(
         &Prefixes,
         &mut CompletionRequest,
     )>,
+    res: Res<KnownPrefixes>,
 ) {
     for (word, turtle, prefixes, mut req) in &mut query {
         let mut start = Position::new(0, 0);
@@ -22,12 +23,18 @@ pub fn turtle_lov_undefined_prefix_completion(
         }
 
         use lsp_types::{Position, Range};
-        prefix_completion_helper(word, prefixes, &mut req.0, |name, location| {
-            Some(vec![lsp_types::TextEdit {
-                range: Range::new(start.clone(), start),
-                new_text: format!("@prefix {}: <{}>.\n", name, location),
-            }])
-        });
+        prefix_completion_helper(
+            word,
+            prefixes,
+            &mut req.0,
+            |name, location| {
+                Some(vec![lsp_types::TextEdit {
+                    range: Range::new(start.clone(), start),
+                    new_text: format!("@prefix {}: <{}>.\n", name, location),
+                }])
+            },
+            &res,
+        );
     }
 }
 

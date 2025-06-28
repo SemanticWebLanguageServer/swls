@@ -15,7 +15,7 @@ use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{feature::goto_definition::GotoDefinitionRequest, prelude::*, Startup};
 
@@ -94,12 +94,25 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self, init))]
     async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
+
         let workspaces = init.workspace_folders.clone().unwrap_or_default();
         let config: Config =
             serde_json::from_value(init.initialization_options.clone().unwrap_or_default())
                 .unwrap_or_default();
 
-        let server_config = ServerConfig { config, workspaces };
+        let mut server_config = ServerConfig { config, workspaces };
+
+        let fs = self.run(|w| w.resource::<Fs>().clone()).await.unwrap();
+        if let Some(global) = LocalConfig::global(&fs).await {
+            server_config.config.local.combine(global);
+        }
+
+        if let Some(root) = init.root_uri.as_ref() {
+            if let Some(local) = LocalConfig::local(&fs, root).await {
+                server_config.config.local.combine(local);
+            }
+        }
+
         info!("Initialize {:?}", server_config);
         let document_selectors: Vec<_> = [
             ("sparql", server_config.config.sparql.unwrap_or(true)),

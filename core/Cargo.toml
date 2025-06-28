@@ -7,6 +7,7 @@ edition = "2021"
 version = "0.1.0"
 
 [features]
+default = ["shapes"]
 shapes = ["rudof_lib"]
 
 
@@ -22,6 +23,7 @@ serde_json.workspace   = true
 sophia_api.workspace   = true
 tracing.workspace      = true
 
+dirs = "6"
 chrono = { version = "0.4.38", default-features = false, features = ["serde"] }
 lazy_static = "1.5.0"
 lov = { path = "../lov/" }

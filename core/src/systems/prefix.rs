@@ -6,17 +6,20 @@ use tracing::{debug, instrument};
 
 use crate::prelude::*;
 
-const JSONLD: &'static str = include_str!("./jsonld.json");
+const PREFIX_CC: &'static str = include_str!("./prefix_cc.txt");
 
-lazy_static::lazy_static! {
-    static ref HASHMAP: Vec<(&'static str, &'static str)> = {
-        let m: Vec<_> = JSONLD.split('\n').flat_map(|x| { let mut s = x.split(' ');
+pub fn populate_known_prefixes_prefix_cc(mut commands: Commands) {
+    let m: Vec<_> = PREFIX_CC
+        .split('\n')
+        .flat_map(|x| {
+            let mut s = x.split(' ');
             let first = s.next()?;
             let second = s.next()?;
-            Some((first, second))
-        }).collect();
-        m
-    };
+            Some((first.to_string(), second.to_string()))
+        })
+        .collect();
+
+    commands.insert_resource(KnownPrefixes(m));
 }
 
 /// One defined prefix, maps prefix to url
@@ -98,6 +101,7 @@ pub fn prefix_completion_helper(
     prefixes: &Prefixes,
     completions: &mut Vec<SimpleCompletion>,
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
+    known: &KnownPrefixes,
 ) {
     match word.token.value() {
         Token::Invalid(_) => {}
@@ -110,13 +114,15 @@ pub fn prefix_completion_helper(
     }
 
     completions.extend(
-        HASHMAP
+        known
+            .0
             .iter()
             .filter(|(name, _)| name.starts_with(&word.text))
-            .filter(|(_, location)| !defined.contains(location))
-            .flat_map(|(name, location)| {
+            .filter(|(_, location)| !defined.contains(location.as_str()))
+            .enumerate()
+            .flat_map(|(i, (name, location))| {
                 let new_text = format!("{}:", name);
-                let sort_text = format!("2 {}", new_text);
+                let sort_text = format!("{}", i);
                 let filter_text = new_text.clone();
                 if new_text != word.text {
                     let extra_edit = extra_edits(name, location)?;

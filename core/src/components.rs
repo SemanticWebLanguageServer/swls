@@ -2,12 +2,13 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
     fmt::Debug,
+    path::PathBuf,
 };
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::{Position, WorkspaceFolder};
+use lsp_types::{Position, Url, WorkspaceFolder};
 use serde::Deserialize;
 
 use crate::{
@@ -187,6 +188,12 @@ impl<'a> TypeHierarchy<'a> {
     }
 }
 
+#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Disabled {
+    #[serde(alias = "SHAPES", alias = "shapes")]
+    Shapes,
+}
+
 #[derive(Resource, Debug, Default)]
 pub struct ServerConfig {
     pub workspaces: Vec<WorkspaceFolder>,
@@ -195,12 +202,73 @@ pub struct ServerConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    /// Log level
     #[serde(default = "debug")]
     pub log: String,
+    /// Enable turtle
     pub turtle: Option<bool>,
+    /// Enable jsonld
     pub jsonld: Option<bool>,
+    /// Enable sparql
     pub sparql: Option<bool>,
+    /// Extra local configuration
+    #[serde(flatten)]
+    pub local: LocalConfig,
 }
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
+pub struct LocalConfig {
+    /// Extra ontologies to import
+    pub ontologies: HashSet<String>,
+    /// Extra shapes to import
+    pub shapes: HashSet<String>,
+    /// Features to disable
+    pub disabled: HashSet<Disabled>,
+}
+
+impl LocalConfig {
+    /// Combines this config with another config, giving precedence to the other config
+    pub fn combine(&mut self, other: LocalConfig) {
+        self.ontologies.extend(other.ontologies);
+        self.shapes.extend(other.shapes);
+        self.disabled.extend(other.disabled);
+    }
+
+    pub async fn global(fs: &Fs) -> Option<Self> {
+        let global_path = dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("swls/config.json");
+        let url = lsp_types::Url::from_file_path(global_path).ok()?;
+
+        tracing::debug!("Found global config url {}", url.as_str());
+        let content = fs.0.read_file(&url).await?;
+        tracing::debug!("Read global config content");
+
+        match serde_json::from_str(&content) {
+            Ok(x) => Some(x),
+            Err(e) => {
+                tracing::error!("Deserialize failed\n{:?}", e);
+                None
+            }
+        }
+    }
+
+    pub async fn local(fs: &Fs, url: &Url) -> Option<Self> {
+        let url = Url::parse(&format!("{}/.swls/config.json", url.as_str())).ok()?;
+        tracing::debug!("Found local config url {}", url.as_str());
+        let content = fs.0.read_file(&url).await?;
+        tracing::debug!("Read local config content");
+        match serde_json::from_str(&content) {
+            Ok(x) => Some(x),
+            Err(e) => {
+                tracing::error!("Deserialize failed\n{:?}", e);
+                None
+            }
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -208,6 +276,7 @@ impl Default for Config {
             turtle: None,
             jsonld: None,
             sparql: None,
+            local: LocalConfig::default(),
         }
     }
 }
@@ -215,3 +284,6 @@ impl Default for Config {
 fn debug() -> String {
     String::from("debug")
 }
+
+#[derive(Resource, Debug)]
+pub struct KnownPrefixes(pub Vec<(String, String)>);
