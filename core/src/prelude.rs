@@ -17,7 +17,7 @@ pub use crate::{
     },
     lang::{Lang, LangHelper, TokenTrait},
     setup_schedule_labels, systems,
-    systems::prefix::{populate_known_prefixes_prefix_cc, Prefix, Prefixes},
+    systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
     util::{
         fs::*, lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,

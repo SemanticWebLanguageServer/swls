@@ -21,7 +21,7 @@ pub use properties::{
 mod lov;
 pub use lov::{
     check_added_ontology_extract, fetch_lov_properties, init_onology_extractor, open_imports,
-    FromPrefix, OntologyExtractor,
+    populate_known_ontologies, FromPrefix, OntologyExtractor,
 };
 use tracing::instrument;
 

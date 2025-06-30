@@ -1,26 +1,13 @@
 use std::{collections::HashSet, ops::Deref};
 
 use bevy_ecs::prelude::*;
+use lov::LocalPrefix;
 use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
 use tracing::{debug, instrument};
 
 use crate::prelude::*;
 
-const PREFIX_CC: &'static str = include_str!("./prefix_cc.txt");
-
-pub fn populate_known_prefixes_prefix_cc(mut commands: Commands) {
-    let m: Vec<_> = PREFIX_CC
-        .split('\n')
-        .flat_map(|x| {
-            let mut s = x.split(' ');
-            let first = s.next()?;
-            let second = s.next()?;
-            Some((first.to_string(), second.to_string()))
-        })
-        .collect();
-
-    commands.insert_resource(KnownPrefixes(m));
-}
+pub const PREFIX_CC: &'static str = include_str!("./prefix_cc.txt");
 
 /// One defined prefix, maps prefix to url
 #[derive(Debug, Clone)]
@@ -96,12 +83,13 @@ impl Prefixes {
     }
 }
 
-pub fn prefix_completion_helper(
+pub fn prefix_completion_helper<'a>(
     word: &TokenComponent,
     prefixes: &Prefixes,
     completions: &mut Vec<SimpleCompletion>,
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
-    known: &KnownPrefixes,
+    lovs: impl Iterator<Item = &'a LocalPrefix>,
+    // known: &KnownPrefixes,
 ) {
     match word.token.value() {
         Token::Invalid(_) => {}
@@ -114,26 +102,23 @@ pub fn prefix_completion_helper(
     }
 
     completions.extend(
-        known
-            .0
-            .iter()
-            .filter(|(name, _)| name.starts_with(&word.text))
-            .filter(|(_, location)| !defined.contains(location.as_str()))
-            .enumerate()
-            .flat_map(|(i, (name, location))| {
-                let new_text = format!("{}:", name);
-                let sort_text = format!("{}", i);
+        lovs.filter(|lov| lov.name.starts_with(&word.text))
+            .filter(|lov| !defined.contains(lov.location.as_ref()))
+            .flat_map(|lov| {
+                let new_text = format!("{}:", lov.name);
+                let sort_text = format!("{}", lov.rank);
                 let filter_text = new_text.clone();
                 if new_text != word.text {
-                    let extra_edit = extra_edits(name, location)?;
+                    let extra_edit = extra_edits(&lov.name, &lov.location)?;
                     let completion = SimpleCompletion::new(
                         CompletionItemKind::MODULE,
-                        format!("{}", name),
+                        format!("{}", lov.name),
                         lsp_types::TextEdit {
                             new_text,
                             range: word.range.clone(),
                         },
                     )
+                    .label_description(lov.title.as_ref())
                     .sort_text(sort_text)
                     .filter_text(filter_text);
 

@@ -6,4 +6,5 @@ authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
 edition = "2021"
 version = "0.1.0"
 
-
+[dependencies]
+bevy_ecs.workspace     = true

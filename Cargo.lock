@@ -1549,6 +1549,7 @@ dependencies = [
  "lang-turtle",
  "lazy_static",
  "logos",
+ "lov",
  "lsp-core",
  "lsp-types",
  "ropey",
@@ -1699,6 +1700,9 @@ dependencies = [
 [[package]]
 name = "lov"
 version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+]
 
 [[package]]
 name = "lsp-core"

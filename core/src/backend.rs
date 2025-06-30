@@ -15,7 +15,7 @@ use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::{feature::goto_definition::GotoDefinitionRequest, prelude::*, Startup};
 

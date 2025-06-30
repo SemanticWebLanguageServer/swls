@@ -29,7 +29,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
         }
     });
 
-    lang_turtle::setup_world(&mut world);
+    lang_turtle::setup_world::<C>(&mut world);
     lang_jsonld::setup_world(&mut world);
     lang_sparql::setup_world(&mut world);
 

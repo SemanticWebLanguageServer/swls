@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
+use lov::{LocalPrefix, LOCAL_PREFIXES};
 use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use sophia_api::{
@@ -10,6 +14,7 @@ use sophia_api::{
 };
 use tracing::{debug, error, info, instrument, span};
 
+use super::prefix::PREFIX_CC;
 use crate::{
     prelude::*,
     util::{
@@ -28,6 +33,34 @@ struct Version {
 #[derive(Deserialize, Debug)]
 struct Vocab {
     versions: Vec<Version>,
+}
+
+pub fn populate_known_ontologies(mut commands: Commands) {
+    for lov in LOCAL_PREFIXES.iter() {
+        commands.spawn(lov.clone());
+    }
+
+    for (i, (prefix, url)) in PREFIX_CC
+        .split('\n')
+        .flat_map(|x| {
+            let mut s = x.split(' ');
+            let first = s.next()?;
+            let second = s.next()?;
+            Some((first.to_string(), second.to_string()))
+        })
+        .enumerate()
+    {
+        let pref: Cow<'static, str> = prefix.into();
+        let lov = LocalPrefix {
+            location: url.into(),
+            content: Cow::Borrowed(""),
+            name: pref.clone(),
+            title: pref,
+            rank: i + 2,
+        };
+
+        commands.spawn(lov.clone());
+    }
 }
 
 // Do we check whether or not the namespace url and the prefix url are the same?
@@ -117,6 +150,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
             // Without<Dirty>,
         ),
     >,
+    ontologies: Query<(Entity, &LocalPrefix)>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
@@ -127,12 +161,15 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                 prefixes.insert(prefix.url.to_string());
                 if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
                     info!("Other virtual url {}", url);
-                    if let Some(local) = lov::LOCAL_PREFIXES
+                    if let Some((e, local)) = ontologies
                         .iter()
-                        .find(|x| x.location == prefix.url.as_str())
+                        .find(|(_, x)| x.location == prefix.url.as_str())
                     {
                         debug!("Local lov");
-                        local_lov::<C>(local, url, &sender, fs.clone());
+
+                        let c = client.as_ref().clone();
+                        let sender = sender.0.clone();
+                        client.spawn(local_lov::<C>(local.clone(), url, sender, fs.clone(), c));
                     } else {
                         debug!("Remove lov");
                         let sender = sender.0.clone();
@@ -207,14 +244,10 @@ fn extra_from_lov<C: Client + Resource>(
     }
 }
 
-async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
-    if let Some(url) = extract_file_url(&prefix.prefix, &c).await {
+async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<String> {
+    if let Some(url) = extract_file_url(&prefix, &c).await {
         match c.fetch(&url, &std::collections::HashMap::new()).await {
-            Ok(resp) if resp.status == 200 => {
-                let extra =
-                    extra_from_lov::<C>(FromPrefix(prefix), resp.body.clone(), label.clone(), fs);
-                spawn_document(label, resp.body, &sender, extra);
-            }
+            Ok(resp) if resp.status == 200 => return Some(resp.body),
             Ok(resp) => {
                 error!("Fetch ({}) failed status {}", url, resp.status);
             }
@@ -223,23 +256,43 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
             }
         }
     }
+    None
+}
+async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
+    if let Some(body) = fetch_lov_body(&prefix.prefix, c).await {
+        let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
+        spawn_document(label, body, &sender, extra);
+    }
 }
 
-fn local_lov<C: Client + Resource>(
-    local: &lov::LocalPrefix,
+// TODO: this should be spawned on the entity of the localprefix
+async fn local_lov<C: Client + Resource>(
+    local: lov::LocalPrefix,
     label: Url,
-    sender: &Res<CommandSender>,
+    sender: Sender,
     fs: Fs,
+    c: C,
 ) {
     info!("Using local {}", local.name);
+    let content = if local.content.is_empty() {
+        info!("Fetching from LOV");
+        // This local is added by prefix, not by an actual local lov,
+        if let Some(body) = fetch_lov_body(&local.name, c).await {
+            Cow::Owned(body)
+        } else {
+            return;
+        }
+    } else {
+        local.content
+    };
 
     let from = FromPrefix(Prefix {
         prefix: local.name.to_string(),
         url: Url::parse(&local.location).unwrap(),
     });
 
-    let extra = extra_from_lov::<C>(from, local.content.to_string(), label.clone(), fs);
-    spawn_document(label, local.content.to_string(), &sender.0, extra);
+    let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), fs);
+    spawn_document(label, content.to_string(), &sender, extra);
 }
 
 #[derive(Component)]
@@ -266,7 +319,7 @@ pub fn init_onology_extractor(mut commands: Commands, fs: Res<Fs>) {
             url.clone(),
             (
                 Source(local.content.to_string()),
-                RopeC(ropey::Rope::from_str(local.content)),
+                RopeC(ropey::Rope::from_str(&local.content)),
                 Label(url),
                 Wrapped(item),
                 Types(HashMap::new()),

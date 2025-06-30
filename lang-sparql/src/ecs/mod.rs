@@ -6,6 +6,7 @@ use lang_turtle::lang::{
     context::{Context, TokenIdx},
     model::TriplesBuilder,
 };
+use lov::LocalPrefix;
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
@@ -168,7 +169,7 @@ pub fn sparql_lov_undefined_prefix_completion(
         &Prefixes,
         &mut CompletionRequest,
     )>,
-    res: Res<KnownPrefixes>,
+    lovs: Query<&LocalPrefix>,
 ) {
     for (word, turtle, prefixes, mut req) in &mut query {
         let mut start = Position::new(0, 0);
@@ -188,7 +189,7 @@ pub fn sparql_lov_undefined_prefix_completion(
                     new_text: format!("PREFIX {}: <{}>\n", name, location),
                 }])
             },
-            &res,
+            lovs.iter(),
         );
     }
 }

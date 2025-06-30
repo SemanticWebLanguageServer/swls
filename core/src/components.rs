@@ -284,6 +284,3 @@ impl Default for Config {
 fn debug() -> String {
     String::from("debug")
 }
-
-#[derive(Resource, Debug)]
-pub struct KnownPrefixes(pub Vec<(String, String)>);

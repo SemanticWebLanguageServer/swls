@@ -22,6 +22,7 @@ tracing.workspace      = true
 lang-turtle   = { path = "../lang-turtle/" }
 lsp-core      = { path = "../core/" }
 token-helpers = { path = "../token-helpers/" }
+lov = { path = "../lov/" }
 
 [dev-dependencies]
 test-log   = { version = "0.2.16", features = ["trace"] }
