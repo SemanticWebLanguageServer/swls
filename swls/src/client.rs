@@ -4,7 +4,7 @@ use bevy_ecs::system::Resource;
 use futures::FutureExt;
 use lsp_core::{
     client::{Client, ClientSync, Resp},
-    prelude::FsTrait,
+    prelude::{File, FsTrait},
 };
 use lsp_types::{Diagnostic, MessageType, Url};
 use tokio::fs::{self, read_to_string, write};
@@ -51,6 +51,21 @@ impl FsTrait for BinFs {
         let fp = url.to_file_path().ok()?;
         let content = read_to_string(fp).await.ok()?;
         Some(content)
+    }
+
+    async fn glob_read(&self, url: &str) -> Option<Vec<File>> {
+        let mut files = Vec::new();
+        for entry in glob::glob(url).ok()? {
+            match entry {
+                Ok(path) => {
+                    let name = path.display().to_string();
+                    let content = read_to_string(path).await.ok()?;
+                    files.push(File { name, content })
+                }
+                Err(e) => tracing::error!("{:?}", e),
+            }
+        }
+        Some(files)
     }
 
     async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {

@@ -114,17 +114,30 @@ impl Lang for TurtleLang {
 /// if the location starts with http, it is a remote resource
 /// if the location fails to parse as a url, it is a file path
 ///     anyway, try to read the file
-async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<(String, Url)> {
+async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(String, Url)>> {
     if location.starts_with("http") {
         let url = Url::parse(location).ok()?;
         let content = client.fetch(&location, &HashMap::new()).await.ok()?.body;
-        Some((content, url))
+        Some(vec![(content, url)])
     } else {
-        let url = Url::parse(&location)
-            .or_else(|_| Url::from_file_path(&location))
-            .ok()?;
-        let content = fs.0.read_file(&url).await?;
-        Some((content, url))
+        if let Ok(url) = Url::parse(&location) {
+            let content = fs.0.read_file(&url).await?;
+            Some(vec![(content, url)])
+        } else {
+            let files = fs.0.glob_read(&location).await?;
+            Some(
+                files
+                    .into_iter()
+                    .flat_map(|File { content, name }| {
+                        if let Ok(url) = lsp_types::Url::from_file_path(name) {
+                            Some((content, url))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect(),
+            )
+        }
     }
 }
 
@@ -229,28 +242,30 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
         let sender = sender.0.clone();
 
         let fut = async move {
-            let Some((content, url)) = find(&on, &fs, &c).await else {
+            let Some(files) = find(&on, &fs, &c).await else {
                 return;
-            };
-
-            let Some((prefix, url)) =
-                prefix_from_source(&url, &content).or_else(|| prefix_from_url(&url))
-            else {
-                return;
-            };
-
-            let lov = LocalPrefix {
-                location: Cow::Owned(url.to_string()),
-                content: Cow::Owned(content),
-                name: prefix.clone(),
-                title: prefix,
-                rank: 0,
             };
 
             let mut queue = CommandQueue::default();
-            queue.push(move |world: &mut World| {
-                world.spawn(lov);
-            });
+            for (content, url) in files {
+                let Some((prefix, url)) =
+                    prefix_from_source(&url, &content).or_else(|| prefix_from_url(&url))
+                else {
+                    continue;
+                };
+
+                let lov = LocalPrefix {
+                    location: Cow::Owned(url.to_string()),
+                    content: Cow::Owned(content),
+                    name: prefix.clone(),
+                    title: prefix,
+                    rank: 0,
+                };
+
+                queue.push(move |world: &mut World| {
+                    world.spawn(lov);
+                });
+            }
 
             let _ = sender.unbounded_send(queue);
 

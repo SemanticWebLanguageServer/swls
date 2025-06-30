@@ -65,10 +65,6 @@ pub fn derive_shapes(
             result
         }) {
             Ok(schema) => {
-                // .map(|shacl| {
-                //     out
-                //     // 2 + 2; return None;
-                // }) {
                 let compiled: Vec<_> = schema
                     .iter()
                     .flat_map(
