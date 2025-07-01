@@ -8,3 +8,5 @@ out/
 *.nrs
 dist/
 *.vsix
+/.direnv
+/result
