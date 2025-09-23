@@ -78,11 +78,11 @@ To use the LSP you will always have to install the binary.
 So do that first:
 
 ```
-cargo install --git https://github.com/ajuvercr/semantic-web-lsp swls
+cargo install --git https://github.com/SemanticWebLanguageServer/swls.git swls
 ```
 Or locally
 ```
-git clone https://github.com/ajuvercr/semantic-web-lsp.git
+git clone https://github.com/SemanticWebLanguageServer/swls.git
 cargo install --path swls
 ```
 
