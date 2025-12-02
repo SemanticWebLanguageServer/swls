@@ -1,17 +1,16 @@
 use bevy_ecs::{
     prelude::*,
-    schedule::{IntoSystemConfigs, ScheduleLabel},
+    schedule::{IntoScheduleConfigs, ScheduleLabel},
 };
-use lsp_types::TextEdit;
 use tracing::instrument;
 
-use crate::prelude::*;
 pub use crate::util::token::get_current_token;
+use crate::{lsp_types::TextEdit, prelude::*};
 
 /// [`Component`] indicating that the current document is currently handling a PrepareRename request.
 #[derive(Component, Debug)]
 pub struct PrepareRenameRequest {
-    pub range: lsp_types::Range,
+    pub range: crate::lsp_types::Range,
     pub placeholder: String,
 }
 
@@ -22,7 +21,10 @@ pub struct PrepareRename;
 /// [`Component`] indicating that the current document is currently handling a Rename request,
 /// collecting [TextEdits](`lsp_types::TextEdit`).
 #[derive(Component, Debug)]
-pub struct RenameEdits(pub Vec<(lsp_types::Url, lsp_types::TextEdit)>, pub String);
+pub struct RenameEdits(
+    pub Vec<(crate::lsp_types::Url, crate::lsp_types::TextEdit)>,
+    pub String,
+);
 
 /// [`ScheduleLabel`] related to the Rename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

@@ -3,7 +3,6 @@ use std::{borrow::Cow, collections::HashSet};
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use hover::HoverRequest;
-use lsp_types::{CompletionItemKind, TextEdit};
 use sophia_api::{
     ns::rdfs,
     prelude::{Any, Dataset},
@@ -14,6 +13,7 @@ use systems::OntologyExtractor;
 use tracing::{debug, info, instrument};
 
 use crate::{
+    lsp_types::{CompletionItemKind, TextEdit},
     prelude::*,
     util::{ns::*, triple::MyTerm},
 };

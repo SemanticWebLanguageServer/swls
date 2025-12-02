@@ -5,7 +5,6 @@ use std::{
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use lov::{LocalPrefix, LOCAL_PREFIXES};
-use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use sophia_api::{
     prelude::{Any, Dataset},
@@ -16,6 +15,7 @@ use tracing::{debug, error, info, instrument, span};
 
 use super::prefix::PREFIX_CC;
 use crate::{
+    lsp_types::{TextDocumentItem, Url},
     prelude::*,
     util::{
         fs::Fs,
@@ -307,7 +307,7 @@ pub fn init_onology_extractor(mut commands: Commands, fs: Res<Fs>) {
         let url = fs.0.lov_url(&local.location, &local.name).unwrap();
         info!("Virtual url {}", url.to_string());
 
-        // let url = lsp_types::Url::from_str(local.location).unwrap();
+        // let url = crate::lsp_types::Url::from_str(local.location).unwrap();
         let item = TextDocumentItem {
             version: 1,
             uri: url.clone(),
@@ -329,7 +329,7 @@ pub fn init_onology_extractor(mut commands: Commands, fs: Res<Fs>) {
         );
 
         info!("Init onology {}", local.name);
-        commands.push(move |world: &mut World| {
+        commands.queue(move |world: &mut World| {
             info!("Spawned");
             spawn(world);
         });

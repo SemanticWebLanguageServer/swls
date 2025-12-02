@@ -11,7 +11,6 @@ bevy_ecs.workspace     = true
 bevy_tasks.workspace   = true
 chumsky.workspace      = true
 futures.workspace      = true
-lsp-types.workspace    = true
 logos.workspace    = true
 ropey.workspace        = true
 serde.workspace        = true
@@ -26,5 +25,5 @@ token-helpers      = { path = "../token-helpers/" }
 lsp-core = { path = "../core/" }
 
 [dev-dependencies]
-test-log   = { version = "0.2.16", features = ["trace"] }
+test-log   = { version = "0.2.19", features = ["trace"] }
 test-utils = { path = "../test-utils/" }

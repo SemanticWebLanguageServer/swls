@@ -219,7 +219,7 @@ pub enum Modifier {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Query {
-    pub base: lsp_types::Url,
+    pub base: lsp_core::lsp_types::Url,
     pub prefixes: Vec<Spanned<TurtlePrefix>>,
     pub base_statement: Option<Spanned<Base>>,
     pub kwds: QueryClause,
@@ -240,25 +240,25 @@ impl Query {
         Ok(())
     }
 
-    pub fn set_base(&mut self, base: lsp_types::Url) {
+    pub fn set_base(&mut self, base: lsp_core::lsp_types::Url) {
         self.base = self
             .base_statement
             .as_ref()
             .iter()
             .find_map(|x| match x.iri.value() {
-                NamedNode::Full(x, _) => lsp_types::Url::parse(&x).ok(),
+                NamedNode::Full(x, _) => lsp_core::lsp_types::Url::parse(&x).ok(),
                 _ => None,
             })
             .unwrap_or_else(|| base.clone());
     }
 
-    pub fn get_base(&self) -> &lsp_types::Url {
+    pub fn get_base(&self) -> &lsp_core::lsp_types::Url {
         &self.base
     }
 }
 
 impl Based for Query {
-    fn get_base(&self) -> &lsp_types::Url {
+    fn get_base(&self) -> &lsp_core::lsp_types::Url {
         &self.base
     }
 
@@ -270,7 +270,7 @@ impl Based for Query {
 impl Default for Query {
     fn default() -> Self {
         Query {
-            base: lsp_types::Url::parse("memory://somefile.sq").unwrap(),
+            base: lsp_core::lsp_types::Url::parse("memory://somefile.sq").unwrap(),
             base_statement: None,
             prefixes: vec![],
             kwds: QueryClause::Invalid,
@@ -311,7 +311,7 @@ mod tests {
 
         let (jsonld, errors) = parse(
             inp,
-            lsp_types::Url::parse("memory::myFile.sq").unwrap(),
+            lsp_core::lsp_types::Url::parse("memory::myFile.sq").unwrap(),
             tokens,
             ctx,
         );

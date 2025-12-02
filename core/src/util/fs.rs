@@ -13,8 +13,8 @@ pub struct File {
 
 #[tower_lsp::async_trait]
 pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
-    fn virtual_url(&self, url: &str) -> Option<lsp_types::Url>;
-    fn lov_url(&self, url: &str, prefix: &str) -> Option<lsp_types::Url> {
+    fn virtual_url(&self, url: &str) -> Option<crate::lsp_types::Url>;
+    fn lov_url(&self, url: &str, prefix: &str) -> Option<crate::lsp_types::Url> {
         if !url.starts_with("http") {
             return None;
         }
@@ -22,7 +22,7 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
         tracing::info!("lov url {} {} -> {}", url, prefix, url);
         Some(url)
     }
-    async fn read_file(&self, url: &lsp_types::Url) -> Option<String>;
+    async fn read_file(&self, url: &crate::lsp_types::Url) -> Option<String>;
     async fn glob_read(&self, url: &str) -> Option<Vec<File>>;
-    async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()>;
+    async fn write_file(&self, url: &crate::lsp_types::Url, content: &str) -> Option<()>;
 }

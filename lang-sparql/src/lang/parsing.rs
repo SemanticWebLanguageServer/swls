@@ -226,7 +226,7 @@ fn modifier() -> impl Parser<PToken, Modifier, Error = Simple<PToken>> + Clone {
 }
 
 pub fn query<'a>(
-    base: lsp_types::Url,
+    base: lsp_core::lsp_types::Url,
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, Query, Error = Simple<PToken>> + Clone + use<'a> {
     let prologues = prologue().map_with_span(spanned).repeated().map(|xs| {
@@ -265,7 +265,7 @@ pub fn query<'a>(
 
 pub fn parse(
     source: &str,
-    base: lsp_types::Url,
+    base: lsp_core::lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     ctx: Ctx<'_>,
 ) -> (Spanned<Query>, Vec<Simple<PToken>>) {

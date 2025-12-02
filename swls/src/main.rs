@@ -4,10 +4,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use bevy_ecs::{system::Resource, world::World};
+use bevy_ecs::{resource::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use lsp_core::prelude::*;
-use lsp_types::SemanticTokenType;
+use lsp_core::{lsp_types::SemanticTokenType, prelude::*};
 use swls::{client::BinFs, timings, TowerClient};
 use tower_lsp::{LspService, Server};
 use tracing::{info, level_filters::LevelFilter};
@@ -47,7 +46,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     tokio::spawn(async move {
         while let Some(mut x) = rx.next().await {
             world.commands().append(&mut x);
-            world.flush_commands();
+            world.flush();
         }
     });
 

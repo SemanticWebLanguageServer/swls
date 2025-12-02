@@ -8,7 +8,7 @@ use lang_turtle::lang::{
 };
 use lov::LocalPrefix;
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
-use lsp_types::CompletionItemKind;
+use lsp_core::lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
 
 use crate::{
@@ -111,7 +111,7 @@ fn derive_triples(
             .iter()
             .flat_map(|prefix| {
                 let url = prefix.value.expand(query)?;
-                let url = lsp_types::Url::parse(&url).ok()?;
+                let url = lsp_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
                     prefix: prefix.prefix.value().clone(),
@@ -151,7 +151,7 @@ pub fn variable_completion(
                 let completion = SimpleCompletion::new(
                     CompletionItemKind::VARIABLE,
                     t.clone(),
-                    lsp_types::TextEdit {
+                    lsp_core::lsp_types::TextEdit {
                         range: token.range.clone(),
                         new_text: t,
                     },
@@ -178,13 +178,13 @@ pub fn sparql_lov_undefined_prefix_completion(
             start = Position::new(1, 0);
         }
 
-        use lsp_types::{Position, Range};
+        use lsp_core::lsp_types::{Position, Range};
         prefix_completion_helper(
             word,
             prefixes,
             &mut req.0,
             |name, location| {
-                Some(vec![lsp_types::TextEdit {
+                Some(vec![lsp_core::lsp_types::TextEdit {
                     range: Range::new(start.clone(), start),
                     new_text: format!("PREFIX {}: <{}>\n", name, location),
                 }])

@@ -8,11 +8,11 @@ use std::{
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::{Position, Url, WorkspaceFolder};
 use serde::Deserialize;
 
 use crate::{
     lang::{Lang, LangHelper},
+    lsp_types::{Position, Url, WorkspaceFolder},
     prelude::*,
     systems::TypeId,
 };
@@ -61,7 +61,7 @@ pub struct Dirty;
 
 /// [`Component`] containing the [`lsp_types::Url`] of the current document.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Label(pub lsp_types::Url);
+pub struct Label(pub crate::lsp_types::Url);
 
 /// [`Resource`] used to receive command queues. These command queues are handled with [`handle_tasks`](crate::prelude::systems::handle_tasks).
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -76,7 +76,7 @@ pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 /// This is used, for example, to only suggest properties defined in a linked document.
 /// Or only validate with shapes found in linked documents.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
-pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
+pub struct DocumentLinks(pub Vec<(crate::lsp_types::Url, &'static str)>);
 
 /// [`Component`] used to wrap an incoming [`lsp_types::Position`].
 ///
@@ -239,7 +239,7 @@ impl LocalConfig {
         let global_path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("swls/config.json");
-        let url = lsp_types::Url::from_file_path(global_path).ok()?;
+        let url = crate::lsp_types::Url::from_file_path(global_path).ok()?;
 
         tracing::debug!("Found global config url {}", url.as_str());
         let content = fs.0.read_file(&url).await?;

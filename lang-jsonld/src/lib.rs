@@ -7,10 +7,10 @@ use chumsky::prelude::Simple;
 use lsp_core::{
     components::DynLang,
     lang::{Lang, LangHelper},
+    lsp_types::SemanticTokenType,
     prelude::*,
     CreateEvent,
 };
-use lsp_types::SemanticTokenType;
 use ropey::Rope;
 
 pub mod ecs;
@@ -28,11 +28,12 @@ pub fn setup_world(world: &mut World) {
             semantic_token_dict.insert(lt.clone(), l);
         }
     });
-    world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        match &trigger.event().language_id {
+    world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
+        let e = trigger.event();
+        match &e.language_id {
             Some(x) if x == "jsonld" => {
                 commands
-                    .entity(trigger.entity())
+                    .entity(e.event_target())
                     .insert(JsonLd)
                     .insert(DynLang(Box::new(JsonLdHelper)));
                 return;
@@ -42,7 +43,7 @@ pub fn setup_world(world: &mut World) {
         // pass
         if trigger.event().url.as_str().ends_with(".jsonld") {
             commands
-                .entity(trigger.entity())
+                .entity(e.event_target())
                 .insert(JsonLd)
                 .insert(DynLang(Box::new(JsonLdHelper)));
             return;

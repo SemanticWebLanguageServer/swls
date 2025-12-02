@@ -1,6 +1,6 @@
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use lsp_types::{
+use crate::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit,
     Documentation, InsertTextFormat, TextEdit,
 };

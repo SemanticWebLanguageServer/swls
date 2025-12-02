@@ -40,7 +40,7 @@ fn find_field<'a>(
         .and_then(|x| x.json_value().map(|y| (y, x.field().span())))
 }
 
-pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_types::Url) -> Prefixes {
+pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_core::lsp_types::Url) -> Prefixes {
     let mut options: Vec<(Cow<str>, Cow<str>)> = Vec::new();
 
     // Extract prefixes
@@ -91,7 +91,7 @@ pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_types::Url) -> Prefixes 
     let mut out = Vec::new();
 
     for (k, v) in options {
-        if let Some(url) = lsp_types::Url::parse(&v).ok() {
+        if let Some(url) = lsp_core::lsp_types::Url::parse(&v).ok() {
             out.push(Prefix {
                 prefix: k.into_owned(),
                 url,

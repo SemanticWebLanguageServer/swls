@@ -1,6 +1,6 @@
 use bevy_ecs::{
     component::Component,
-    schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
+    schedule::{IntoScheduleConfigs, Schedule, ScheduleLabel},
     world::World,
 };
 
@@ -12,7 +12,7 @@ pub use crate::{
 
 /// [`Component`] indicating that the current document is currently handling a GotoType request.
 #[derive(Component, Debug, Default)]
-pub struct GotoTypeRequest(pub Vec<lsp_types::Location>);
+pub struct GotoTypeRequest(pub Vec<crate::lsp_types::Location>);
 
 /// [`ScheduleLabel`] related to the GotoImplementation schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

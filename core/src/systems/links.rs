@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use lsp_types::Url;
+use crate::lsp_types::Url;
 use tracing::instrument;
 
 use crate::{prelude::*, util::ns::owl};

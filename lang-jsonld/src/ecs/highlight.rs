@@ -1,7 +1,8 @@
 use bevy_ecs::prelude::*;
-use lsp_core::{components::Element, feature::semantic::TokenTypesComponent, prelude::*};
-use lsp_types::SemanticTokenType;
-// use semantic::TokenTypesComponent;
+use lsp_core::{
+    components::Element, feature::semantic::TokenTypesComponent, lsp_types::SemanticTokenType,
+    prelude::*,
+};
 use sophia_api::term::{Term, TermKind};
 
 use crate::{lang::parser, JsonLd};

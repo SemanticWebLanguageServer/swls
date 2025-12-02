@@ -48,7 +48,7 @@ fn derive_prefixes(
             .iter()
             .flat_map(|prefix| {
                 let url = prefix.value.expand(turtle.value())?;
-                let url = lsp_types::Url::parse(&url).ok()?;
+                let url = lsp_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
                     prefix: prefix.prefix.value().clone(),
@@ -62,7 +62,7 @@ fn derive_prefixes(
             .and_then(|b| {
                 b.0 .1
                     .expand(turtle.value())
-                    .and_then(|x| lsp_types::Url::parse(&x).ok())
+                    .and_then(|x| lsp_core::lsp_types::Url::parse(&x).ok())
             })
             .unwrap_or(url.0.clone());
 

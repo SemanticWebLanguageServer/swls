@@ -3,8 +3,7 @@ extern crate tracing;
 
 use bevy_ecs::prelude::*;
 use chumsky::error::Simple;
-use lsp_core::prelude::*;
-use lsp_types::SemanticTokenType;
+use lsp_core::{lsp_types::SemanticTokenType, prelude::*};
 
 pub mod ecs;
 use crate::ecs::{setup_completion, setup_parse};
@@ -22,12 +21,13 @@ pub fn setup_world(world: &mut World) {
             semantic_token_dict.insert(lt.clone(), l);
         }
     });
-    world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        match &trigger.event().language_id {
+    world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
+        let e = trigger.event();
+        match &e.language_id {
             Some(x) if x == "sparql" => {
                 info!("Found sparql documnet!");
                 commands
-                    .entity(trigger.entity())
+                    .entity(e.event_target())
                     .insert(Sparql)
                     .insert(DynLang(Box::new(SparqlHelper)));
                 return;
@@ -38,7 +38,7 @@ pub fn setup_world(world: &mut World) {
         if trigger.event().url.as_str().ends_with(".sq") {
             info!("Found sparql documnet!");
             commands
-                .entity(trigger.entity())
+                .entity(e.event_target())
                 .insert(Sparql)
                 .insert(DynLang(Box::new(SparqlHelper)));
             return;

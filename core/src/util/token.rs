@@ -10,7 +10,7 @@ use crate::{components::*, lang::TokenTrait, prelude::*};
 #[derive(Component, Debug)]
 pub struct TokenComponent {
     pub token: Spanned<Token>,
-    pub range: lsp_types::Range,
+    pub range: crate::lsp_types::Range,
     pub text: String,
 }
 
@@ -195,7 +195,7 @@ mod tests {
 }
 
 pub mod semantic_token {
-    use lsp_types::SemanticTokenType as STT;
+    use crate::lsp_types::SemanticTokenType as STT;
     pub const BOOLEAN: STT = STT::new("boolean");
     pub const LANG_TAG: STT = STT::new("langTag");
 }
@@ -445,7 +445,7 @@ impl Into<PToken> for Token {
 impl Eq for PToken {}
 
 impl TokenTrait for Token {
-    fn token(&self) -> Option<lsp_types::SemanticTokenType> {
+    fn token(&self) -> Option<crate::lsp_types::SemanticTokenType> {
         match self {
             Token::PrefixTag
             | Token::BaseTag
@@ -453,21 +453,21 @@ impl TokenTrait for Token {
             | Token::SparqlBase
             | Token::PredType
             | Token::SparqlKeyword(_)
-            | Token::SparqlCall(_) => Some(lsp_types::SemanticTokenType::KEYWORD),
+            | Token::SparqlCall(_) => Some(crate::lsp_types::SemanticTokenType::KEYWORD),
             Token::True | Token::False => Some(semantic_token::BOOLEAN),
-            Token::IRIRef(_) => Some(lsp_types::SemanticTokenType::PROPERTY),
+            Token::IRIRef(_) => Some(crate::lsp_types::SemanticTokenType::PROPERTY),
             Token::LangTag(_) => Some(semantic_token::LANG_TAG),
-            Token::Number(_) => Some(lsp_types::SemanticTokenType::NUMBER),
-            Token::Str(_, _) => Some(lsp_types::SemanticTokenType::STRING),
-            Token::Comment(_) => Some(lsp_types::SemanticTokenType::COMMENT),
-            Token::Variable(_) => Some(lsp_types::SemanticTokenType::VARIABLE),
+            Token::Number(_) => Some(crate::lsp_types::SemanticTokenType::NUMBER),
+            Token::Str(_, _) => Some(crate::lsp_types::SemanticTokenType::STRING),
+            Token::Comment(_) => Some(crate::lsp_types::SemanticTokenType::COMMENT),
+            Token::Variable(_) => Some(crate::lsp_types::SemanticTokenType::VARIABLE),
             _ => None,
         }
     }
 
     fn span_tokens(
         Spanned(this, span): &Spanned<Self>,
-    ) -> Vec<(lsp_types::SemanticTokenType, Range<usize>)> {
+    ) -> Vec<(crate::lsp_types::SemanticTokenType, Range<usize>)> {
         if let Some(t) = this.token() {
             return vec![(t, span.clone())];
         }
@@ -478,11 +478,11 @@ impl TokenTrait for Token {
 
                 vec![
                     (
-                        lsp_types::SemanticTokenType::NAMESPACE,
+                        crate::lsp_types::SemanticTokenType::NAMESPACE,
                         span.start..span.start + 1 + s,
                     ),
                     (
-                        lsp_types::SemanticTokenType::ENUM_MEMBER,
+                        crate::lsp_types::SemanticTokenType::ENUM_MEMBER,
                         span.start + s + 1..span.end,
                     ),
                 ]
@@ -490,11 +490,11 @@ impl TokenTrait for Token {
             Token::BlankNodeLabel(_) => {
                 vec![
                     (
-                        lsp_types::SemanticTokenType::NAMESPACE,
+                        crate::lsp_types::SemanticTokenType::NAMESPACE,
                         span.start..span.start + 2,
                     ),
                     (
-                        lsp_types::SemanticTokenType::PROPERTY,
+                        crate::lsp_types::SemanticTokenType::PROPERTY,
                         span.start + 2..span.end,
                     ),
                 ]

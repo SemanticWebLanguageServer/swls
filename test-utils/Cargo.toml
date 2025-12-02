@@ -16,9 +16,9 @@ sophia_api.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
 
-async-executor = "1.13.1"
-async-std      = "1.13.0"
+async-executor = "1.13.3"
+async-std      = "1.13.2"
 
 lsp-core = { path = "../core/" }
-glob = "0.3.2"
+glob = "0.3.3"
 

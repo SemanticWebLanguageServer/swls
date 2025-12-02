@@ -1,16 +1,16 @@
 use std::{hash::Hash, ops::Range};
 
-use lsp_types::SemanticTokenType;
+use crate::lsp_types::SemanticTokenType;
 use ropey::Rope;
 
 use crate::prelude::*;
 
-pub fn head() -> lsp_types::Range {
-    let start = lsp_types::Position {
+pub fn head() -> crate::lsp_types::Range {
+    let start = crate::lsp_types::Position {
         line: 0,
         character: 0,
     };
-    lsp_types::Range {
+    crate::lsp_types::Range {
         end: start.clone(),
         start,
     }

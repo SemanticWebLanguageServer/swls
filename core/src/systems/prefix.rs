@@ -2,7 +2,7 @@ use std::{collections::HashSet, ops::Deref};
 
 use bevy_ecs::prelude::*;
 use lov::LocalPrefix;
-use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
+use crate::lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
 use tracing::{debug, instrument};
 
 use crate::prelude::*;
@@ -13,7 +13,7 @@ pub const PREFIX_CC: &'static str = include_str!("./prefix_cc.txt");
 #[derive(Debug, Clone)]
 pub struct Prefix {
     pub prefix: String,
-    pub url: lsp_types::Url,
+    pub url: crate::lsp_types::Url,
 }
 
 /// [`Component`] that containing defined prefixes and base URL.
@@ -24,7 +24,7 @@ pub struct Prefix {
 /// - derive linked documents [`DocumentLinks`] with
 /// [`derive_prefix_links`](crate::prelude::systems::derive_prefix_links)
 #[derive(Component, Debug)]
-pub struct Prefixes(pub Vec<Prefix>, pub lsp_types::Url);
+pub struct Prefixes(pub Vec<Prefix>, pub crate::lsp_types::Url);
 impl Deref for Prefixes {
     type Target = Vec<Prefix>;
 
@@ -113,7 +113,7 @@ pub fn prefix_completion_helper<'a>(
                     let completion = SimpleCompletion::new(
                         CompletionItemKind::MODULE,
                         format!("{}", lov.name),
-                        lsp_types::TextEdit {
+                        crate::lsp_types::TextEdit {
                             new_text,
                             range: word.range.clone(),
                         },
@@ -194,7 +194,7 @@ pub fn defined_prefix_completion(
                         SimpleCompletion::new(
                             CompletionItemKind::MODULE,
                             format!("{}", x.prefix.as_str()),
-                            lsp_types::TextEdit {
+                            crate::lsp_types::TextEdit {
                                 new_text,
                                 range: word.range.clone(),
                             },

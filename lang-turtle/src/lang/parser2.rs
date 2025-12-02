@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use lsp_core::{prelude::Token, util::Spanned};
-use lsp_types::Url;
+use lsp_core::lsp_types::Url;
 
 use super::{model::*, tokenizer::parse_tokens_str};
 
@@ -590,7 +590,7 @@ mod tests {
 <a> <b> <c>.
 #This is a very nice comment!
             "#;
-        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let mut output = Turtle::empty(&url);
         let tokens = parse_tokens_str(txt).0;
         Ctx::new(&tokens).parse_turtle(&mut output);
@@ -605,7 +605,7 @@ mod tests {
 <a> <b> <c>.
 #This is a very nice comment!
             "#;
-        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let mut output = Turtle::empty(&url);
         let tokens = parse_tokens_str(txt).0;
         Ctx::new(&tokens).parse_turtle(&mut output);
@@ -623,7 +623,7 @@ mod tests {
 #This is a very nice comment!
             "#;
 
-        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let mut output = Turtle::empty(&url);
         let tokens = parse_tokens_str(txt).0;
         let failed = Ctx::new(&tokens).parse_turtle_retry(&mut output);

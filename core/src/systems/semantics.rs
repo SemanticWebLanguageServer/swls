@@ -6,7 +6,7 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
-use lsp_types::{SemanticToken, SemanticTokenType};
+use crate::lsp_types::{SemanticToken, SemanticTokenType};
 
 struct TokenHelper {
     start: usize,

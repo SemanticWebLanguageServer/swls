@@ -296,16 +296,16 @@ impl<'a> Term for MyTerm<'a> {
 
     fn iri(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr>> {
         self.is_iri()
-            .then(|| IriRef::new_unchecked(MownStr::from_str(&self.value)))
+            .then(|| IriRef::new_unchecked(MownStr::from_ref(&self.value)))
     }
 
     fn bnode_id(&self) -> Option<sophia_api::term::BnodeId<sophia_api::MownStr>> {
         self.is_blank_node()
-            .then(|| BnodeId::new_unchecked(MownStr::from_str(&self.value)))
+            .then(|| BnodeId::new_unchecked(MownStr::from_ref(&self.value)))
     }
 
     fn lexical_form(&self) -> Option<sophia_api::MownStr> {
-        self.is_literal().then(|| MownStr::from_str(&self.value))
+        self.is_literal().then(|| MownStr::from_ref(&self.value))
     }
 
     fn datatype(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr>> {

@@ -12,7 +12,7 @@ pub use typed::*;
 mod links;
 pub use links::*;
 pub mod prefix;
-use lsp_types::CompletionItemKind;
+use crate::lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, hover_class,
@@ -26,7 +26,7 @@ pub use lov::{
 use tracing::instrument;
 
 pub fn spawn_or_insert(
-    url: lsp_types::Url,
+    url: crate::lsp_types::Url,
     bundle: impl Bundle,
     language_id: Option<String>,
     extra: impl Bundle,
@@ -42,11 +42,15 @@ pub fn spawn_or_insert(
             entity
         } else {
             let entity = world.spawn(bundle).insert(extra).id();
-            world.trigger_targets(CreateEvent { url, language_id }, entity);
+            world.trigger(CreateEvent {
+                url,
+                language_id,
+                entity,
+            });
             entity
         };
 
-        world.flush_commands();
+        world.flush();
         world.run_schedule(ParseLabel);
         out
     }
@@ -72,7 +76,7 @@ pub fn keyword_complete(
         let range = if let Some(ct) = m_token {
             ct.range
         } else {
-            lsp_types::Range {
+            crate::lsp_types::Range {
                 start: position.0,
                 end: position.0,
             }
@@ -82,7 +86,7 @@ pub fn keyword_complete(
             let completion = SimpleCompletion::new(
                 CompletionItemKind::KEYWORD,
                 kwd.to_string(),
-                lsp_types::TextEdit {
+                crate::lsp_types::TextEdit {
                     range: range.clone(),
                     new_text: kwd.to_string(),
                 },
@@ -100,9 +104,9 @@ pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
             let Some(position) = offset_to_position(t.span.end, &rope) else {
                 continue;
             };
-            out.push(lsp_types::InlayHint {
+            out.push(crate::lsp_types::InlayHint {
                 position,
-                label: lsp_types::InlayHintLabel::String(format!("{}", t)),
+                label: crate::lsp_types::InlayHintLabel::String(format!("{}", t)),
                 kind: None,
                 text_edits: None,
                 tooltip: None,

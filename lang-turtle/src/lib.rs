@@ -6,8 +6,10 @@ use std::{borrow::Cow, collections::HashMap};
 
 use bevy_ecs::{
     component::Component,
-    observer::Trigger,
-    system::{Commands, Res, Resource},
+    event::EntityEvent,
+    observer::On,
+    resource::Resource,
+    system::{Commands, Res},
     world::{CommandQueue, World},
 };
 use chumsky::prelude::Simple;
@@ -16,10 +18,10 @@ use lov::LocalPrefix;
 use lsp_core::{
     feature::diagnostics::publish_diagnostics,
     lang::{Lang, LangHelper},
+    lsp_types::{SemanticTokenType, Url},
     prelude::*,
     CreateEvent,
 };
-use lsp_types::{SemanticTokenType, Url};
 
 pub mod ecs;
 pub mod lang;
@@ -46,11 +48,12 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
         }
     });
 
-    world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        match &trigger.event().language_id {
+    world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
+        let e = &trigger.event();
+        match &e.language_id {
             Some(x) if x == "turtle" => {
                 commands
-                    .entity(trigger.entity())
+                    .entity(e.event_target())
                     .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
                 return;
             }
@@ -59,7 +62,7 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
         // pass
         if trigger.event().url.as_str().ends_with(".ttl") {
             commands
-                .entity(trigger.entity())
+                .entity(e.event_target())
                 .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
             return;
         }
@@ -93,7 +96,7 @@ impl Lang for TurtleLang {
     const CODE_ACTION: bool = true;
     const HOVER: bool = true;
 
-    const LEGEND_TYPES: &'static [lsp_types::SemanticTokenType] = &[
+    const LEGEND_TYPES: &'static [lsp_core::lsp_types::SemanticTokenType] = &[
         semantic_token::BOOLEAN,
         semantic_token::LANG_TAG,
         SemanticTokenType::COMMENT,
@@ -129,7 +132,7 @@ async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(Stri
                 files
                     .into_iter()
                     .flat_map(|File { content, name }| {
-                        if let Ok(url) = lsp_types::Url::from_file_path(name) {
+                        if let Ok(url) = lsp_core::lsp_types::Url::from_file_path(name) {
                             Some((content, url))
                         } else {
                             None

@@ -10,14 +10,18 @@ use bevy_ecs::{
 use completion::CompletionRequest;
 use futures::lock::Mutex;
 use goto_type::GotoTypeRequest;
-use lsp_types::{request::SemanticTokensRefresh, *};
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
-use crate::{feature::goto_definition::GotoDefinitionRequest, prelude::*, Startup};
+use crate::{
+    feature::goto_definition::GotoDefinitionRequest,
+    lsp_types::{request::SemanticTokensRefresh, *},
+    prelude::*,
+    Startup,
+};
 
 #[derive(Debug)]
 pub struct Backend {
@@ -76,7 +80,7 @@ impl Backend {
             world.entity_mut(entity).insert(param);
             world.run_schedule(schedule.clone());
             if let Err(_) = tx.send(world.entity_mut(entity).take::<T>()) {
-                tracing::error!("Failed to run schedule {:?}", schedule);
+                tracing::error!(name: "Failed to run schedule", "Failed to run schedule {:?}", schedule);
             };
         });
 
@@ -240,7 +244,7 @@ impl LanguageServer for Backend {
             .await
         {
             Ok(Some(SemanticTokensResult::Tokens(
-                lsp_types::SemanticTokens {
+                crate::lsp_types::SemanticTokens {
                     result_id: None,
                     data: res.0,
                 },
@@ -344,7 +348,7 @@ impl LanguageServer for Backend {
             pos.character
         };
 
-        let mut change_map: HashMap<lsp_types::Url, Vec<TextEdit>> = HashMap::new();
+        let mut change_map: HashMap<crate::lsp_types::Url, Vec<TextEdit>> = HashMap::new();
         if let Some(changes) = self
             .run_schedule::<RenameEdits>(
                 entity,
@@ -364,7 +368,7 @@ impl LanguageServer for Backend {
         Ok(Some(WorkspaceEdit::new(change_map)))
     }
 
-    async fn hover(&self, params: HoverParams) -> Result<Option<lsp_types::Hover>> {
+    async fn hover(&self, params: HoverParams) -> Result<Option<crate::lsp_types::Hover>> {
         let request: HoverRequest = HoverRequest::default();
 
         let entity = {
@@ -394,8 +398,8 @@ impl LanguageServer for Backend {
             .await
         {
             if hover.0.len() > 0 {
-                return Ok(Some(lsp_types::Hover {
-                    contents: lsp_types::HoverContents::Array(
+                return Ok(Some(crate::lsp_types::Hover {
+                    contents: crate::lsp_types::HoverContents::Array(
                         hover.0.into_iter().map(MarkedString::String).collect(),
                     ),
                     range: hover.1,
@@ -634,7 +638,7 @@ impl LanguageServer for Backend {
             pos.character
         };
 
-        let completions: Option<Vec<lsp_types::CompletionItem>> = self
+        let completions: Option<Vec<crate::lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
                 entity,
                 CompletionLabel,

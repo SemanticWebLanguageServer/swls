@@ -11,6 +11,6 @@ chumsky.workspace      = true
 lsp-core = { path = "../core/" }
 
 [dev-dependencies]
-test-log   = { version = "0.2.16", features = ["trace"] }
+test-log   = { version = "0.2.19", features = ["trace"] }
 test-utils = { path = "../test-utils/" }
 

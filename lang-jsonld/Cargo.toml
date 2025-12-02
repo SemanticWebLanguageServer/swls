@@ -10,7 +10,6 @@ async-trait.workspace  = true
 bevy_ecs.workspace     = true
 chumsky.workspace      = true
 futures.workspace      = true
-lsp-types.workspace    = true
 ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
@@ -20,6 +19,6 @@ tracing.workspace      = true
 lsp-core = { path = "../core/" }
 
 [dev-dependencies]
-test-log   = { version = "0.2.16", features = ["trace"] }
+test-log   = { version = "0.2.19", features = ["trace"] }
 test-utils = { path = "../test-utils/" }
 lang-turtle = { path = "../lang-turtle/" }

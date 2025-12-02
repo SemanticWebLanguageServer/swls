@@ -9,7 +9,7 @@ version = "0.1.0"
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 chumsky.workspace   = true
-sophia_turtle = "0.8.0"
+sophia_turtle = "0.9.0"
 
 lsp-types.workspace    = true
 lang-turtle = { path = "../lang-turtle/" }
@@ -17,6 +17,6 @@ lang-turtle = { path = "../lang-turtle/" }
 [build-dependencies]
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
-sophia_turtle = "0.8.0"
-sophia_inmem = "0.8.0"
+sophia_turtle = "0.9.0"
+sophia_inmem = "0.9.0"
 

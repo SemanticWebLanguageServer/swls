@@ -1,6 +1,6 @@
 use bevy_ecs::{
     component::Component,
-    schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
+    schedule::{IntoScheduleConfigs, Schedule, ScheduleLabel},
     world::World,
 };
 
@@ -11,7 +11,7 @@ pub use crate::{
 
 /// [`Component`] indicating that the current document is currently handling a Hover request.
 #[derive(Component, Debug, Default)]
-pub struct HoverRequest(pub Vec<String>, pub Option<lsp_types::Range>);
+pub struct HoverRequest(pub Vec<String>, pub Option<crate::lsp_types::Range>);
 
 /// [`ScheduleLabel`] related to the Parse schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

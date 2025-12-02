@@ -1,7 +1,7 @@
 use std::{cell::OnceCell, collections::HashMap};
 
 use bevy_ecs::prelude::*;
-use lsp_types::{DiagnosticSeverity, TextDocumentItem};
+use crate::lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
 use rudof_lib::{
     shacl_ast::{compiled::shape::CompiledShape, ShaclParser},
@@ -159,7 +159,7 @@ fn push_diagnostics(
     s: &CompiledShape<RdfData>,
     triples: &Triples,
     prefixes: &Prefixes,
-    diagnostics: &mut Vec<lsp_types::Diagnostic>,
+    diagnostics: &mut Vec<crate::lsp_types::Diagnostic>,
 ) {
     for (range, per_path) in group_per_fn_per_path(&res, s, triples, prefixes) {
         if let Some(range) = range_to_range(&range, &rope) {
@@ -192,7 +192,7 @@ fn derive_shapes_diagnostics_for(
     other: &Query<(&Label, &ShaclShapes, &Prefixes)>,
     client: &mut DiagnosticPublisher,
 ) {
-    let mut diagnostics: Vec<lsp_types::Diagnostic> = Vec::new();
+    let mut diagnostics: Vec<crate::lsp_types::Diagnostic> = Vec::new();
 
     let build_validator = || {
         SRDFGraph::from_reader(

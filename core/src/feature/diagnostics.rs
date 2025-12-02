@@ -3,11 +3,13 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use chumsky::prelude::Simple;
 use futures::channel::mpsc;
-use lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 pub use systems::prefix::undefined_prefix;
 
-use crate::prelude::*;
+use crate::{
+    lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url},
+    prelude::*,
+};
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
@@ -20,7 +22,7 @@ pub fn setup_schedule(world: &mut World) {
 #[derive(Resource)]
 pub struct DiagnosticPublisher {
     tx: mpsc::UnboundedSender<DiagnosticItem>,
-    diagnostics: HashMap<lsp_types::Url, Vec<(Diagnostic, &'static str)>>,
+    diagnostics: HashMap<crate::lsp_types::Url, Vec<(Diagnostic, &'static str)>>,
 }
 
 impl DiagnosticPublisher {
@@ -217,7 +219,7 @@ pub fn publish_diagnostics<L: Lang>(
                 let start_position = offset_to_position(span.start, &rope.0)?;
                 let end_position = offset_to_position(span.end, &rope.0)?;
                 Some(Diagnostic {
-                    range: lsp_types::Range::new(start_position, end_position),
+                    range: crate::lsp_types::Range::new(start_position, end_position),
                     message,
                     severity: item.severity,
                     ..Default::default()

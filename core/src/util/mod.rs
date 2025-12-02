@@ -3,10 +3,12 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use lsp_types::{Location, Position, Range};
 use ropey::Rope;
 
-use crate::Label;
+use crate::{
+    lsp_types::{Location, Position, Range},
+    Label,
+};
 
 // pub mod cache;
 pub mod fs;
@@ -24,7 +26,7 @@ pub mod triple;
 //
 //     let url = format!("virtual://prefix/{}.ttl", prefix);
 //
-//     lsp_types::Url::parse(&url).ok()
+//     crate::lsp_types::Url::parse(&url).ok()
 // }
 
 pub fn range_to_range(range: &std::ops::Range<usize>, rope: &Rope) -> Option<Range> {
@@ -33,7 +35,10 @@ pub fn range_to_range(range: &std::ops::Range<usize>, rope: &Rope) -> Option<Ran
     Range::new(start, end).into()
 }
 
-pub fn lsp_range_to_range(range: &lsp_types::Range, rope: &Rope) -> Option<std::ops::Range<usize>> {
+pub fn lsp_range_to_range(
+    range: &crate::lsp_types::Range,
+    rope: &Rope,
+) -> Option<std::ops::Range<usize>> {
     if range.start.line as usize >= rope.len_lines() || range.end.line as usize >= rope.len_lines()
     {
         return None;

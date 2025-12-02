@@ -63,9 +63,9 @@
 //!       for my_completion in &completions.subjects {
 //!         request.push(
 //!           SimpleCompletion::new(
-//!             lsp_types::CompletionItemKind::FIELD,
+//!             crate::lsp_types::CompletionItemKind::FIELD,
 //!             my_completion.clone(),
-//!             lsp_types::TextEdit {
+//!             crate::lsp_types::TextEdit {
 //!               range: token.range.clone(),
 //!               new_text: my_completion.clone(),
 //!             }
@@ -83,6 +83,7 @@
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use prelude::SemanticTokensDict;
 use systems::{init_onology_extractor, populate_known_ontologies, OntologyExtractor};
+pub use tower_lsp::lsp_types;
 
 use crate::prelude::*;
 
@@ -193,10 +194,12 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 /// });
 /// ```
 ///
-#[derive(Event)]
+#[derive(EntityEvent)]
 pub struct CreateEvent {
-    pub url: lsp_types::Url,
+    pub url: crate::lsp_types::Url,
     pub language_id: Option<String>,
+    #[event_target]
+    entity: Entity,
 }
 
 /// [`ScheduleLabel`] related to the Tasks schedule
