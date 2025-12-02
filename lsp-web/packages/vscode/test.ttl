@@ -1,8 +1,0 @@
-@prefix owl: <http://www.w3.org/2002/07/owl#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-
-<> owl:imports <./shape.ttl>.
-<abc> a foaf:Person;
-  foaf:title "test";
-  foaf:age 69.
-

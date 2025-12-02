@@ -9,7 +9,7 @@ use sophia_api::{
     triple::Triple,
 };
 use sophia_inmem::graph::FastGraph;
-use sophia_iri::{Iri, IriRef};
+use sophia_iri::Iri;
 
 pub mod rdfs {
     use sophia_api::namespace;

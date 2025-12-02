@@ -33,7 +33,6 @@ default-members = [
 members = [
   "core",
   "lov",
-  "lsp-web",
   "lang-turtle",
   "lang-jsonld",
   "lang-sparql",

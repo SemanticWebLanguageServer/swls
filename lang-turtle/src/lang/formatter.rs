@@ -468,7 +468,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use lsp_core::prelude::{spanned, Spanned};
+    use lsp_core::prelude::{Spanned, Token};
     use ropey::Rope;
 
     use crate::lang::{
@@ -495,9 +495,12 @@ mod tests {
 
         let mut comments: Vec<_> = tokens
             .iter()
-            .filter(|x| x.0.is_comment())
-            .cloned()
-            .map(|x| spanned(x.0.to_comment(), x.1))
+            .flat_map(|x| {
+                x.try_map_ref(|t| match t {
+                    Token::Comment(x) => Some(x.clone()),
+                    _ => None,
+                })
+            })
             .collect();
         comments.sort_by_key(|x| x.1.start);
 

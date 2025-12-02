@@ -35,12 +35,12 @@ fn derive_class(
     source: &'static str,
 ) -> Option<DefinedClass> {
     let label = triples
-        .object([subject], [rdfs::label])?
+        .object([subject], [rdfs::label, dc::title])?
         .to_owned()
         .as_str()
         .to_string();
     let comment = triples
-        .object([subject], [rdfs::comment])?
+        .object([subject], [rdfs::comment, dc::description])?
         .to_owned()
         .as_str()
         .to_string();
@@ -107,7 +107,22 @@ pub fn complete_class(
                     );
                     continue;
                 }
-                debug!("Looking for defined classes in {}", label.0);
+
+                let st = classes.0.iter().take(5).fold(String::new(), |mut st, b| {
+                    if let Some(short) = prefixes.shorten(&b.term.value) {
+                        st += &short;
+                    } else {
+                        st += &b.term.value;
+                    }
+                    st += ", ";
+                    st
+                });
+                debug!(
+                    "Looking for defined classes in {} (found {} {})",
+                    label.0,
+                    classes.0.len(),
+                    st
+                );
 
                 for class in classes.0.iter() {
                     let to_beat = prefixes
@@ -176,12 +191,12 @@ fn derive_property(
     source: &'static str,
 ) -> Option<DefinedProperty> {
     let label = triples
-        .object([subject], [rdfs::label])?
+        .object([subject], [rdfs::label, dc::title])?
         .to_owned()
         .as_str()
         .to_string();
     let comment = triples
-        .object([subject], [rdfs::comment])?
+        .object([subject], [rdfs::comment, dc::description])?
         .to_owned()
         .as_str()
         .to_string();

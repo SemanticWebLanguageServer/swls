@@ -18,6 +18,16 @@ pub mod shacl {
     }
 }
 
+pub mod dc {
+    use sophia_api::namespace;
+
+    namespace! {
+     "http://purl.org/dc/terms/",
+        description,
+        title
+    }
+}
+
 pub mod xsd {
     use sophia_api::namespace;
 

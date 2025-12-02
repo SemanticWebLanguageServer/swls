@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn completion_event_works() {
         println!("completion_event_works");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
@@ -139,7 +139,7 @@ foa
     #[test_log::test]
     fn completion_event_works_multiple_files() {
         info!("Testing multiple files");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
         let t1_1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
             ";
@@ -200,7 +200,7 @@ foaf:me foaf:friend <#me>.
     #[test_log::test]
     fn test_autocomplete_classes() {
         println!("completion_event_works");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
 
@@ -246,7 +246,7 @@ foaf:me foaf:friend <#me>.
     #[test_log::test]
     fn test_autocomplete_properties_3() {
         println!("completion_event_works");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
 
@@ -286,7 +286,7 @@ foaf:me foaf:friend <#me>.
     #[test_log::test]
     fn test_autocomplete_properties_2() {
         println!("completion_event_works");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
 <> a foaf:Person;

@@ -58,7 +58,7 @@ mod test {
     // crate::setup_world::<TestClient>(&mut world);
     #[test]
     fn format_does_it() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let entity = create_file(
             &mut world,

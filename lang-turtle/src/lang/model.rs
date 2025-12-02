@@ -814,7 +814,7 @@ impl Display for Turtle {
 mod test {
     use std::{collections::HashSet, str::FromStr};
 
-    use lsp_core::prelude::{spanned, MyQuad, Spanned};
+    use lsp_core::prelude::{MyQuad, Spanned, Token};
 
     use super::Turtle;
     use crate::lang::{context::Context, parser as parser2, tokenizer::parse_tokens_str_safe};
@@ -834,9 +834,12 @@ mod test {
 
         let mut comments: Vec<_> = tokens
             .iter()
-            .filter(|x| x.0.is_comment())
-            .cloned()
-            .map(|x| spanned(x.0.to_comment(), x.1))
+            .flat_map(|x| {
+                x.try_map_ref(|t| match t {
+                    Token::Comment(x) => Some(x.clone()),
+                    _ => None,
+                })
+            })
             .collect();
         comments.sort_by_key(|x| x.1.start);
 
@@ -930,7 +933,7 @@ _:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://ex
 
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
-        let triples = output.get_simple_triples().expect("Triples found");
+        output.get_simple_triples().expect("Triples found");
     }
 
     #[test]

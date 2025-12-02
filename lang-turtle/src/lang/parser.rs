@@ -765,6 +765,7 @@ pub mod turtle_tests {
 
         assert_eq!(errors.len(), 1);
         assert_eq!(output.unwrap().to_string(), "<a> <b> <c>.\n");
+        assert!(errors[0].span().start != 0);
     }
 
     #[test]
@@ -781,6 +782,7 @@ pub mod turtle_tests {
 
         assert_eq!(errors.len(), 1);
         assert_eq!(output.unwrap().to_string(), "<b> <c> invalid.\n");
+        assert!(errors[0].span().start != 0);
     }
 
     #[test]
@@ -796,6 +798,7 @@ pub mod turtle_tests {
 
         assert_eq!(errors.len(), 1);
         assert_eq!(output.unwrap().to_string(), "<a> <b> <c>; <d> invalid.\n");
+        assert!(errors[0].span().start != 0);
     }
 
     #[test]

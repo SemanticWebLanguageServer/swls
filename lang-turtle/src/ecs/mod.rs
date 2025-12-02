@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn diagnostics_work() {
-        let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = "
 @prefix foaf: <>.
@@ -139,7 +139,7 @@ foa
     fn fetch_lov_properties_test() {
         let mut client = TestClient::new();
         client.add_res("http://xmlns.com/foaf/0.1/", " @prefix foaf: <>. ");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
         create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
@@ -154,7 +154,7 @@ foa
 
     #[test]
     fn turtle_does_prefix_links() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
         let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);

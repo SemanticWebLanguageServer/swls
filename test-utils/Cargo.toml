@@ -20,4 +20,5 @@ async-executor = "1.13.1"
 async-std      = "1.13.0"
 
 lsp-core = { path = "../core/" }
+glob = "0.3.2"
 
