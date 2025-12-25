@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["is_valid_prefix"],"struct":["InvalidPrefix","Prefix"],"trait":["AsPrefix","IsPrefix","PrefixMap"],"type":["PrefixMapPair"]};

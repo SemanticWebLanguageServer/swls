@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Disabled entities do not show up in queries unless the query explicitly mentions them."><title>bevy_ecs::entity_disabling - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_ecs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module entity_disabling</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_ecs/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_ecs/index.html">bevy_<wbr>ecs</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module entity_<wbr>disabling</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#default-query-filters" title="Default query filters">Default query filters</a><ul><li><a href="#warnings" title="Warnings">Warnings</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate bevy_<wbr>ecs</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_ecs</a></div><h1>Module <span>entity_<wbr>disabling</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_ecs/entity_disabling.rs.html#1-397">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Disabled entities do not show up in queries unless the query explicitly mentions them.</p>
+<p>Entities which are disabled in this way are not removed from the <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a>,
+and their relationships remain intact.
+In many cases, you may want to disable entire trees of entities at once,
+using <a href="../system/struct.EntityCommands.html#method.insert_recursive" title="method bevy_ecs::system::EntityCommands::insert_recursive"><code>EntityCommands::insert_recursive</code></a>.</p>
+<p>While Bevy ships with a built-in <a href="struct.Disabled.html" title="struct bevy_ecs::entity_disabling::Disabled"><code>Disabled</code></a> component, you can also create your own
+disabling components, which will operate in the same way but can have distinct semantics.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
+
+<span class="comment">// Our custom disabling component!
+</span><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>Prefab;
+
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>A;
+
+<span class="kw">let </span><span class="kw-2">mut </span>world = World::new();
+world.register_disabling_component::&lt;Prefab&gt;();
+world.spawn((A, Prefab));
+world.spawn((A,));
+world.spawn((A,));
+
+<span class="kw">let </span><span class="kw-2">mut </span>normal_query = world.query::&lt;<span class="kw-2">&amp;</span>A&gt;();
+<span class="macro">assert_eq!</span>(<span class="number">2</span>, normal_query.iter(<span class="kw-2">&amp;</span>world).count());
+
+<span class="kw">let </span><span class="kw-2">mut </span>prefab_query = world.query_filtered::&lt;<span class="kw-2">&amp;</span>A, With&lt;Prefab&gt;&gt;();
+<span class="macro">assert_eq!</span>(<span class="number">1</span>, prefab_query.iter(<span class="kw-2">&amp;</span>world).count());
+
+<span class="kw">let </span><span class="kw-2">mut </span>maybe_prefab_query = world.query::&lt;(<span class="kw-2">&amp;</span>A, Has&lt;Prefab&gt;)&gt;();
+<span class="macro">assert_eq!</span>(<span class="number">3</span>, maybe_prefab_query.iter(<span class="kw-2">&amp;</span>world).count());</code></pre></div><h3 id="default-query-filters"><a class="doc-anchor" href="#default-query-filters">§</a>Default query filters</h3>
+<p>In Bevy, entity disabling is implemented through the construction of a global “default query filter” resource.
+Queries which do not explicitly mention the disabled component will not include entities with that component.
+If an entity has multiple disabling components, it will only be included in queries that mention all of them.</p>
+<p>For example, <code>Query&lt;&amp;Position&gt;</code> will not include entities with the <a href="struct.Disabled.html" title="struct bevy_ecs::entity_disabling::Disabled"><code>Disabled</code></a> component,
+even if they have a <code>Position</code> component,
+but <code>Query&lt;&amp;Position, With&lt;Disabled&gt;&gt;</code> or <code>Query&lt;(&amp;Position, Has&lt;Disabled&gt;)&gt;</code> will see them.</p>
+<p>The <a href="../query/struct.Allow.html" title="struct bevy_ecs::query::Allow"><code>Allow</code></a> query filter is designed to be used with default query filters,
+and ensures that the query will include entities both with and without the specified disabling component.</p>
+<p>Entities with disabling components are still present in the <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a> and can be accessed directly,
+using methods on <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a> or <a href="../system/struct.Commands.html" title="struct bevy_ecs::system::Commands"><code>Commands</code></a>.</p>
+<p>As default query filters are implemented through a resource,
+it’s possible to temporarily ignore any default filters by using <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World::resource_scope</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>bevy_ecs::entity_disabling::{DefaultQueryFilters, Disabled};
+
+<span class="kw">let </span><span class="kw-2">mut </span>world = World::default();
+
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>CustomDisabled;
+
+world.register_disabling_component::&lt;CustomDisabled&gt;();
+
+world.spawn(Disabled);
+world.spawn(CustomDisabled);
+
+<span class="comment">// resource_scope removes DefaultQueryFilters temporarily before re-inserting into the world.
+</span>world.resource_scope(|world: <span class="kw-2">&amp;mut </span>World, <span class="kw">_</span>: Mut&lt;DefaultQueryFilters&gt;| {
+    <span class="comment">// within this scope, we can query like no components are disabled.
+    </span><span class="macro">assert_eq!</span>(world.query::&lt;<span class="kw-2">&amp;</span>Disabled&gt;().query(<span class="kw-2">&amp;</span>world).count(), <span class="number">1</span>);
+    <span class="macro">assert_eq!</span>(world.query::&lt;<span class="kw-2">&amp;</span>CustomDisabled&gt;().query(<span class="kw-2">&amp;</span>world).count(), <span class="number">1</span>);
+    <span class="macro">assert_eq!</span>(world.query::&lt;()&gt;().query(<span class="kw-2">&amp;</span>world).count(), world.entities().len() <span class="kw">as </span>usize);
+})</code></pre></div><h4 id="warnings"><a class="doc-anchor" href="#warnings">§</a>Warnings</h4>
+<p>Currently, only queries for which the cache is built after enabling a default query filter will have entities
+with those components filtered. As a result, they should generally only be modified before the
+app starts.</p>
+<p>Because filters are applied to all queries they can have performance implication for
+the enire <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a>, especially when they cause queries to mix sparse and table components.
+See <a href="../system/struct.Query.html#performance" title="struct bevy_ecs::system::Query"><code>Query</code> performance</a> for more info.</p>
+<p>Custom disabling components can cause significant interoperability issues within the ecosystem,
+as users must be aware of each disabling component in use.
+Libraries should think carefully about whether they need to use a new disabling component,
+and clearly communicate their presence to their users to avoid the new for library compatibility flags.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.DefaultQueryFilters.html" title="struct bevy_ecs::entity_disabling::DefaultQueryFilters">Default<wbr>Query<wbr>Filters</a></dt><dd>Default query filters work by excluding entities with certain components from most queries.</dd><dt><a class="struct" href="struct.Disabled.html" title="struct bevy_ecs::entity_disabling::Disabled">Disabled</a></dt><dd>A marker component for disabled entities.</dd><dt><a class="struct" href="struct.Internal.html" title="struct bevy_ecs::entity_disabling::Internal">Internal</a></dt><dd>A marker component for internal entities.</dd></dl></section></div></main></body></html>

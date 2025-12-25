@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["def_mod_functions_for_bufread_parser","namespace","ns_iri"],"mod":["dataset","graph","ns","parser","prefix","prelude","quad","serializer","source","sparql","term","triple"],"struct":["MownStr"]};

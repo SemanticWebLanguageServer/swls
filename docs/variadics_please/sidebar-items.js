@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["all_tuples","all_tuples_enumerated","all_tuples_with_size"]};

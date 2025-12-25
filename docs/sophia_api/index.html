@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This crate provides a foundation, as a set of traits and core types, for building interoperable implementations of RDF and Linked Data in Rust."><title>sophia_api - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="sophia_api" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate sophia_api</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../sophia_api/index.html">sophia_<wbr>api</a><span class="version">0.9.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#rdf" title="RDF">RDF</a></li><li><a href="#generalized-vs-strict-rdf-model" title="Generalized vs. Strict RDF model">Generalized vs. Strict RDF model</a></li><li><a href="#feature-gates" title="Feature gates">Feature gates</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#macros" title="Macros">Macros</a></li><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>sophia_<wbr>api</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/sophia_api/lib.rs.html#1-68">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This crate provides a foundation,
+as a set of traits and core types,
+for building interoperable implementations of <a href="https://www.w3.org/TR/rdf-primer/">RDF</a> and <a href="http://linkeddata.org/">Linked Data</a> in Rust.</p>
+<p>For an all-inclusive crate
+(providing actual implementations of the traits defined here),
+see <a href="https://docs.rs/sophia/latest/sophia/"><code>sophia</code></a>.</p>
+<h2 id="rdf"><a class="doc-anchor" href="#rdf">§</a>RDF</h2>
+<p><a href="https://www.w3.org/TR/rdf-primer/">RDF</a> is a data model
+designed to exchange knowledge on the Web
+in an interoperable way.
+Each piece of knowledge in RDF (a <em>statement</em>)
+is represented by a <a href="triple/index.html" title="mod sophia_api::triple">triple</a>, made of three <a href="term/index.html" title="mod sophia_api::term">term</a>s.
+A set of <a href="triple/index.html" title="mod sophia_api::triple">triple</a>s forms an RDF <a href="graph/index.html" title="mod sophia_api::graph">graph</a>.
+Finally, several <a href="graph/index.html" title="mod sophia_api::graph">graph</a>s can be grouped in a collection
+called a <a href="dataset/index.html" title="mod sophia_api::dataset">dataset</a>, where each <a href="graph/index.html" title="mod sophia_api::graph">graph</a> is identified by a unique name.</p>
+<h2 id="generalized-vs-strict-rdf-model"><a class="doc-anchor" href="#generalized-vs-strict-rdf-model">§</a>Generalized vs. Strict RDF model</h2>
+<p>The data model supported by this crate is in fact
+a superset of the RDF data model as defined by the W3C.
+When the distinction matters,
+they will be called, respectively,
+the <em>generalized</em> RDF model, and the <em>strict</em> RDF model.</p>
+<p>The generalized RDF model extends RDF as follows:</p>
+<ul>
+<li>
+<p>In addition to standard RDF terms (IRIs, blank nodes and literals),
+Sophia supports</p>
+<ul>
+<li>RDF-star <a href="https://www.w3.org/2021/12/rdf-star.html#dfn-quoted">quoted triples</a></li>
+<li>Variables (a concept borrowed from <a href="https://www.w3.org/TR/sparql11-query/">SPARQL</a> or <a href="https://www.w3.org/TeamSubmission/n3/">Notation3</a>)</li>
+</ul>
+</li>
+<li>
+<p>Sophia allows any kind of term in any position (subject, predicate, object, graph name).</p>
+</li>
+<li>
+<p>Sophia allow IRIs to be relative IRI references
+(while in strict RDF, <a href="https://www.w3.org/TR/rdf11-concepts/#h3_section-IRIs">IRIs must be absolute</a>).</p>
+</li>
+</ul>
+<h2 id="feature-gates"><a class="doc-anchor" href="#feature-gates">§</a>Feature gates</h2>
+<ul>
+<li><strong>test_macros</strong>: with this feature enabled,
+this crate exposes macros that can help implementors of the API to test their implementation.</li>
+</ul>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="dataset/index.html" title="mod sophia_api::dataset">dataset</a></dt><dd>An RDF dataset is composed of a default <a href="dataset/index.html" title="mod sophia_api::dataset">dataset</a>,
+and zero or more named graphs, each associated with a dataset name.</dd><dt><a class="mod" href="graph/index.html" title="mod sophia_api::graph">graph</a></dt><dd>An RDF graph, the central notion of the RDF data model,
+is a collection of <a href="triple/index.html" title="mod sophia_api::triple">triples</a>.</dd><dt><a class="mod" href="ns/index.html" title="mod sophia_api::ns">ns</a></dt><dd>Standard and custom namespaces.</dd><dt><a class="mod" href="parser/index.html" title="mod sophia_api::parser">parser</a></dt><dd>API for parsing RDF syntaxes.</dd><dt><a class="mod" href="prefix/index.html" title="mod sophia_api::prefix">prefix</a></dt><dd>RDF-related languages (e.g. Turtle, SPARQL) often use prefixes to shorten IRIs.
+This crate provides generic traits and types to handle prefix maps.</dd><dt><a class="mod" href="prelude/index.html" title="mod sophia_api::prelude">prelude</a></dt><dd>General-use types and traits from the Sophia API.</dd><dt><a class="mod" href="quad/index.html" title="mod sophia_api::quad">quad</a></dt><dd>A quad expresses a single fact within a context.
+Quads are like RDF <a href="triple/index.html" title="mod sophia_api::triple"><code>triples</code></a>
+augmented with an optional graph name.</dd><dt><a class="mod" href="serializer/index.html" title="mod sophia_api::serializer">serializer</a></dt><dd>API for serializing RDF syntaxes.</dd><dt><a class="mod" href="source/index.html" title="mod sophia_api::source">source</a></dt><dd>A <a href="source/trait.Source.html" title="trait sophia_api::source::Source"><code>Source</code></a> yields items, and may also fail in the process.
+This module also provides two specialized kinds of source:
+<a href="source/trait.TripleSource.html" title="trait sophia_api::source::TripleSource"><code>TripleSource</code></a> and <a href="source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource"><code>QuadSource</code></a>.</dd><dt><a class="mod" href="sparql/index.html" title="mod sophia_api::sparql">sparql</a></dt><dd>Common traits for working with <a href="https://www.w3.org/TR/sparql11-query/">SPARQL</a>.</dd><dt><a class="mod" href="term/index.html" title="mod sophia_api::term">term</a></dt><dd>I define how RDF terms
+(such as <a href="https://www.w3.org/TR/rdf11-concepts/#section-IRIs">IRIs</a>,
+<a href="https://www.w3.org/TR/rdf11-concepts/#section-blank-nodes">blank nodes</a>
+and <a href="https://www.w3.org/TR/rdf11-concepts/#section-Graph-Literal">literals</a>)
+are represented in Sophia.</dd><dt><a class="mod" href="triple/index.html" title="mod sophia_api::triple">triple</a></dt><dd>I define how <a href="https://www.w3.org/TR/rdf11-concepts/#section-triples">RDF triples</a>
+are represented in Sophia.</dd></dl><h2 id="macros" class="section-header">Macros<a href="#macros" class="anchor">§</a></h2><dl class="item-table"><dt><a class="macro" href="macro.def_mod_functions_for_bufread_parser.html" title="macro sophia_api::def_mod_functions_for_bufread_parser">def_<wbr>mod_<wbr>functions_<wbr>for_<wbr>bufread_<wbr>parser</a></dt><dd>Define convenience module-level functions for a parser implementation supporting BufRead.</dd><dt><a class="macro" href="macro.namespace.html" title="macro sophia_api::namespace">namespace</a></dt><dd>Create a “namespace module”
+defining a set of terms within a given IRI space.</dd><dt><a class="macro" href="macro.ns_iri.html" title="macro sophia_api::ns_iri">ns_iri</a></dt><dd>Create a term in a “namespace module”.
+In general, you should use the <a href="macro.namespace.html"><code>namespace!</code></a> macro instead.</dd></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.MownStr.html" title="struct sophia_api::MownStr">MownStr</a></dt><dd>Re-export MownStr to avoid dependency version mismatch.</dd></dl></section></div></main></body></html>

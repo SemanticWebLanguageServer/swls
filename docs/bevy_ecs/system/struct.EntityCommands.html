@@ -1,0 +1,727 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A list of commands that will be run to modify an `Entity`."><title>EntityCommands in bevy_ecs::system - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_ecs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc struct"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">EntityCommands</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_ecs/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_ecs/index.html">bevy_<wbr>ecs</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Entity<wbr>Commands</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#note" title="Note">Note</a></li><li><a href="#fallible" title="Fallible">Fallible</a></li><li><a href="#error-handling" title="Error handling">Error handling</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.add_child" title="add_child">add_child</a></li><li><a href="#method.add_children" title="add_children">add_children</a></li><li><a href="#method.add_one_related" title="add_one_related">add_one_related</a></li><li><a href="#method.add_related" title="add_related">add_related</a></li><li><a href="#method.clear" title="clear">clear</a></li><li><a href="#method.clear_children" title="clear_children">clear_children</a></li><li><a href="#method.clear_related" title="clear_related">clear_related</a></li><li><a href="#method.clone_and_spawn" title="clone_and_spawn">clone_and_spawn</a></li><li><a href="#method.clone_and_spawn_with_opt_in" title="clone_and_spawn_with_opt_in">clone_and_spawn_with_opt_in</a></li><li><a href="#method.clone_and_spawn_with_opt_out" title="clone_and_spawn_with_opt_out">clone_and_spawn_with_opt_out</a></li><li><a href="#method.clone_components" title="clone_components">clone_components</a></li><li><a href="#method.clone_with_opt_in" title="clone_with_opt_in">clone_with_opt_in</a></li><li><a href="#method.clone_with_opt_out" title="clone_with_opt_out">clone_with_opt_out</a></li><li><a href="#method.commands" title="commands">commands</a></li><li><a href="#method.commands_mut" title="commands_mut">commands_mut</a></li><li><a href="#method.despawn" title="despawn">despawn</a></li><li><a href="#method.despawn_children" title="despawn_children">despawn_children</a></li><li><a href="#method.despawn_related" title="despawn_related">despawn_related</a></li><li><a href="#method.entry" title="entry">entry</a></li><li><a href="#method.id" title="id">id</a></li><li><a href="#method.insert" title="insert">insert</a></li><li><a href="#method.insert_by_id" title="insert_by_id">insert_by_id</a></li><li><a href="#method.insert_child" title="insert_child">insert_child</a></li><li><a href="#method.insert_children" title="insert_children">insert_children</a></li><li><a href="#method.insert_if" title="insert_if">insert_if</a></li><li><a href="#method.insert_if_new" title="insert_if_new">insert_if_new</a></li><li><a href="#method.insert_if_new_and" title="insert_if_new_and">insert_if_new_and</a></li><li><a href="#method.insert_recursive" title="insert_recursive">insert_recursive</a></li><li><a href="#method.insert_related" title="insert_related">insert_related</a></li><li><a href="#method.log_components" title="log_components">log_components</a></li><li><a href="#method.move_components" title="move_components">move_components</a></li><li><a href="#method.observe" title="observe">observe</a></li><li><a href="#method.queue" title="queue">queue</a></li><li><a href="#method.queue_handled" title="queue_handled">queue_handled</a></li><li><a href="#method.queue_silenced" title="queue_silenced">queue_silenced</a></li><li><a href="#method.reborrow" title="reborrow">reborrow</a></li><li><a href="#method.remove" title="remove">remove</a></li><li><a href="#method.remove_by_id" title="remove_by_id">remove_by_id</a></li><li><a href="#method.remove_child" title="remove_child">remove_child</a></li><li><a href="#method.remove_children" title="remove_children">remove_children</a></li><li><a href="#method.remove_if" title="remove_if">remove_if</a></li><li><a href="#method.remove_recursive" title="remove_recursive">remove_recursive</a></li><li><a href="#method.remove_related" title="remove_related">remove_related</a></li><li><a href="#method.remove_with_requires" title="remove_with_requires">remove_with_requires</a></li><li><a href="#method.replace_children" title="replace_children">replace_children</a></li><li><a href="#method.replace_children_with_difference" title="replace_children_with_difference">replace_children_with_difference</a></li><li><a href="#method.replace_related" title="replace_related">replace_related</a></li><li><a href="#method.replace_related_with_difference" title="replace_related_with_difference">replace_related_with_difference</a></li><li><a href="#method.retain" title="retain">retain</a></li><li><a href="#method.trigger" title="trigger">trigger</a></li><li><a href="#method.try_despawn" title="try_despawn">try_despawn</a></li><li><a href="#method.try_insert" title="try_insert">try_insert</a></li><li><a href="#method.try_insert_by_id" title="try_insert_by_id">try_insert_by_id</a></li><li><a href="#method.try_insert_if" title="try_insert_if">try_insert_if</a></li><li><a href="#method.try_insert_if_new" title="try_insert_if_new">try_insert_if_new</a></li><li><a href="#method.try_insert_if_new_and" title="try_insert_if_new_and">try_insert_if_new_and</a></li><li><a href="#method.try_remove" title="try_remove">try_remove</a></li><li><a href="#method.try_remove_if" title="try_remove_if">try_remove_if</a></li><li><a href="#method.with_child" title="with_child">with_child</a></li><li><a href="#method.with_children" title="with_children">with_children</a></li><li><a href="#method.with_related" title="with_related">with_related</a></li><li><a href="#method.with_related_entities" title="with_related_entities">with_related_entities</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-UnwindSafe-for-EntityCommands%3C'a%3E" title="!UnwindSafe">!UnwindSafe</a></li><li><a href="#impl-Freeze-for-EntityCommands%3C'a%3E" title="Freeze">Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-EntityCommands%3C'a%3E" title="RefUnwindSafe">RefUnwindSafe</a></li><li><a href="#impl-Send-for-EntityCommands%3C'a%3E" title="Send">Send</a></li><li><a href="#impl-Sync-for-EntityCommands%3C'a%3E" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-EntityCommands%3C'a%3E" title="Unpin">Unpin</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-ConditionalSend-for-T" title="ConditionalSend">ConditionalSend</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-IntoResult%3CT%3E-for-T" title="IntoResult&#60;T&#62;">IntoResult&#60;T&#62;</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>ecs::<wbr>system</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_ecs</a>::<wbr><a href="index.html">system</a></div><h1>Struct <span class="struct">Entity<wbr>Commands</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_ecs/system/commands/mod.rs.html#1259-1262">Source</a> </span></div><pre class="rust item-decl"><code>pub struct EntityCommands&lt;'a&gt; { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A list of commands that will be run to modify an <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a>.</p>
+<h2 id="note"><a class="doc-anchor" href="#note">§</a>Note</h2>
+<p>Most <a href="struct.Commands.html" title="struct bevy_ecs::system::Commands"><code>Commands</code></a> (and thereby <a href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands"><code>EntityCommands</code></a>) are deferred:
+when you call the command, if it requires mutable access to the <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a>
+(that is, if it removes, adds, or changes something), it’s not executed immediately.</p>
+<p>Instead, the command is added to a “command queue.”
+The command queue is applied later
+when the <a href="../schedule/struct.ApplyDeferred.html" title="struct bevy_ecs::schedule::ApplyDeferred"><code>ApplyDeferred</code></a> system runs.
+Commands are executed one-by-one so that
+each command can have exclusive access to the <code>World</code>.</p>
+<h2 id="fallible"><a class="doc-anchor" href="#fallible">§</a>Fallible</h2>
+<p>Due to their deferred nature, an entity you’re trying to change with an <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a>
+can be despawned by the time the command is executed.</p>
+<p>All deferred entity commands will check whether the entity exists at the time of execution
+and will return an error if it doesn’t.</p>
+<h2 id="error-handling"><a class="doc-anchor" href="#error-handling">§</a>Error handling</h2>
+<p>An <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> can return a <a href="../error/type.Result.html" title="type bevy_ecs::error::Result"><code>Result</code></a>,
+which will be passed to an <a href="../error/index.html" title="mod bevy_ecs::error">error handler</a> if the <code>Result</code> is an error.</p>
+<p>The default error handler panics. It can be configured via
+the <a href="../error/struct.DefaultErrorHandler.html" title="struct bevy_ecs::error::DefaultErrorHandler"><code>DefaultErrorHandler</code></a> resource.</p>
+<p>Alternatively, you can customize the error handler for a specific command
+by calling <a href="struct.EntityCommands.html#method.queue_handled" title="method bevy_ecs::system::EntityCommands::queue_handled"><code>EntityCommands::queue_handled</code></a>.</p>
+<p>The <a href="../error/index.html" title="mod bevy_ecs::error"><code>error</code></a> module provides some simple error handlers for convenience.</p>
+</div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-EntityCommands%3C'a%3E" class="impl"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#361-446">Source</a><a href="#impl-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.with_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#363-369">Source</a><h4 class="code-header">pub fn <a href="#method.with_children" class="fn">with_children</a>(
+    &amp;mut self,
+    func: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../relationship/struct.RelatedSpawnerCommands.html" title="struct bevy_ecs::relationship::RelatedSpawnerCommands">RelatedSpawnerCommands</a>&lt;'_, <a class="struct" href="../hierarchy/struct.ChildOf.html" title="struct bevy_ecs::hierarchy::ChildOf">ChildOf</a>&gt;),
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Spawns children of this entity (with a <a href="../hierarchy/struct.ChildOf.html" title="struct bevy_ecs::hierarchy::ChildOf"><code>ChildOf</code></a> relationship) by taking a function that operates on a <a href="../hierarchy/type.ChildSpawner.html" title="type bevy_ecs::hierarchy::ChildSpawner"><code>ChildSpawner</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#372-374">Source</a><h4 class="code-header">pub fn <a href="#method.add_children" class="fn">add_children</a>(&amp;mut self, children: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>]) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds the given children to this entity</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clear_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#378-380">Source</a><h4 class="code-header">pub fn <a href="#method.clear_children" class="fn">clear_children</a>(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes all the children from this entity.
+See also <a href="struct.EntityCommands.html#method.clear_related" title="method bevy_ecs::system::EntityCommands::clear_related"><code>clear_related</code></a></p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#384-386">Source</a><h4 class="code-header">pub fn <a href="#method.insert_children" class="fn">insert_children</a>(
+    &amp;mut self,
+    index: <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>,
+    children: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Insert children at specific index.
+See also <a href="struct.EntityCommands.html#method.insert_related" title="method bevy_ecs::system::EntityCommands::insert_related"><code>insert_related</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_child" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#390-392">Source</a><h4 class="code-header">pub fn <a href="#method.insert_child" class="fn">insert_child</a>(&amp;mut self, index: <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, child: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Insert children at specific index.
+See also <a href="struct.EntityCommands.html#method.insert_related" title="method bevy_ecs::system::EntityCommands::insert_related"><code>insert_related</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_child" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#395-397">Source</a><h4 class="code-header">pub fn <a href="#method.add_child" class="fn">add_child</a>(&amp;mut self, child: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds the given child to this entity</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#400-402">Source</a><h4 class="code-header">pub fn <a href="#method.remove_children" class="fn">remove_children</a>(&amp;mut self, children: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>]) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes the relationship between this entity and the given entities.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_child" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#405-407">Source</a><h4 class="code-header">pub fn <a href="#method.remove_child" class="fn">remove_child</a>(&amp;mut self, child: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes the relationship between this entity and the given entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replace_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#410-412">Source</a><h4 class="code-header">pub fn <a href="#method.replace_children" class="fn">replace_children</a>(&amp;mut self, children: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>]) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Replaces the children on this entity with a new list of children.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replace_children_with_difference" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#424-435">Source</a><h4 class="code-header">pub fn <a href="#method.replace_children_with_difference" class="fn">replace_children_with_difference</a>(
+    &amp;mut self,
+    entities_to_unrelate: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+    entities_to_relate: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+    newly_related_entities: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Replaces all the related entities with a new set of entities.</p>
+<h5 id="warning"><a class="doc-anchor" href="#warning">§</a>Warning</h5>
+<p>Failing to maintain the functions invariants may lead to erratic engine behavior including random crashes.
+Refer to <a href="../world/struct.EntityWorldMut.html#method.replace_related_with_difference" title="method bevy_ecs::world::EntityWorldMut::replace_related_with_difference"><code>EntityWorldMut::replace_related_with_difference</code></a> for a list of these invariants.</p>
+<h5 id="panics"><a class="doc-anchor" href="#panics">§</a>Panics</h5>
+<p>Panics when debug assertions are enabled if an invariant is broken and the command is executed.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_child" class="method"><a class="src rightside" href="../../src/bevy_ecs/hierarchy.rs.html#442-445">Source</a><h4 class="code-header">pub fn <a href="#method.with_child" class="fn">with_child</a>(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Spawns the passed bundle and adds it to this entity as a child.</p>
+<p>For efficient spawning of multiple children, use <a href="struct.EntityCommands.html#method.with_children" title="method bevy_ecs::system::EntityCommands::with_children"><code>with_children</code></a>.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-EntityCommands%3C'a%3E-1" class="impl"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#410-561">Source</a><a href="#impl-EntityCommands%3C'a%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.with_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#412-416">Source</a><h4 class="code-header">pub fn <a href="#method.with_related" class="fn">with_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Spawns a entity related to this entity (with the <code>R</code> relationship) by taking a bundle</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_related_entities" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#419-426">Source</a><h4 class="code-header">pub fn <a href="#method.with_related_entities" class="fn">with_related_entities</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    func: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../relationship/struct.RelatedSpawnerCommands.html" title="struct bevy_ecs::relationship::RelatedSpawnerCommands">RelatedSpawnerCommands</a>&lt;'_, R&gt;),
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Spawns entities related to this entity (with the <code>R</code> relationship) by taking a function that operates on a <a href="../relationship/struct.RelatedSpawner.html" title="struct bevy_ecs::relationship::RelatedSpawner"><code>RelatedSpawner</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#431-437">Source</a><h4 class="code-header">pub fn <a href="#method.add_related" class="fn">add_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(&amp;mut self, related: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>]) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Relates the given entities to this entity with the relation <code>R</code>.</p>
+<p>See <a href="struct.EntityCommands.html#method.add_one_related" title="method bevy_ecs::system::EntityCommands::add_one_related"><code>add_one_related</code></a> if you want relate only one entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clear_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#440-444">Source</a><h4 class="code-header">pub fn <a href="#method.clear_related" class="fn">clear_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes the relation <code>R</code> between this entity and all its related entities.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#451-461">Source</a><h4 class="code-header">pub fn <a href="#method.insert_related" class="fn">insert_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    index: <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>,
+    related: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self<div class="where">where
+    &lt;R::<a class="associatedtype" href="../relationship/trait.Relationship.html#associatedtype.RelationshipTarget" title="type bevy_ecs::relationship::Relationship::RelationshipTarget">RelationshipTarget</a> as <a class="trait" href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget">RelationshipTarget</a>&gt;::<a class="associatedtype" href="../relationship/trait.RelationshipTarget.html#associatedtype.Collection" title="type bevy_ecs::relationship::RelationshipTarget::Collection">Collection</a>: <a class="trait" href="../relationship/trait.OrderedRelationshipSourceCollection.html" title="trait bevy_ecs::relationship::OrderedRelationshipSourceCollection">OrderedRelationshipSourceCollection</a>,</div></h4></section></summary><div class="docblock"><p>Relates the given entities to this entity with the relation <code>R</code>, starting at this particular index.</p>
+<p>If the <code>related</code> has duplicates, a related entity will take the index of its last occurrence in <code>related</code>.
+If the indices go out of bounds, they will be clamped into bounds.
+This will not re-order existing related entities unless they are in <code>related</code>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_one_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#466-468">Source</a><h4 class="code-header">pub fn <a href="#method.add_one_related" class="fn">add_one_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(&amp;mut self, entity: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Relates the given entity to this with the relation <code>R</code>.</p>
+<p>See <a href="struct.EntityCommands.html#method.add_related" title="method bevy_ecs::system::EntityCommands::add_related"><code>add_related</code></a> if you want to relate more than one entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#471-477">Source</a><h4 class="code-header">pub fn <a href="#method.remove_related" class="fn">remove_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    related: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes the relation <code>R</code> between this entity and the given entities.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replace_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#480-486">Source</a><h4 class="code-header">pub fn <a href="#method.replace_related" class="fn">replace_related</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    related: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Replaces all the related entities with the given set of new related entities.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replace_related_with_difference" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#498-515">Source</a><h4 class="code-header">pub fn <a href="#method.replace_related_with_difference" class="fn">replace_related_with_difference</a>&lt;R: <a class="trait" href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship">Relationship</a>&gt;(
+    &amp;mut self,
+    entities_to_unrelate: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+    entities_to_relate: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+    newly_related_entities: &amp;[<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>],
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Replaces all the related entities with a new set of entities.</p>
+<h5 id="warning-1"><a class="doc-anchor" href="#warning-1">§</a>Warning</h5>
+<p>Failing to maintain the functions invariants may lead to erratic engine behavior including random crashes.
+Refer to <a href="../world/struct.EntityWorldMut.html#method.replace_related_with_difference" title="method bevy_ecs::world::EntityWorldMut::replace_related_with_difference"><code>EntityWorldMut::replace_related_with_difference</code></a> for a list of these invariants.</p>
+<h5 id="panics-1"><a class="doc-anchor" href="#panics-1">§</a>Panics</h5>
+<p>Panics when debug assertions are enable, an invariant is are broken and the command is executed.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.despawn_related" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#519-523">Source</a><h4 class="code-header">pub fn <a href="#method.despawn_related" class="fn">despawn_related</a>&lt;S: <a class="trait" href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget">RelationshipTarget</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Despawns entities that relate to this one via the given <a href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget"><code>RelationshipTarget</code></a>.
+This entity will not be despawned.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.despawn_children" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#529-531">Source</a><h4 class="code-header">pub fn <a href="#method.despawn_children" class="fn">despawn_children</a>(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Despawns the children of this entity.
+This entity will not be despawned.</p>
+<p>This is a specialization of <a href="struct.EntityCommands.html#method.despawn_related" title="method bevy_ecs::system::EntityCommands::despawn_related"><code>despawn_related</code></a>, a more general method for despawning via relationships.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_recursive" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#540-547">Source</a><h4 class="code-header">pub fn <a href="#method.insert_recursive" class="fn">insert_recursive</a>&lt;S: <a class="trait" href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget">RelationshipTarget</a>&gt;(
+    &amp;mut self,
+    bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a>,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Inserts a component or bundle of components into the entity and all related entities,
+traversing the relationship tracked in <code>S</code> in a breadth-first manner.</p>
+<h5 id="warning-2"><a class="doc-anchor" href="#warning-2">§</a>Warning</h5>
+<p>This method should only be called on relationships that form a tree-like structure.
+Any cycles will cause this method to loop infinitely.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_recursive" class="method"><a class="src rightside" href="../../src/bevy_ecs/relationship/related_methods.rs.html#556-560">Source</a><h4 class="code-header">pub fn <a href="#method.remove_recursive" class="fn">remove_recursive</a>&lt;S: <a class="trait" href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget">RelationshipTarget</a>, B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(
+    &amp;mut self,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a component or bundle of components of type <code>B</code> from the entity and all related entities,
+traversing the relationship tracked in <code>S</code> in a breadth-first manner.</p>
+<h5 id="warning-3"><a class="doc-anchor" href="#warning-3">§</a>Warning</h5>
+<p>This method should only be called on relationships that form a tree-like structure.
+Any cycles will cause this method to loop infinitely.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-EntityCommands%3C'a%3E-2" class="impl"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1264-2308">Source</a><a href="#impl-EntityCommands%3C'a%3E-2" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.id" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1279-1281">Source</a><h4 class="code-header">pub fn <a href="#method.id" class="fn">id</a>(&amp;self) -&gt; <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a></h4></section></summary><div class="docblock"><p>Returns the <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a> id of the entity.</p>
+<h5 id="example"><a class="doc-anchor" href="#example">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>my_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="kw">let </span>entity_id = commands.spawn_empty().id();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.reborrow" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1286-1291">Source</a><h4 class="code-header">pub fn <a href="#method.reborrow" class="fn">reborrow</a>(&amp;mut self) -&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'_&gt;</h4></section></summary><div class="docblock"><p>Returns an <a href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands"><code>EntityCommands</code></a> with a smaller lifetime.</p>
+<p>This is useful if you have <code>&amp;mut EntityCommands</code> but you need <code>EntityCommands</code>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.entry" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1336-1341">Source</a><h4 class="code-header">pub fn <a href="#method.entry" class="fn">entry</a>&lt;T: <a class="trait" href="../component/trait.Component.html" title="trait bevy_ecs::component::Component">Component</a>&gt;(&amp;mut self) -&gt; <a class="struct" href="struct.EntityEntryCommands.html" title="struct bevy_ecs::system::EntityEntryCommands">EntityEntryCommands</a>&lt;'_, T&gt;</h4></section></summary><div class="docblock"><p>Get an <a href="struct.EntityEntryCommands.html" title="struct bevy_ecs::system::EntityEntryCommands"><code>EntityEntryCommands</code></a> for the <a href="../component/trait.Component.html" title="trait bevy_ecs::component::Component"><code>Component</code></a> <code>T</code>,
+allowing you to modify it or insert it if it isn’t already present.</p>
+<p>See also <a href="struct.EntityCommands.html#method.insert_if_new" title="method bevy_ecs::system::EntityCommands::insert_if_new"><code>insert_if_new</code></a>,
+which lets you insert a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> without overwriting it.</p>
+<h5 id="example-1"><a class="doc-anchor" href="#example-1">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Level(u32);
+
+
+<span class="attr">#[derive(Component, Default)]
+</span><span class="kw">struct </span>Mana {
+    max: u32,
+    current: u32,
+}
+
+<span class="kw">fn </span>level_up_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    <span class="comment">// If a component already exists then modify it, otherwise insert a default value
+    </span>commands
+        .entity(player.entity)
+        .entry::&lt;Level&gt;()
+        .and_modify(|<span class="kw-2">mut </span>lvl| lvl.<span class="number">0 </span>+= <span class="number">1</span>)
+        .or_insert(Level(<span class="number">0</span>));
+
+    <span class="comment">// Add a default value if none exists, and then modify the existing or new value
+    </span>commands
+        .entity(player.entity)
+        .entry::&lt;Mana&gt;()
+        .or_default()
+        .and_modify(|<span class="kw-2">mut </span>mana| {
+            mana.max += <span class="number">10</span>;
+            mana.current = mana.max;
+    });
+}
+</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.insert" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1390-1392">Source</a><h4 class="code-header">pub fn <a href="#method.insert" class="fn">insert</a>(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity.</p>
+<p>This will overwrite any previous value(s) of the same component type.
+See <a href="struct.EntityCommands.html#method.insert_if_new" title="method bevy_ecs::system::EntityCommands::insert_if_new"><code>EntityCommands::insert_if_new</code></a> to keep the old value instead.</p>
+<h5 id="example-2"><a class="doc-anchor" href="#example-2">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>add_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        <span class="comment">// You can insert individual components:
+        </span>.insert(Defense(<span class="number">10</span>))
+        <span class="comment">// You can also insert pre-defined bundles of components:
+        </span>.insert(CombatBundle {
+            health: Health(<span class="number">100</span>),
+            strength: Strength(<span class="number">40</span>),
+        })
+        <span class="comment">// You can also insert tuples of components and bundles.
+        // This is equivalent to the calls above:
+        </span>.insert((
+            Defense(<span class="number">10</span>),
+            CombatBundle {
+                health: Health(<span class="number">100</span>),
+                strength: Strength(<span class="number">40</span>),
+            },
+        ));
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.insert_if" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1419-1428">Source</a><h4 class="code-header">pub fn <a href="#method.insert_if" class="fn">insert_if</a>&lt;F&gt;(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>, condition: F) -&gt; &amp;mut Self<div class="where">where
+    F: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,</div></h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity if the predicate returns true.</p>
+<p>This is useful for chaining method calls.</p>
+<h5 id="example-3"><a class="doc-anchor" href="#example-3">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>StillLoadingStats;
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+
+<span class="kw">fn </span>add_health_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        .insert_if(Health(<span class="number">10</span>), || !player.is_spectator())
+        .remove::&lt;StillLoadingStats&gt;();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.insert_if_new" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1438-1440">Source</a><h4 class="code-header">pub fn <a href="#method.insert_if_new" class="fn">insert_if_new</a>(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity without overwriting.</p>
+<p>This is the same as <a href="struct.EntityCommands.html#method.insert" title="method bevy_ecs::system::EntityCommands::insert"><code>EntityCommands::insert</code></a>, but in case of duplicate
+components will leave the old values instead of replacing them with new ones.</p>
+<p>See also <a href="struct.EntityCommands.html#method.entry" title="method bevy_ecs::system::EntityCommands::entry"><code>entry</code></a>, which lets you modify a <a href="../component/trait.Component.html" title="trait bevy_ecs::component::Component"><code>Component</code></a> if it’s present,
+as well as initialize it with a default value.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_if_new_and" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1448-1457">Source</a><h4 class="code-header">pub fn <a href="#method.insert_if_new_and" class="fn">insert_if_new_and</a>&lt;F&gt;(
+    &amp;mut self,
+    bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>,
+    condition: F,
+) -&gt; &amp;mut Self<div class="where">where
+    F: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,</div></h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity without overwriting if the
+predicate returns true.</p>
+<p>This is the same as <a href="struct.EntityCommands.html#method.insert_if" title="method bevy_ecs::system::EntityCommands::insert_if"><code>EntityCommands::insert_if</code></a>, but in case of duplicate
+components will leave the old values instead of replacing them with new ones.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_by_id" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1470-1481">Source</a><h4 class="code-header">pub unsafe fn <a href="#method.insert_by_id" class="fn">insert_by_id</a>&lt;T: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'static&gt;(
+    &amp;mut self,
+    component_id: <a class="struct" href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId">ComponentId</a>,
+    value: T,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a dynamic <a href="../component/trait.Component.html" title="trait bevy_ecs::component::Component"><code>Component</code></a> to the entity.</p>
+<p>This will overwrite any previous value(s) of the same component type.</p>
+<p>You should prefer to use the typed API <a href="struct.EntityCommands.html#method.insert" title="method bevy_ecs::system::EntityCommands::insert"><code>EntityCommands::insert</code></a> where possible.</p>
+<h5 id="safety"><a class="doc-anchor" href="#safety">§</a>Safety</h5>
+<ul>
+<li><a href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId"><code>ComponentId</code></a> must be from the same world as <code>self</code>.</li>
+<li><code>T</code> must have the same layout as the one passed during <code>component_id</code> creation.</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.try_insert_by_id" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1499-1510">Source</a><h4 class="code-header">pub unsafe fn <a href="#method.try_insert_by_id" class="fn">try_insert_by_id</a>&lt;T: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'static&gt;(
+    &amp;mut self,
+    component_id: <a class="struct" href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId">ComponentId</a>,
+    value: T,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a dynamic <a href="../component/trait.Component.html" title="trait bevy_ecs::component::Component"><code>Component</code></a> to the entity.</p>
+<p>This will overwrite any previous value(s) of the same component type.</p>
+<p>You should prefer to use the typed API <a href="struct.EntityCommands.html#method.try_insert" title="method bevy_ecs::system::EntityCommands::try_insert"><code>EntityCommands::try_insert</code></a> where possible.</p>
+<h5 id="note-1"><a class="doc-anchor" href="#note-1">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+<h5 id="safety-1"><a class="doc-anchor" href="#safety-1">§</a>Safety</h5>
+<ul>
+<li><a href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId"><code>ComponentId</code></a> must be from the same world as <code>self</code>.</li>
+<li><code>T</code> must have the same layout as the one passed during <code>component_id</code> creation.</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.try_insert" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1559-1561">Source</a><h4 class="code-header">pub fn <a href="#method.try_insert" class="fn">try_insert</a>(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity.</p>
+<p>This will overwrite any previous value(s) of the same component type.</p>
+<h5 id="note-2"><a class="doc-anchor" href="#note-2">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+<h5 id="example-4"><a class="doc-anchor" href="#example-4">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>add_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands.entity(player.entity)
+        <span class="comment">// You can insert individual components:
+        </span>.try_insert(Defense(<span class="number">10</span>))
+        <span class="comment">// You can also insert tuples of components:
+        </span>.try_insert(CombatBundle {
+            health: Health(<span class="number">100</span>),
+            strength: Strength(<span class="number">40</span>),
+        });
+
+    <span class="comment">// Suppose this occurs in a parallel adjacent system or process.
+    </span>commands.entity(player.entity).despawn();
+
+    <span class="comment">// This will not panic nor will it add the component.
+    </span>commands.entity(player.entity).try_insert(Defense(<span class="number">5</span>));
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.try_insert_if" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1572-1581">Source</a><h4 class="code-header">pub fn <a href="#method.try_insert_if" class="fn">try_insert_if</a>&lt;F&gt;(
+    &amp;mut self,
+    bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>,
+    condition: F,
+) -&gt; &amp;mut Self<div class="where">where
+    F: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,</div></h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity if the predicate returns true.</p>
+<p>This is useful for chaining method calls.</p>
+<h5 id="note-3"><a class="doc-anchor" href="#note-3">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.try_insert_if_new_and" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1594-1603">Source</a><h4 class="code-header">pub fn <a href="#method.try_insert_if_new_and" class="fn">try_insert_if_new_and</a>&lt;F&gt;(
+    &amp;mut self,
+    bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>,
+    condition: F,
+) -&gt; &amp;mut Self<div class="where">where
+    F: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,</div></h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity without overwriting if the
+predicate returns true.</p>
+<p>This is the same as <a href="struct.EntityCommands.html#method.try_insert_if" title="method bevy_ecs::system::EntityCommands::try_insert_if"><code>EntityCommands::try_insert_if</code></a>, but in case of duplicate
+components will leave the old values instead of replacing them with new ones.</p>
+<h5 id="note-4"><a class="doc-anchor" href="#note-4">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.try_insert_if_new" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1615-1617">Source</a><h4 class="code-header">pub fn <a href="#method.try_insert_if_new" class="fn">try_insert_if_new</a>(&amp;mut self, bundle: impl <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Adds a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components to the entity without overwriting.</p>
+<p>This is the same as <a href="struct.EntityCommands.html#method.try_insert" title="method bevy_ecs::system::EntityCommands::try_insert"><code>EntityCommands::try_insert</code></a>, but in case of duplicate
+components will leave the old values instead of replacing them with new ones.</p>
+<h5 id="note-5"><a class="doc-anchor" href="#note-5">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1659-1661">Source</a><h4 class="code-header">pub fn <a href="#method.remove" class="fn">remove</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components from the entity.</p>
+<p>This will remove all components that intersect with the provided bundle;
+the entity does not need to have all the components in the bundle.</p>
+<p>This will emit a warning if the entity does not exist.</p>
+<h5 id="example-5"><a class="doc-anchor" href="#example-5">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>remove_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        <span class="comment">// You can remove individual components:
+        </span>.remove::&lt;Defense&gt;()
+        <span class="comment">// You can also remove pre-defined bundles of components:
+        </span>.remove::&lt;CombatBundle&gt;()
+        <span class="comment">// You can also remove tuples of components and bundles.
+        // This is equivalent to the calls above:
+        </span>.remove::&lt;(Defense, CombatBundle)&gt;();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.remove_if" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1695-1701">Source</a><h4 class="code-header">pub fn <a href="#method.remove_if" class="fn">remove_if</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(
+    &amp;mut self,
+    condition: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components from the entity if the predicate returns true.</p>
+<p>This is useful for chaining method calls.</p>
+<h5 id="example-6"><a class="doc-anchor" href="#example-6">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>remove_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        .remove_if::&lt;(Defense, CombatBundle)&gt;(|| !player.is_spectator());
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.try_remove_if" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1712-1718">Source</a><h4 class="code-header">pub fn <a href="#method.try_remove_if" class="fn">try_remove_if</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(
+    &amp;mut self,
+    condition: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>() -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components from the entity if the predicate returns true.</p>
+<p>This is useful for chaining method calls.</p>
+<h5 id="note-6"><a class="doc-anchor" href="#note-6">§</a>Note</h5>
+<p>If the entity does not exist when this command is executed,
+the resulting error will be ignored.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.try_remove" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1760-1762">Source</a><h4 class="code-header">pub fn <a href="#method.try_remove" class="fn">try_remove</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components from the entity.</p>
+<p>This will remove all components that intersect with the provided bundle;
+the entity does not need to have all the components in the bundle.</p>
+<p>Unlike <a href="struct.EntityCommands.html#method.remove" title="method bevy_ecs::system::EntityCommands::remove"><code>Self::remove</code></a>,
+this will not emit a warning if the entity does not exist.</p>
+<h5 id="example-7"><a class="doc-anchor" href="#example-7">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>remove_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        <span class="comment">// You can remove individual components:
+        </span>.try_remove::&lt;Defense&gt;()
+        <span class="comment">// You can also remove pre-defined bundles of components:
+        </span>.try_remove::&lt;CombatBundle&gt;()
+        <span class="comment">// You can also remove tuples of components and bundles.
+        // This is equivalent to the calls above:
+        </span>.try_remove::&lt;(Defense, CombatBundle)&gt;();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.remove_with_requires" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1792-1794">Source</a><h4 class="code-header">pub fn <a href="#method.remove_with_requires" class="fn">remove_with_requires</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> of components from the entity,
+and also removes any components required by the components in the bundle.</p>
+<p>This will remove all components that intersect with the provided bundle;
+the entity does not need to have all the components in the bundle.</p>
+<h5 id="example-8"><a class="doc-anchor" href="#example-8">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[require(B)]
+</span><span class="kw">struct </span>A;
+<span class="attr">#[derive(Component, Default)]
+</span><span class="kw">struct </span>B;
+
+<span class="kw">fn </span>remove_with_requires_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        <span class="comment">// Removes both A and B from the entity, because B is required by A.
+        </span>.remove_with_requires::&lt;A&gt;();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.remove_by_id" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1802-1804">Source</a><h4 class="code-header">pub fn <a href="#method.remove_by_id" class="fn">remove_by_id</a>(&amp;mut self, component_id: <a class="struct" href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId">ComponentId</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes a dynamic <a href="../component/trait.Component.html" title="trait bevy_ecs::component::Component"><code>Component</code></a> from the entity if it exists.</p>
+<h5 id="panics-2"><a class="doc-anchor" href="#panics-2">§</a>Panics</h5>
+<p>Panics if the provided <a href="../component/struct.ComponentId.html" title="struct bevy_ecs::component::ComponentId"><code>ComponentId</code></a> does not exist in the <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clear" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1808-1810">Source</a><h4 class="code-header">pub fn <a href="#method.clear" class="fn">clear</a>(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes all components associated with the entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.despawn" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1839-1841">Source</a><h4 class="code-header">pub fn <a href="#method.despawn" class="fn">despawn</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Despawns the entity.</p>
+<p>This will emit a warning if the entity does not exist.</p>
+<h5 id="note-7"><a class="doc-anchor" href="#note-7">§</a>Note</h5>
+<p>This will also despawn the entities in any <a href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget"><code>RelationshipTarget</code></a>
+that is configured to despawn descendants.</p>
+<p>For example, this will recursively despawn <a href="../hierarchy/struct.Children.html" title="struct bevy_ecs::hierarchy::Children"><code>Children</code></a>.</p>
+<h5 id="example-9"><a class="doc-anchor" href="#example-9">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>remove_character_system(
+    <span class="kw-2">mut </span>commands: Commands,
+    character_to_remove: Res&lt;CharacterToRemove&gt;
+) {
+    commands.entity(character_to_remove.entity).despawn();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.try_despawn" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1854-1856">Source</a><h4 class="code-header">pub fn <a href="#method.try_despawn" class="fn">try_despawn</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Despawns the entity.</p>
+<p>Unlike <a href="struct.EntityCommands.html#method.despawn" title="method bevy_ecs::system::EntityCommands::despawn"><code>Self::despawn</code></a>,
+this will not emit a warning if the entity does not exist.</p>
+<h5 id="note-8"><a class="doc-anchor" href="#note-8">§</a>Note</h5>
+<p>This will also despawn the entities in any <a href="../relationship/trait.RelationshipTarget.html" title="trait bevy_ecs::relationship::RelationshipTarget"><code>RelationshipTarget</code></a>
+that is configured to despawn descendants.</p>
+<p>For example, this will recursively despawn <a href="../hierarchy/struct.Children.html" title="struct bevy_ecs::hierarchy::Children"><code>Children</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.queue" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1889-1895">Source</a><h4 class="code-header">pub fn <a href="#method.queue" class="fn">queue</a>&lt;C: <a class="trait" href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand">EntityCommand</a>&lt;T&gt; + <a class="trait" href="../error/trait.CommandWithEntity.html" title="trait bevy_ecs::error::CommandWithEntity">CommandWithEntity</a>&lt;M&gt;, T, M&gt;(
+    &amp;mut self,
+    command: C,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Pushes an <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> to the queue,
+which will get executed for the current <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a>.</p>
+<p>The <a href="../error/struct.DefaultErrorHandler.html" title="struct bevy_ecs::error::DefaultErrorHandler">default error handler</a>
+will be used to handle error cases.
+Every <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> checks whether the entity exists at the time of execution
+and returns an error if it does not.</p>
+<p>To use a custom error handler, see <a href="struct.EntityCommands.html#method.queue_handled" title="method bevy_ecs::system::EntityCommands::queue_handled"><code>EntityCommands::queue_handled</code></a>.</p>
+<p>The command can be:</p>
+<ul>
+<li>A custom struct that implements <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a>.</li>
+<li>A closure or function that matches the following signature:
+<ul>
+<li><a href="../world/struct.EntityWorldMut.html" title="struct bevy_ecs::world::EntityWorldMut"><code>(EntityWorldMut)</code></a></li>
+<li><a href="../world/struct.EntityWorldMut.html" title="struct bevy_ecs::world::EntityWorldMut"><code>(EntityWorldMut)</code></a> <code>-&gt;</code> <a href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result"><code>Result</code></a></li>
+</ul>
+</li>
+<li>A built-in command from the <a href="entity_command/index.html" title="mod bevy_ecs::system::entity_command"><code>entity_command</code></a> module.</li>
+</ul>
+<h5 id="example-10"><a class="doc-anchor" href="#example-10">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>commands
+    .spawn_empty()
+    <span class="comment">// Closures with this signature implement `EntityCommand`.
+    </span>.queue(|entity: EntityWorldMut| {
+        <span class="macro">println!</span>(<span class="string">"Executed an EntityCommand for {}"</span>, entity.id());
+    });</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.queue_handled" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1934-1942">Source</a><h4 class="code-header">pub fn <a href="#method.queue_handled" class="fn">queue_handled</a>&lt;C: <a class="trait" href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand">EntityCommand</a>&lt;T&gt; + <a class="trait" href="../error/trait.CommandWithEntity.html" title="trait bevy_ecs::error::CommandWithEntity">CommandWithEntity</a>&lt;M&gt;, T, M&gt;(
+    &amp;mut self,
+    command: C,
+    error_handler: <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.fn.html">fn</a>(<a class="struct" href="../error/struct.BevyError.html" title="struct bevy_ecs::error::BevyError">BevyError</a>, <a class="enum" href="../error/enum.ErrorContext.html" title="enum bevy_ecs::error::ErrorContext">ErrorContext</a>),
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Pushes an <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> to the queue,
+which will get executed for the current <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a>.</p>
+<p>The given <code>error_handler</code> will be used to handle error cases.
+Every <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> checks whether the entity exists at the time of execution
+and returns an error if it does not.</p>
+<p>To implicitly use the default error handler, see <a href="struct.EntityCommands.html#method.queue" title="method bevy_ecs::system::EntityCommands::queue"><code>EntityCommands::queue</code></a>.</p>
+<p>The command can be:</p>
+<ul>
+<li>A custom struct that implements <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a>.</li>
+<li>A closure or function that matches the following signature:
+<ul>
+<li><a href="../world/struct.EntityWorldMut.html" title="struct bevy_ecs::world::EntityWorldMut"><code>(EntityWorldMut)</code></a></li>
+<li><a href="../world/struct.EntityWorldMut.html" title="struct bevy_ecs::world::EntityWorldMut"><code>(EntityWorldMut)</code></a> <code>-&gt;</code> <a href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result"><code>Result</code></a></li>
+</ul>
+</li>
+<li>A built-in command from the <a href="entity_command/index.html" title="mod bevy_ecs::system::entity_command"><code>entity_command</code></a> module.</li>
+</ul>
+<h5 id="example-11"><a class="doc-anchor" href="#example-11">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy_ecs::error::warn;
+
+commands
+    .spawn_empty()
+    <span class="comment">// Closures with this signature implement `EntityCommand`.
+    </span>.queue_handled(
+        |entity: EntityWorldMut| -&gt; <span class="prelude-ty">Result</span> {
+            <span class="kw">let </span>value: usize = <span class="string">"100"</span>.parse()<span class="question-mark">?</span>;
+            <span class="macro">println!</span>(<span class="string">"Successfully parsed the value {} for entity {}"</span>, value, entity.id());
+            <span class="prelude-val">Ok</span>(())
+        },
+        warn
+    );</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.queue_silenced" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1947-1954">Source</a><h4 class="code-header">pub fn <a href="#method.queue_silenced" class="fn">queue_silenced</a>&lt;C: <a class="trait" href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand">EntityCommand</a>&lt;T&gt; + <a class="trait" href="../error/trait.CommandWithEntity.html" title="trait bevy_ecs::error::CommandWithEntity">CommandWithEntity</a>&lt;M&gt;, T, M&gt;(
+    &amp;mut self,
+    command: C,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Pushes an <a href="trait.EntityCommand.html" title="trait bevy_ecs::system::EntityCommand"><code>EntityCommand</code></a> to the queue, which will get executed for the current <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a>.</p>
+<p>Unlike <a href="struct.EntityCommands.html#method.queue_handled" title="method bevy_ecs::system::EntityCommands::queue_handled"><code>EntityCommands::queue_handled</code></a>, this will completely ignore any errors that occur.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.retain" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1989-1991">Source</a><h4 class="code-header">pub fn <a href="#method.retain" class="fn">retain</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Removes all components except the given <a href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle"><code>Bundle</code></a> from the entity.</p>
+<h5 id="example-12"><a class="doc-anchor" href="#example-12">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Health(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Strength(u32);
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>Defense(u32);
+
+<span class="attr">#[derive(Bundle)]
+</span><span class="kw">struct </span>CombatBundle {
+    health: Health,
+    strength: Strength,
+}
+
+<span class="kw">fn </span>remove_combat_stats_system(<span class="kw-2">mut </span>commands: Commands, player: Res&lt;PlayerEntity&gt;) {
+    commands
+        .entity(player.entity)
+        <span class="comment">// You can retain a pre-defined Bundle of components,
+        // with this removing only the Defense component.
+        </span>.retain::&lt;CombatBundle&gt;()
+        <span class="comment">// You can also retain only a single component.
+        </span>.retain::&lt;Health&gt;();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.log_components" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1994-1996">Source</a><h4 class="code-header">pub fn <a href="#method.log_components" class="fn">log_components</a>(&amp;mut self) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Logs the components of the entity at the <a href="../../log/macro.info.html" title="macro log::info"><code>info</code></a> level.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.commands" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#1999-2001">Source</a><h4 class="code-header">pub fn <a href="#method.commands" class="fn">commands</a>(&amp;mut self) -&gt; <a class="struct" href="struct.Commands.html" title="struct bevy_ecs::system::Commands">Commands</a>&lt;'_, '_&gt;</h4></section></summary><div class="docblock"><p>Returns the underlying <a href="struct.Commands.html" title="struct bevy_ecs::system::Commands"><code>Commands</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.commands_mut" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2004-2006">Source</a><h4 class="code-header">pub fn <a href="#method.commands_mut" class="fn">commands_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="struct.Commands.html" title="struct bevy_ecs::system::Commands">Commands</a>&lt;'a, 'a&gt;</h4></section></summary><div class="docblock"><p>Returns a mutable reference to the underlying <a href="struct.Commands.html" title="struct bevy_ecs::system::Commands"><code>Commands</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.observe" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2010-2015">Source</a><h4 class="code-header">pub fn <a href="#method.observe" class="fn">observe</a>&lt;E: <a class="trait" href="../event/trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a>, B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>, M&gt;(
+    &amp;mut self,
+    observer: impl <a class="trait" href="trait.IntoObserverSystem.html" title="trait bevy_ecs::system::IntoObserverSystem">IntoObserverSystem</a>&lt;E, B, M&gt;,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Creates an <a href="../observer/struct.Observer.html" title="struct bevy_ecs::observer::Observer"><code>Observer</code></a> watching for an <a href="../event/trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> of type <code>E</code> whose <a href="../event/trait.EntityEvent.html#tymethod.event_target" title="method bevy_ecs::event::EntityEvent::event_target"><code>EntityEvent::event_target</code></a>
+targets this entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clone_with_opt_out" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2054-2060">Source</a><h4 class="code-header">pub fn <a href="#method.clone_with_opt_out" class="fn">clone_with_opt_out</a>(
+    &amp;mut self,
+    target: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>,
+    config: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder">EntityClonerBuilder</a>&lt;'_, <a class="struct" href="../entity/struct.OptOut.html" title="struct bevy_ecs::entity::OptOut">OptOut</a>&gt;) + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Clones parts of an entity (components, observers, etc.) onto another entity,
+configured through <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a>.</p>
+<p>The other entity will receive all the components of the original that implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a> except those that are
+<a href="../entity/struct.EntityClonerBuilder.html#method.deny" title="method bevy_ecs::entity::EntityClonerBuilder::deny">denied</a> in the <code>config</code>.</p>
+<h5 id="panics-3"><a class="doc-anchor" href="#panics-3">§</a>Panics</h5>
+<p>The command will panic when applied if the target entity does not exist.</p>
+<h5 id="example-13"><a class="doc-anchor" href="#example-13">§</a>Example</h5>
+<p>Configure through <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder&lt;OptOut&gt;</code></a> as follows:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentA(u32);
+<span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentB(u32);
+
+<span class="kw">fn </span>example_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// Create an empty entity.
+    </span><span class="kw">let </span>target = commands.spawn_empty().id();
+
+    <span class="comment">// Create a new entity and keep its EntityCommands.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity = commands.spawn((ComponentA(<span class="number">10</span>), ComponentB(<span class="number">20</span>)));
+
+    <span class="comment">// Clone ComponentA but not ComponentB onto the target.
+    </span>entity.clone_with_opt_out(target, |builder| {
+        builder.deny::&lt;ComponentB&gt;();
+    });
+}</code></pre></div>
+<p>See <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a> for more options.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clone_with_opt_in" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2099-2105">Source</a><h4 class="code-header">pub fn <a href="#method.clone_with_opt_in" class="fn">clone_with_opt_in</a>(
+    &amp;mut self,
+    target: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>,
+    config: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder">EntityClonerBuilder</a>&lt;'_, <a class="struct" href="../entity/struct.OptIn.html" title="struct bevy_ecs::entity::OptIn">OptIn</a>&gt;) + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Clones parts of an entity (components, observers, etc.) onto another entity,
+configured through <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a>.</p>
+<p>The other entity will receive only the components of the original that implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a> and are
+<a href="../entity/struct.EntityClonerBuilder.html#method.allow" title="method bevy_ecs::entity::EntityClonerBuilder::allow">allowed</a> in the <code>config</code>.</p>
+<h5 id="panics-4"><a class="doc-anchor" href="#panics-4">§</a>Panics</h5>
+<p>The command will panic when applied if the target entity does not exist.</p>
+<h5 id="example-14"><a class="doc-anchor" href="#example-14">§</a>Example</h5>
+<p>Configure through <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder&lt;OptIn&gt;</code></a> as follows:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentA(u32);
+<span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentB(u32);
+
+<span class="kw">fn </span>example_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// Create an empty entity.
+    </span><span class="kw">let </span>target = commands.spawn_empty().id();
+
+    <span class="comment">// Create a new entity and keep its EntityCommands.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity = commands.spawn((ComponentA(<span class="number">10</span>), ComponentB(<span class="number">20</span>)));
+
+    <span class="comment">// Clone ComponentA but not ComponentB onto the target.
+    </span>entity.clone_with_opt_in(target, |builder| {
+        builder.allow::&lt;ComponentA&gt;();
+    });
+}</code></pre></div>
+<p>See <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a> for more options.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.clone_and_spawn" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2138-2140">Source</a><h4 class="code-header">pub fn <a href="#method.clone_and_spawn" class="fn">clone_and_spawn</a>(&amp;mut self) -&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'_&gt;</h4></section></summary><div class="docblock"><p>Spawns a clone of this entity and returns the <a href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands"><code>EntityCommands</code></a> of the clone.</p>
+<p>The clone will receive all the components of the original that implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a>.</p>
+<p>To configure cloning behavior (such as only cloning certain components),
+use <a href="struct.EntityCommands.html#method.clone_and_spawn_with_opt_out" title="method bevy_ecs::system::EntityCommands::clone_and_spawn_with_opt_out"><code>EntityCommands::clone_and_spawn_with_opt_out</code></a>/
+<a href="struct.EntityCommands.html#method.clone_and_spawn_with_opt_out" title="method bevy_ecs::system::EntityCommands::clone_and_spawn_with_opt_out"><code>opt_out</code></a>.</p>
+<h5 id="note-9"><a class="doc-anchor" href="#note-9">§</a>Note</h5>
+<p>If the original entity does not exist when this command is applied,
+the returned entity will have no components.</p>
+<h5 id="example-15"><a class="doc-anchor" href="#example-15">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentA(u32);
+<span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentB(u32);
+
+<span class="kw">fn </span>example_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// Create a new entity and store its EntityCommands.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity = commands.spawn((ComponentA(<span class="number">10</span>), ComponentB(<span class="number">20</span>)));
+
+    <span class="comment">// Create a clone of the entity.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity_clone = entity.clone_and_spawn();
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.clone_and_spawn_with_opt_out" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2175-2185">Source</a><h4 class="code-header">pub fn <a href="#method.clone_and_spawn_with_opt_out" class="fn">clone_and_spawn_with_opt_out</a>(
+    &amp;mut self,
+    config: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder">EntityClonerBuilder</a>&lt;'_, <a class="struct" href="../entity/struct.OptOut.html" title="struct bevy_ecs::entity::OptOut">OptOut</a>&gt;) + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,
+) -&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'_&gt;</h4></section></summary><div class="docblock"><p>Spawns a clone of this entity and allows configuring cloning behavior
+using <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a>, returning the <a href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands"><code>EntityCommands</code></a> of the clone.</p>
+<p>The clone will receive all the components of the original that implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a> except those that are
+<a href="../entity/struct.EntityClonerBuilder.html#method.deny" title="method bevy_ecs::entity::EntityClonerBuilder::deny">denied</a> in the <code>config</code>.</p>
+<p>See the methods on <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder&lt;OptOut&gt;</code></a> for more options.</p>
+<h5 id="note-10"><a class="doc-anchor" href="#note-10">§</a>Note</h5>
+<p>If the original entity does not exist when this command is applied,
+the returned entity will have no components.</p>
+<h5 id="example-16"><a class="doc-anchor" href="#example-16">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentA(u32);
+<span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentB(u32);
+
+<span class="kw">fn </span>example_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// Create a new entity and store its EntityCommands.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity = commands.spawn((ComponentA(<span class="number">10</span>), ComponentB(<span class="number">20</span>)));
+
+    <span class="comment">// Create a clone of the entity with ComponentA but without ComponentB.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity_clone = entity.clone_and_spawn_with_opt_out(|builder| {
+        builder.deny::&lt;ComponentB&gt;();
+    });
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.clone_and_spawn_with_opt_in" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2220-2230">Source</a><h4 class="code-header">pub fn <a href="#method.clone_and_spawn_with_opt_in" class="fn">clone_and_spawn_with_opt_in</a>(
+    &amp;mut self,
+    config: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(&amp;mut <a class="struct" href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder">EntityClonerBuilder</a>&lt;'_, <a class="struct" href="../entity/struct.OptIn.html" title="struct bevy_ecs::entity::OptIn">OptIn</a>&gt;) + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,
+) -&gt; <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'_&gt;</h4></section></summary><div class="docblock"><p>Spawns a clone of this entity and allows configuring cloning behavior
+using <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder</code></a>, returning the <a href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands"><code>EntityCommands</code></a> of the clone.</p>
+<p>The clone will receive only the components of the original that implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a> and are
+<a href="../entity/struct.EntityClonerBuilder.html#method.allow" title="method bevy_ecs::entity::EntityClonerBuilder::allow">allowed</a> in the <code>config</code>.</p>
+<p>See the methods on <a href="../entity/struct.EntityClonerBuilder.html" title="struct bevy_ecs::entity::EntityClonerBuilder"><code>EntityClonerBuilder&lt;OptIn&gt;</code></a> for more options.</p>
+<h5 id="note-11"><a class="doc-anchor" href="#note-11">§</a>Note</h5>
+<p>If the original entity does not exist when this command is applied,
+the returned entity will have no components.</p>
+<h5 id="example-17"><a class="doc-anchor" href="#example-17">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentA(u32);
+<span class="attr">#[derive(Component, Clone)]
+</span><span class="kw">struct </span>ComponentB(u32);
+
+<span class="kw">fn </span>example_system(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// Create a new entity and store its EntityCommands.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity = commands.spawn((ComponentA(<span class="number">10</span>), ComponentB(<span class="number">20</span>)));
+
+    <span class="comment">// Create a clone of the entity with ComponentA but without ComponentB.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>entity_clone = entity.clone_and_spawn_with_opt_in(|builder| {
+        builder.allow::&lt;ComponentA&gt;();
+    });
+}</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.clone_components" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2240-2242">Source</a><h4 class="code-header">pub fn <a href="#method.clone_components" class="fn">clone_components</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self, target: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Clones the specified components of this entity and inserts them into another entity.</p>
+<p>Components can only be cloned if they implement
+<a href="https://doc.rust-lang.org/1.92.0/core/clone/trait.Clone.html" title="trait core::clone::Clone"><code>Clone</code></a> or <a href="bevy_reflect::Reflect"><code>Reflect</code></a>.</p>
+<h5 id="panics-5"><a class="doc-anchor" href="#panics-5">§</a>Panics</h5>
+<p>The command will panic when applied if the target entity does not exist.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.move_components" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2258-2260">Source</a><h4 class="code-header">pub fn <a href="#method.move_components" class="fn">move_components</a>&lt;B: <a class="trait" href="../bundle/trait.Bundle.html" title="trait bevy_ecs::bundle::Bundle">Bundle</a>&gt;(&amp;mut self, target: <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Moves the specified components of this entity into another entity.</p>
+<p>Components with <a href="../component/enum.ComponentCloneBehavior.html#variant.Ignore" title="variant bevy_ecs::component::ComponentCloneBehavior::Ignore"><code>Ignore</code></a> clone behavior will not be moved, while components that
+have a <a href="../component/enum.ComponentCloneBehavior.html#variant.Custom" title="variant bevy_ecs::component::ComponentCloneBehavior::Custom"><code>Custom</code></a> clone behavior will be cloned using it and then removed from the source entity.
+All other components will be moved without any other special handling.</p>
+<p>Note that this will trigger <code>on_remove</code> hooks/observers on this entity and <code>on_insert</code>/<code>on_add</code> hooks/observers on the target entity.</p>
+<h5 id="panics-6"><a class="doc-anchor" href="#panics-6">§</a>Panics</h5>
+<p>The command will panic when applied if the target entity does not exist.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.trigger" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/commands/mod.rs.html#2300-2307">Source</a><h4 class="code-header">pub fn <a href="#method.trigger" class="fn">trigger</a>&lt;'t, E: <a class="trait" href="../event/trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a>&lt;Trigger&lt;'t&gt;: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/default/trait.Default.html" title="trait core::default::Default">Default</a>&gt;&gt;(
+    &amp;mut self,
+    event_fn: impl <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/ops/function/trait.FnOnce.html" title="trait core::ops::function::FnOnce">FnOnce</a>(<a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>) -&gt; E,
+) -&gt; &amp;mut Self</h4></section></summary><div class="docblock"><p>Passes the current entity into the given function, and triggers the <a href="../event/trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> returned by that function.</p>
+<h5 id="example-18"><a class="doc-anchor" href="#example-18">§</a>Example</h5>
+<p>A surprising number of functions meet the trait bounds for <code>event_fn</code>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#[derive(EntityEvent)]
+</span><span class="kw">struct </span>Explode(Entity);
+
+<span class="kw">impl </span>From&lt;Entity&gt; <span class="kw">for </span>Explode {
+   <span class="kw">fn </span>from(entity: Entity) -&gt; <span class="self">Self </span>{
+      Explode(entity)
+   }
+}
+
+
+<span class="kw">fn </span>trigger_via_constructor(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// The fact that `Epxlode` is a single-field tuple struct
+    // ensures that `Explode(entity)` is a function that generates
+    // an EntityEvent, meeting the trait bounds for `event_fn`.
+    </span>commands.spawn_empty().trigger(Explode);
+
+}
+
+
+<span class="kw">fn </span>trigger_via_from_trait(<span class="kw-2">mut </span>commands: Commands) {
+    <span class="comment">// This variant also works for events like `struct Explode { entity: Entity }`
+    </span>commands.spawn_empty().trigger(Explode::from);
+}
+
+<span class="kw">fn </span>trigger_via_closure(<span class="kw-2">mut </span>commands: Commands) {
+    commands.spawn_empty().trigger(|entity| Explode(entity));
+}</code></pre></div></div></details></div></details></div><h2 id="synthetic-implementations" class="section-header">Auto Trait Implementations<a href="#synthetic-implementations" class="anchor">§</a></h2><div id="synthetic-implementations-list"><section id="impl-Freeze-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-Freeze-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Freeze.html" title="trait core::marker::Freeze">Freeze</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section><section id="impl-RefUnwindSafe-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-RefUnwindSafe-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section><section id="impl-Send-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-Send-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section><section id="impl-Sync-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-Sync-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section><section id="impl-Unpin-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-Unpin-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Unpin.html" title="trait core::marker::Unpin">Unpin</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section><section id="impl-UnwindSafe-for-EntityCommands%3C'a%3E" class="impl"><a href="#impl-UnwindSafe-for-EntityCommands%3C'a%3E" class="anchor">§</a><h3 class="code-header">impl&lt;'a&gt; !<a class="trait" href="https://doc.rust-lang.org/1.92.0/core/panic/unwind_safe/trait.UnwindSafe.html" title="trait core::panic::unwind_safe::UnwindSafe">UnwindSafe</a> for <a class="struct" href="struct.EntityCommands.html" title="struct bevy_ecs::system::EntityCommands">EntityCommands</a>&lt;'a&gt;</h3></section></div><h2 id="blanket-implementations" class="section-header">Blanket Implementations<a href="#blanket-implementations" class="anchor">§</a></h2><div id="blanket-implementations-list"><details class="toggle implementors-toggle"><summary><section id="impl-Any-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/any.rs.html#138">Source</a><a href="#impl-Any-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/any/trait.Any.html" title="trait core::any::Any">Any</a> for T<div class="where">where
+    T: 'static + ?<a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.type_id" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/any.rs.html#139">Source</a><a href="#method.type_id" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/any/trait.Any.html#tymethod.type_id" class="fn">type_id</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.92.0/core/any/struct.TypeId.html" title="struct core::any::TypeId">TypeId</a></h4></section></summary><div class='docblock'>Gets the <code>TypeId</code> of <code>self</code>. <a href="https://doc.rust-lang.org/1.92.0/core/any/trait.Any.html#tymethod.type_id">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-Borrow%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/borrow.rs.html#212">Source</a><a href="#impl-Borrow%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.Borrow.html" title="trait core::borrow::Borrow">Borrow</a>&lt;T&gt; for T<div class="where">where
+    T: ?<a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.borrow" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/borrow.rs.html#214">Source</a><a href="#method.borrow" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.Borrow.html#tymethod.borrow" class="fn">borrow</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.reference.html">&amp;T</a></h4></section></summary><div class='docblock'>Immutably borrows from an owned value. <a href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.Borrow.html#tymethod.borrow">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-BorrowMut%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/borrow.rs.html#221">Source</a><a href="#impl-BorrowMut%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.BorrowMut.html" title="trait core::borrow::BorrowMut">BorrowMut</a>&lt;T&gt; for T<div class="where">where
+    T: ?<a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.borrow_mut" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/borrow.rs.html#222">Source</a><a href="#method.borrow_mut" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.BorrowMut.html#tymethod.borrow_mut" class="fn">borrow_mut</a>(&amp;mut self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.reference.html">&amp;mut T</a></h4></section></summary><div class='docblock'>Mutably borrows from an owned value. <a href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.BorrowMut.html#tymethod.borrow_mut">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-From%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#785">Source</a><a href="#impl-From%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt; for T</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.from" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#788">Source</a><a href="#method.from" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html#tymethod.from" class="fn">from</a>(t: T) -&gt; T</h4></section></summary><div class="docblock"><p>Returns the argument unchanged.</p>
+</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-Into%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#767-769">Source</a><a href="#impl-Into%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.into" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#777">Source</a><a href="#method.into" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.Into.html#tymethod.into" class="fn">into</a>(self) -&gt; U</h4></section></summary><div class="docblock"><p>Calls <code>U::from(self)</code>.</p>
+<p>That is, this conversion is whatever the implementation of
+<code><a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt; for U</code> chooses to do.</p>
+</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-IntoResult%3CT%3E-for-T" class="impl"><a class="src rightside" href="../../src/bevy_ecs/system/function_system.rs.html#615-619">Source</a><a href="#impl-IntoResult%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.IntoResult.html" title="trait bevy_ecs::system::IntoResult">IntoResult</a>&lt;T&gt; for T</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.into_result" class="method trait-impl"><a class="src rightside" href="../../src/bevy_ecs/system/function_system.rs.html#616-618">Source</a><a href="#method.into_result" class="anchor">§</a><h4 class="code-header">fn <a href="trait.IntoResult.html#tymethod.into_result" class="fn">into_result</a>(self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, <a class="enum" href="enum.RunSystemError.html" title="enum bevy_ecs::system::RunSystemError">RunSystemError</a>&gt;</h4></section></summary><div class='docblock'>Converts this type into the system output type.</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-TryFrom%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#827-829">Source</a><a href="#impl-TryFrom%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedtype.Error-1" class="associatedtype trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#831">Source</a><a href="#associatedtype.Error-1" class="anchor">§</a><h4 class="code-header">type <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html#associatedtype.Error" class="associatedtype">Error</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section></summary><div class='docblock'>The type returned in the event of a conversion error.</div></details><details class="toggle method-toggle" open><summary><section id="method.try_from" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#834">Source</a><a href="#method.try_from" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html#tymethod.try_from" class="fn">try_from</a>(value: U) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, &lt;T as <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;U&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a>&gt;</h4></section></summary><div class='docblock'>Performs the conversion.</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-TryInto%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#811-813">Source</a><a href="#impl-TryInto%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryInto.html" title="trait core::convert::TryInto">TryInto</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedtype.Error" class="associatedtype trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#815">Source</a><a href="#associatedtype.Error" class="anchor">§</a><h4 class="code-header">type <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryInto.html#associatedtype.Error" class="associatedtype">Error</a> = &lt;U as <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a></h4></section></summary><div class='docblock'>The type returned in the event of a conversion error.</div></details><details class="toggle method-toggle" open><summary><section id="method.try_into" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.92.0/src/core/convert/mod.rs.html#818">Source</a><a href="#method.try_into" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryInto.html#tymethod.try_into" class="fn">try_into</a>(self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;U, &lt;U as <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a>&gt;</h4></section></summary><div class='docblock'>Performs the conversion.</div></details></div></details><section id="impl-ConditionalSend-for-T" class="impl"><a class="src rightside" href="../../src/bevy_tasks/lib.rs.html#59">Source</a><a href="#impl-ConditionalSend-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="../../bevy_tasks/trait.ConditionalSend.html" title="trait bevy_tasks::ConditionalSend">ConditionalSend</a> for T<div class="where">where
+    T: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,</div></h3></section></div></section></div></main></body></html>

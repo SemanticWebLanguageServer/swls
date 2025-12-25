@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["dc","owl","rdf","rdfs","shacl","xsd"]};

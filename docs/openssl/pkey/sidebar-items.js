@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Params","Private","Public"],"struct":["Id","PKey","PKeyRef"],"trait":["HasParams","HasPrivate","HasPublic"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SparqlAggregate","SparqlCall","SparqlExpr","SparqlExpr2","SparqlExpr3","SparqlKeyword","StringStyle","Token"],"fn":["get_current_token"],"mod":["semantic_token"],"struct":["PToken","TokenComponent","Tokens"],"trait":["Membered"]};

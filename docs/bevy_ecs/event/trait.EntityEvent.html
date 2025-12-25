@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="An `EntityEvent` is an `Event` that is triggered for a specific `EntityEvent::event_target` entity:"><title>EntityEvent in bevy_ecs::event - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_ecs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">EntityEvent</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_ecs/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_ecs/index.html">bevy_<wbr>ecs</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Entity<wbr>Event</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#trigger-behavior" title="Trigger Behavior">Trigger Behavior</a></li><li><a href="#entityevent-propagation" title="`EntityEvent` Propagation"><code>EntityEvent</code> Propagation</a></li><li><a href="#naming-and-usage-conventions" title="Naming and Usage Conventions">Naming and Usage Conventions</a></li><li><a href="#manually-spawning-entityevent-observers" title="Manually spawning `EntityEvent` observers">Manually spawning <code>EntityEvent</code> observers</a></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.event_target" title="event_target">event_target</a></li><li><a href="#tymethod.event_target_mut" title="event_target_mut">event_target_mut</a></li></ul><h3><a href="#dyn-compatibility">Dyn Compatibility</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>ecs::<wbr>event</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_ecs</a>::<wbr><a href="index.html">event</a></div><h1>Trait <span class="trait">Entity<wbr>Event</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_ecs/event/mod.rs.html#284-292">Source</a> </span></div><pre class="rust item-decl"><code>pub trait EntityEvent: <a class="trait" href="trait.Event.html" title="trait bevy_ecs::event::Event">Event</a> {
+    // Required methods
+    fn <a href="#tymethod.event_target" class="fn">event_target</a>(&amp;self) -&gt; <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>;
+<span class="item-spacer"></span>    fn <a href="#tymethod.event_target_mut" class="fn">event_target_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a>;
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>An <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> is an <a href="trait.Event.html" title="trait bevy_ecs::event::Event"><code>Event</code></a> that is triggered for a specific <a href="trait.EntityEvent.html#tymethod.event_target" title="method bevy_ecs::event::EntityEvent::event_target"><code>EntityEvent::event_target</code></a> entity:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+</span><span class="kw">struct </span>Explode {
+    entity: Entity,
+}
+
+world.add_observer(|event: On&lt;Explode&gt;, <span class="kw-2">mut </span>commands: Commands| {
+    <span class="macro">println!</span>(<span class="string">"Entity {} goes BOOM!"</span>, event.entity);
+    commands.entity(event.entity).despawn();
+});
+
+world.trigger(Explode { entity });</code></pre></div>
+<p><a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> will set <a href="trait.EntityEvent.html#tymethod.event_target" title="method bevy_ecs::event::EntityEvent::event_target"><code>EntityEvent::event_target</code></a> automatically for named structs with an <code>entity</code> field name (as seen above). It also works for tuple structs
+whose only field is <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+</span><span class="kw">struct </span>Explode(Entity);</code></pre></div>
+<p>The <a href="trait.EntityEvent.html#tymethod.event_target" title="method bevy_ecs::event::EntityEvent::event_target"><code>EntityEvent::event_target</code></a> can also be manually set using the <code>#[event_target]</code> field attribute:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+</span><span class="kw">struct </span>Explode {
+    <span class="attr">#[event_target]
+    </span>exploded_entity: Entity,
+}</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+</span><span class="kw">struct </span>Explode(<span class="attr">#[event_target] </span>Entity);</code></pre></div><h3 id="trigger-behavior"><a class="doc-anchor" href="#trigger-behavior">§</a>Trigger Behavior</h3>
+<p>When derived, <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> defaults to setting <a href="trait.Event.html#associatedtype.Trigger" title="associated type bevy_ecs::event::Event::Trigger"><code>Event::Trigger</code></a> to <a href="struct.EntityTrigger.html" title="struct bevy_ecs::event::EntityTrigger"><code>EntityTrigger</code></a>, which will run all normal “untargeted”
+observers added via <a href="../world/struct.World.html#method.add_observer" title="method bevy_ecs::world::World::add_observer"><code>World::add_observer</code></a>, just like a default <a href="trait.Event.html" title="trait bevy_ecs::event::Event"><code>Event</code></a> would (see the example above).</p>
+<p>However it will <em>also</em> run all observers that watch <em>specific</em> entities, which enables you to assign entity-specific logic:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>world.entity_mut(e1).observe(|event: On&lt;Explode&gt;, <span class="kw-2">mut </span>commands: Commands| {
+    <span class="macro">println!</span>(<span class="string">"Boom!"</span>);
+    commands.entity(event.entity).despawn();
+});
+
+world.entity_mut(e2).observe(|event: On&lt;Explode&gt;, <span class="kw-2">mut </span>commands: Commands| {
+    <span class="macro">println!</span>(<span class="string">"The explosion fizzles! This entity is immune!"</span>);
+});</code></pre></div><h3 id="entityevent-propagation"><a class="doc-anchor" href="#entityevent-propagation">§</a><a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> Propagation</h3>
+<p>When deriving <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a>, you can enable “event propagation” (also known as “event bubbling”) by
+specifying the <code>#[entity_event(propagate)]</code> attribute:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+#[entity_event(propagate)]
+</span><span class="kw">struct </span>Click {
+    entity: Entity,
+}</code></pre></div>
+<p>This will default to using the <a href="../hierarchy/struct.ChildOf.html" title="struct bevy_ecs::hierarchy::ChildOf"><code>ChildOf</code></a> component to propagate the <a href="trait.Event.html" title="trait bevy_ecs::event::Event"><code>Event</code></a> “up”
+the hierarchy (from child to parent).</p>
+<p>You can also specify your own <a href="../traversal/trait.Traversal.html" title="trait bevy_ecs::traversal::Traversal"><code>Traversal</code></a> implementation. A common pattern is to use
+<a href="../relationship/trait.Relationship.html" title="trait bevy_ecs::relationship::Relationship"><code>Relationship</code></a> components, which will follow the relationships to their root
+(just be sure to avoid cycles … these aren’t detected for performance reasons):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[relationship(relationship_target = ClickableBy)]
+</span><span class="kw">struct </span>Clickable(Entity);
+
+<span class="attr">#[derive(Component)]
+#[relationship_target(relationship = Clickable)]
+</span><span class="kw">struct </span>ClickableBy(Vec&lt;Entity&gt;);
+
+<span class="attr">#[derive(EntityEvent)]
+#[entity_event(propagate = <span class="kw-2">&amp;</span><span class="lifetime">'static </span>Clickable)]
+</span><span class="kw">struct </span>Click {
+    entity: Entity,
+}</code></pre></div>
+<p>By default, propagation requires observers to opt-in:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+#[entity_event(propagate)]
+</span><span class="kw">struct </span>Click {
+    entity: Entity,
+}
+
+world.add_observer(|<span class="kw-2">mut </span>click: On&lt;Click&gt;| {
+  <span class="comment">// this will propagate the event up to the parent, using `ChildOf`
+  </span>click.propagate(<span class="bool-val">true</span>);
+});</code></pre></div>
+<p>But you can enable auto propagation using the <code>#[entity_event(auto_propagate)]</code> attribute:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(EntityEvent)]
+#[entity_event(propagate, auto_propagate)]
+</span><span class="kw">struct </span>Click {
+    entity: Entity,
+}</code></pre></div>
+<p>You can also <em>stop</em> propagation like this:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>world.add_observer(|<span class="kw-2">mut </span>click: On&lt;Click&gt;| {
+  <span class="kw">if </span>is_finished_propagating() {
+    click.propagate(<span class="bool-val">false</span>);
+  }
+});</code></pre></div><h3 id="naming-and-usage-conventions"><a class="doc-anchor" href="#naming-and-usage-conventions">§</a>Naming and Usage Conventions</h3>
+<p>In most cases, it is recommended to use a named struct field for the “event target” entity, and to use
+a name that is descriptive as possible, as this makes events easier to understand and read.</p>
+<p>For events with only one <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a> field, <code>entity</code> is often a reasonable name. But if there are multiple
+<a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a> fields, it is often a good idea to use a more descriptive name.</p>
+<p>It is also generally recommended to <em>consume</em> “event target” entities directly via their named field, as this
+can make the context clearer, allows for more specific documentation hints in IDEs, and it generally reads better.</p>
+<h3 id="manually-spawning-entityevent-observers"><a class="doc-anchor" href="#manually-spawning-entityevent-observers">§</a>Manually spawning <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a> observers</h3>
+<p>The examples above that call <a href="../world/struct.EntityWorldMut.html#method.observe" title="method bevy_ecs::world::EntityWorldMut::observe"><code>EntityWorldMut::observe</code></a> to add entity-specific observer logic are
+just shorthand for spawning an <a href="../observer/struct.Observer.html" title="struct bevy_ecs::observer::Observer"><code>Observer</code></a> directly and manually watching the entity:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span><span class="kw-2">mut </span>observer = Observer::new(|event: On&lt;Explode&gt;| {});
+observer.watch_entity(entity);
+world.spawn(observer);</code></pre></div>
+<p>Note that the <a href="../observer/struct.Observer.html" title="struct bevy_ecs::observer::Observer"><code>Observer</code></a> component is not added to the entity it is observing. Observers should always be their own entities, as there
+can be multiple observers of the same entity!</p>
+<p>You can call <a href="../observer/struct.Observer.html#method.watch_entity" title="method bevy_ecs::observer::Observer::watch_entity"><code>Observer::watch_entity</code></a> more than once or <a href="../observer/struct.Observer.html#method.watch_entities" title="method bevy_ecs::observer::Observer::watch_entities"><code>Observer::watch_entities</code></a> to watch multiple entities with the same <a href="../observer/struct.Observer.html" title="struct bevy_ecs::observer::Observer"><code>Observer</code></a>.</p>
+</div></details><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.event_target" class="method"><a class="src rightside" href="../../src/bevy_ecs/event/mod.rs.html#286">Source</a><h4 class="code-header">fn <a href="#tymethod.event_target" class="fn">event_target</a>(&amp;self) -&gt; <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a></h4></section></summary><div class="docblock"><p>The <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a> “target” of this <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a>. When triggered, this will run observers that watch for this specific entity.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.event_target_mut" class="method"><a class="src rightside" href="../../src/bevy_ecs/event/mod.rs.html#291">Source</a><h4 class="code-header">fn <a href="#tymethod.event_target_mut" class="fn">event_target_mut</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity">Entity</a></h4></section></summary><div class="docblock"><p>Returns a mutable reference to the <a href="../entity/struct.Entity.html" title="struct bevy_ecs::entity::Entity"><code>Entity</code></a> “target” of this <a href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent"><code>EntityEvent</code></a>. When triggered, this will run observers that watch for this specific entity.</p>
+<p>Note: In general, this should not be mutated from within an <a href="../observer/struct.Observer.html" title="struct bevy_ecs::observer::Observer"><code>Observer</code></a>, as this will not “retarget”
+the event in any of Bevy’s built-in <a href="trait.Trigger.html" title="trait bevy_ecs::event::Trigger"><code>Trigger</code></a> implementations.</p>
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.92.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety", so this trait is not object safe.</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><section id="impl-EntityEvent-for-Add" class="impl"><a class="src rightside" href="../../src/bevy_ecs/lifecycle.rs.html#331">Source</a><a href="#impl-EntityEvent-for-Add" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a> for <a class="struct" href="../lifecycle/struct.Add.html" title="struct bevy_ecs::lifecycle::Add">Add</a><div class="where">where
+    Self: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h3></section><section id="impl-EntityEvent-for-Despawn" class="impl"><a class="src rightside" href="../../src/bevy_ecs/lifecycle.rs.html#384">Source</a><a href="#impl-EntityEvent-for-Despawn" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a> for <a class="struct" href="../lifecycle/struct.Despawn.html" title="struct bevy_ecs::lifecycle::Despawn">Despawn</a><div class="where">where
+    Self: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h3></section><section id="impl-EntityEvent-for-Insert" class="impl"><a class="src rightside" href="../../src/bevy_ecs/lifecycle.rs.html#344">Source</a><a href="#impl-EntityEvent-for-Insert" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a> for <a class="struct" href="../lifecycle/struct.Insert.html" title="struct bevy_ecs::lifecycle::Insert">Insert</a><div class="where">where
+    Self: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h3></section><section id="impl-EntityEvent-for-Remove" class="impl"><a class="src rightside" href="../../src/bevy_ecs/lifecycle.rs.html#372">Source</a><a href="#impl-EntityEvent-for-Remove" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a> for <a class="struct" href="../lifecycle/struct.Remove.html" title="struct bevy_ecs::lifecycle::Remove">Remove</a><div class="where">where
+    Self: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h3></section><section id="impl-EntityEvent-for-Replace" class="impl"><a class="src rightside" href="../../src/bevy_ecs/lifecycle.rs.html#359">Source</a><a href="#impl-EntityEvent-for-Replace" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.EntityEvent.html" title="trait bevy_ecs::event::EntityEvent">EntityEvent</a> for <a class="struct" href="../lifecycle/struct.Replace.html" title="struct bevy_ecs::lifecycle::Replace">Replace</a><div class="where">where
+    Self: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h3></section></div><script src="../../trait.impl/bevy_ecs/event/trait.EntityEvent.js" async></script></section></div></main></body></html>

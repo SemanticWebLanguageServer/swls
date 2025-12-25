@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"static":["Class","DatatypeProperty","ObjectProperty","PREFIX","imports"]};

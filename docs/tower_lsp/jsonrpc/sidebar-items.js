@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ErrorCode","Id"],"struct":["Error","Request","RequestBuilder","Response"],"trait":["FromParams","IntoResponse","Method"],"type":["Result"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"static":["NodeShape","PREFIX","class","datatype","maxCount","minCount","name","node","path","property","targetClass","targetObjectsOf","targetSubjectsOf"]};

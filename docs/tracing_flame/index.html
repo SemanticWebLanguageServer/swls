@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A Tracing Layer for generating a folded stack trace for generating flamegraphs and flamecharts with `inferno`"><title>tracing_flame - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="tracing_flame" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate tracing_flame</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../tracing_flame/index.html"><img src="https://raw.githubusercontent.com/tokio-rs/tracing/master/assets/logo-type.png" alt="logo"></a><h2><a href="../tracing_flame/index.html">tracing_<wbr>flame</a><span class="version">0.2.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#overview" title="Overview">Overview</a><ul><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#layer-setup" title="Layer Setup">Layer Setup</a></li><li><a href="#generating-the-image" title="Generating the Image">Generating the Image</a></li><li><a href="#differences-between-flamegraphs-and-flamecharts" title="Differences between `flamegraph`s and `flamechart`s">Differences between <code>flamegraph</code>s and <code>flamechart</code>s</a></li><li><a href="#supported-rust-versions" title="Supported Rust Versions">Supported Rust Versions</a></li></ul></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>tracing_<wbr>flame</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/tracing_flame/lib.rs.html#1-514">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A Tracing <a href="struct.FlameLayer.html">Layer</a> for generating a folded stack trace for generating flamegraphs
+and flamecharts with <a href="https://docs.rs/inferno"><code>inferno</code></a></p>
+<h2 id="overview"><a class="doc-anchor" href="#overview">§</a>Overview</h2>
+<p><a href="https://docs.rs/tracing"><code>tracing</code></a> is a framework for instrumenting Rust programs to collect
+scoped, structured, and async-aware diagnostics. <code>tracing-flame</code> provides helpers
+for consuming <code>tracing</code> instrumentation that can later be visualized as a
+flamegraph/flamechart. Flamegraphs/flamecharts are useful for identifying performance
+issues bottlenecks in an application. For more details, see Brendan Gregg’s <a href="http://www.brendangregg.com/flamegraphs.html">post</a>
+on flamegraphs.</p>
+<p><em>Compiler support: <a href="#supported-rust-versions">requires <code>rustc</code> 1.42+</a></em></p>
+<h3 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h3>
+<p>This crate is meant to be used in a two step process:</p>
+<ol>
+<li>Capture textual representation of the spans that are entered and exited
+with <a href="struct.FlameLayer.html"><code>FlameLayer</code></a>.</li>
+<li>Feed the textual representation into <code>inferno-flamegraph</code> to generate the
+flamegraph or flamechart.</li>
+</ol>
+<p><em>Note</em>: when using a buffered writer as the writer for a <code>FlameLayer</code>, it is necessary to
+ensure that the buffer has been flushed before the data is passed into
+<a href="https://docs.rs/inferno/0.9.5/inferno/index.html#producing-a-flame-graph"><code>inferno-flamegraph</code></a>. For more details on how to flush the internal writer
+of the <code>FlameLayer</code>, see the docs for <a href="struct.FlushGuard.html"><code>FlushGuard</code></a>.</p>
+<h3 id="layer-setup"><a class="doc-anchor" href="#layer-setup">§</a>Layer Setup</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::{fs::File, io::BufWriter};
+<span class="kw">use </span>tracing_flame::FlameLayer;
+<span class="kw">use </span>tracing_subscriber::{registry::Registry, prelude::<span class="kw-2">*</span>, fmt};
+
+<span class="kw">fn </span>setup_global_subscriber() -&gt; <span class="kw">impl </span>Drop {
+    <span class="kw">let </span>fmt_layer = fmt::Layer::default();
+
+    <span class="kw">let </span>(flame_layer, _guard) = FlameLayer::with_file(<span class="string">"./tracing.folded"</span>).unwrap();
+
+    <span class="kw">let </span>subscriber = Registry::default()
+        .with(fmt_layer)
+        .with(flame_layer);
+
+    tracing::subscriber::set_global_default(subscriber).expect(<span class="string">"Could not set global default"</span>);
+    _guard
+}
+
+<span class="comment">// your code here ..</span></code></pre></div>
+<p>As an alternative, you can provide <em>any</em> type that implements <code>std::io::Write</code> to
+<code>FlameLayer::new</code>.</p>
+<h3 id="generating-the-image"><a class="doc-anchor" href="#generating-the-image">§</a>Generating the Image</h3>
+<p>To convert the textual representation of a flamegraph to a visual one, first install <code>inferno</code>:</p>
+<div class="example-wrap"><pre class="language-console"><code>cargo install inferno</code></pre></div>
+<p>Then, pass the file created by <code>FlameLayer</code> into <code>inferno-flamegraph</code>:</p>
+<div class="example-wrap"><pre class="language-console"><code># flamegraph
+cat tracing.folded | inferno-flamegraph &gt; tracing-flamegraph.svg
+
+# flamechart
+cat tracing.folded | inferno-flamegraph --flamechart &gt; tracing-flamechart.svg</code></pre></div><h3 id="differences-between-flamegraphs-and-flamecharts"><a class="doc-anchor" href="#differences-between-flamegraphs-and-flamecharts">§</a>Differences between <code>flamegraph</code>s and <code>flamechart</code>s</h3>
+<p>By default, <code>inferno-flamegraph</code> creates flamegraphs. Flamegraphs operate by
+that collapsing identical stack frames and sorting them on the frame’s names.</p>
+<p>This behavior is great for multithreaded programs and long-running programs
+where the same frames occur <em>many</em> times, for short durations, because it reduces
+noise in the graph and gives the reader a better idea of the
+overall time spent in each part of the application.</p>
+<p>However, it is sometimes desirable to preserve the <em>exact</em> ordering of events
+as they were emitted by <code>tracing-flame</code>, so that it is clear when each
+span is entered relative to others and get an accurate visual trace of
+the execution of your program. This representation is best created with a
+<em>flamechart</em>, which <em>does not</em> sort or collapse identical stack frames.</p>
+<h3 id="supported-rust-versions"><a class="doc-anchor" href="#supported-rust-versions">§</a>Supported Rust Versions</h3>
+<p>Tracing is built against the latest stable release. The minimum supported
+version is 1.42. The current Tracing version is not guaranteed to build on
+Rust versions earlier than the minimum supported version.</p>
+<p>Tracing follows the same compiler support policies as the rest of the Tokio
+project. The current stable Rust compiler and the three most recent minor
+versions before it will always be supported. For example, if the current
+stable compiler version is 1.45, the minimum supported version will not be
+increased past 1.42, three minor versions prior. Increasing the minimum
+supported compiler version is not considered a semver breaking change as
+long as doing so complies with this policy.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Error.html" title="struct tracing_flame::Error">Error</a></dt><dd>The error type for <code>tracing-flame</code></dd><dt><a class="struct" href="struct.FlameLayer.html" title="struct tracing_flame::FlameLayer">Flame<wbr>Layer</a></dt><dd>A <code>Layer</code> that records span open/close events as folded flamegraph stack
+samples.</dd><dt><a class="struct" href="struct.FlushGuard.html" title="struct tracing_flame::FlushGuard">Flush<wbr>Guard</a></dt><dd>An RAII guard for managing flushing a global writer that is
+otherwise inaccessible.</dd></dl></section></div></main></body></html>

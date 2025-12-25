@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["dangling_with_align"],"macro":["deconstruct_moving_ptr","move_as_ptr"],"struct":["Aligned","ConstNonNull","MovingPtr","OwningPtr","Ptr","PtrMut","ThinSlicePtr","Unaligned"],"trait":["IsAligned","UnsafeCellDeref"]};

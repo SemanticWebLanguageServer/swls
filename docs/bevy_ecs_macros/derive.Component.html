@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Cheat sheet for derive syntax, see full explanation and examples on the `Component` trait doc."><title>Component in bevy_ecs_macros - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bevy_ecs_macros" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc derive"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Component</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bevy_ecs_macros/index.html">bevy_<wbr>ecs_<wbr>macros</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Component</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#immutability" title="Immutability">Immutability</a></li><li><a href="#sparse-instead-of-table-based-storage" title="Sparse instead of table-based storage">Sparse instead of table-based storage</a></li><li><a href="#required-components" title="Required Components">Required Components</a></li><li><a href="#relationships" title="Relationships">Relationships</a></li><li><a href="#hooks" title="Hooks">Hooks</a></li><li><a href="#ignore-this-component-when-cloning-an-entity" title="Ignore this component when cloning an entity">Ignore this component when cloning an entity</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate bevy_<wbr>ecs_<wbr>macros</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">bevy_ecs_macros</a></div><h1>Derive Macro <span class="derive">Component</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/bevy_ecs_macros/lib.rs.html#695-697">Source</a> </span></div><pre class="rust item-decl"><code>#[derive(Component)]
+{
+    <span class="comment">// Attributes available to this derive:</span>
+    #[component]
+    #[require]
+    #[relationship]
+    #[relationship_target]
+    #[entities]
+}
+</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Cheat sheet for derive syntax,
+see full explanation and examples on the <code>Component</code> trait doc.</p>
+<h3 id="immutability"><a class="doc-anchor" href="#immutability">§</a>Immutability</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[component(immutable)]
+</span><span class="kw">struct </span>MyComponent;</code></pre></div><h3 id="sparse-instead-of-table-based-storage"><a class="doc-anchor" href="#sparse-instead-of-table-based-storage">§</a>Sparse instead of table-based storage</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[component(storage = <span class="string">"SparseSet"</span>)]
+</span><span class="kw">struct </span>MyComponent;</code></pre></div><h3 id="required-components"><a class="doc-anchor" href="#required-components">§</a>Required Components</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[require(
+    <span class="comment">// `Default::default()`
+    </span>A,
+    <span class="comment">// tuple structs
+    </span>B(<span class="number">1</span>),
+    <span class="comment">// named-field structs
+    </span>C {
+        x: <span class="number">1</span>,
+        ..default()
+    },
+    <span class="comment">// unit structs/variants
+    </span>D::One,
+    <span class="comment">// associated consts
+    </span>E::ONE,
+    <span class="comment">// constructors
+    </span>F::new(<span class="number">1</span>),
+    <span class="comment">// arbitrary expressions
+    </span>G = make(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)
+)]
+</span><span class="kw">struct </span>MyComponent;</code></pre></div><h3 id="relationships"><a class="doc-anchor" href="#relationships">§</a>Relationships</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[relationship(relationship_target = Children)]
+</span><span class="kw">pub struct </span>ChildOf {
+    <span class="comment">// Marking the field is not necessary if there is only one.
+    </span><span class="attr">#[relationship]
+    </span><span class="kw">pub </span>parent: Entity,
+    internal: u8,
+};
+
+<span class="attr">#[derive(Component)]
+#[relationship_target(relationship = ChildOf)]
+</span><span class="kw">pub struct </span>Children(Vec&lt;Entity&gt;);</code></pre></div>
+<p>On despawn, also despawn all related entities:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[relationship_target(relationship_target = Children, linked_spawn)]
+</span><span class="kw">pub struct </span>Children(Vec&lt;Entity&gt;);</code></pre></div><h3 id="hooks"><a class="doc-anchor" href="#hooks">§</a>Hooks</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[component(hook_name = function)]
+</span><span class="kw">struct </span>MyComponent;</code></pre></div>
+<p>where <code>hook_name</code> is <code>on_add</code>, <code>on_insert</code>, <code>on_replace</code> or <code>on_remove</code>;<br />
+<code>function</code> can be either a path, e.g. <code>some_function::&lt;Self&gt;</code>,
+or a function call that returns a function that can be turned into
+a <code>ComponentHook</code>, e.g. <code>get_closure("Hi!")</code>.</p>
+<h3 id="ignore-this-component-when-cloning-an-entity"><a class="doc-anchor" href="#ignore-this-component-when-cloning-an-entity">§</a>Ignore this component when cloning an entity</h3>
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Component)]
+#[component(clone_behavior = Ignore)]
+</span><span class="kw">struct </span>MyComponent;</code></pre></div></div></details></section></div></main></body></html>

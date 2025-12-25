@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Trait used to run a system immediately on a `World`."><title>RunSystemOnce in bevy_ecs::system - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_ecs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">RunSystemOnce</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_ecs/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_ecs/index.html">bevy_<wbr>ecs</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">RunSystem<wbr>Once</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#warning" title="Warning">Warning</a></li><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#immediate-command-execution" title="Immediate Command Execution">Immediate Command Execution</a></li><li><a href="#immediate-queries" title="Immediate Queries">Immediate Queries</a></li></ul></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.run_system_once_with" title="run_system_once_with">run_system_once_with</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.run_system_once" title="run_system_once">run_system_once</a></li></ul><h3><a href="#dyn-compatibility">Dyn Compatibility</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>ecs::<wbr>system</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_ecs</a>::<wbr><a href="index.html">system</a></div><h1>Trait <span class="trait">RunSystem<wbr>Once</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_ecs/system/system.rs.html#379-397">Source</a> </span></div><pre class="rust item-decl"><code>pub trait RunSystemOnce: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a> {
+    // Required method
+    fn <a href="#tymethod.run_system_once_with" class="fn">run_system_once_with</a>&lt;T, In, Out, Marker&gt;(
+        self,
+        system: T,
+        input: <a class="type" href="type.SystemIn.html" title="type bevy_ecs::system::SystemIn">SystemIn</a>&lt;'_, T::<a class="associatedtype" href="trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Out, <a class="enum" href="enum.RunSystemError.html" title="enum bevy_ecs::system::RunSystemError">RunSystemError</a>&gt;
+       <span class="where">where T: <a class="trait" href="trait.IntoSystem.html" title="trait bevy_ecs::system::IntoSystem">IntoSystem</a>&lt;In, Out, Marker&gt;,
+             In: <a class="trait" href="trait.SystemInput.html" title="trait bevy_ecs::system::SystemInput">SystemInput</a></span>;
+
+    // Provided method
+    fn <a href="#method.run_system_once" class="fn">run_system_once</a>&lt;T, Out, Marker&gt;(
+        self,
+        system: T,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Out, <a class="enum" href="enum.RunSystemError.html" title="enum bevy_ecs::system::RunSystemError">RunSystemError</a>&gt;
+       <span class="where">where T: <a class="trait" href="trait.IntoSystem.html" title="trait bevy_ecs::system::IntoSystem">IntoSystem</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>, Out, Marker&gt;</span> { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Trait used to run a system immediately on a <a href="../world/struct.World.html" title="struct bevy_ecs::world::World"><code>World</code></a>.</p>
+<h2 id="warning"><a class="doc-anchor" href="#warning">§</a>Warning</h2>
+<p>This function is not an efficient method of running systems and it’s meant to be used as a utility
+for testing and/or diagnostics.</p>
+<p>Systems called through <a href="trait.RunSystemOnce.html#method.run_system_once" title="method bevy_ecs::system::RunSystemOnce::run_system_once"><code>run_system_once</code></a> do not hold onto any state,
+as they are created and destroyed every time <a href="trait.RunSystemOnce.html#method.run_system_once" title="method bevy_ecs::system::RunSystemOnce::run_system_once"><code>run_system_once</code></a> is called.
+Practically, this means that <a href="struct.Local.html" title="struct bevy_ecs::system::Local"><code>Local</code></a> variables are
+reset on every run and change detection does not work.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Resource, Default)]
+</span><span class="kw">struct </span>Counter(u8);
+
+<span class="kw">fn </span>increment(<span class="kw-2">mut </span>counter: Local&lt;Counter&gt;) {
+   counter.<span class="number">0 </span>+= <span class="number">1</span>;
+   <span class="macro">println!</span>(<span class="string">"{}"</span>, counter.<span class="number">0</span>);
+}
+
+<span class="kw">let </span><span class="kw-2">mut </span>world = World::default();
+world.run_system_once(increment); <span class="comment">// prints 1
+</span>world.run_system_once(increment); <span class="comment">// still prints 1</span></code></pre></div>
+<p>If you do need systems to hold onto state between runs, use <a href="../world/struct.World.html#method.run_system_cached" title="method bevy_ecs::world::World::run_system_cached"><code>World::run_system_cached</code></a>
+or <a href="../world/struct.World.html#method.run_system" title="method bevy_ecs::world::World::run_system"><code>World::run_system</code></a>.</p>
+<h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
+<p>Typically, to test a system, or to extract specific diagnostics information from a world,
+you’d need a <a href="../schedule/struct.Schedule.html" title="struct bevy_ecs::schedule::Schedule"><code>Schedule</code></a> to run the system. This can create redundant boilerplate code
+when writing tests or trying to quickly iterate on debug specific systems.</p>
+<p>For these situations, this function can be useful because it allows you to execute a system
+immediately with some custom input and retrieve its output without requiring the necessary boilerplate.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="immediate-command-execution"><a class="doc-anchor" href="#immediate-command-execution">§</a>Immediate Command Execution</h3>
+<p>This usage is helpful when trying to test systems or functions that operate on <a href="struct.Commands.html" title="struct bevy_ecs::system::Commands"><code>Commands</code></a>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span><span class="kw-2">mut </span>world = World::default();
+<span class="kw">let </span>entity = world.run_system_once(|<span class="kw-2">mut </span>commands: Commands| {
+    commands.spawn_empty().id()
+}).unwrap();</code></pre></div><h3 id="immediate-queries"><a class="doc-anchor" href="#immediate-queries">§</a>Immediate Queries</h3>
+<p>This usage is helpful when trying to run an arbitrary query on a world for testing or debugging purposes:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>T(usize);
+
+<span class="kw">let </span><span class="kw-2">mut </span>world = World::default();
+world.spawn(T(<span class="number">0</span>));
+world.spawn(T(<span class="number">1</span>));
+world.spawn(T(<span class="number">1</span>));
+<span class="kw">let </span>count = world.run_system_once(|query: Query&lt;<span class="kw-2">&amp;</span>T&gt;| {
+    query.iter().filter(|t| t.<span class="number">0 </span>== <span class="number">1</span>).count()
+}).unwrap();
+</code></pre></div>
+<p>Note that instead of closures you can also pass in regular functions as systems:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#[derive(Component)]
+</span><span class="kw">struct </span>T(usize);
+
+<span class="kw">fn </span>count(query: Query&lt;<span class="kw-2">&amp;</span>T&gt;) -&gt; usize {
+    query.iter().filter(|t| t.<span class="number">0 </span>== <span class="number">1</span>).count()
+}
+
+<span class="kw">let </span><span class="kw-2">mut </span>world = World::default();
+world.spawn(T(<span class="number">0</span>));
+world.spawn(T(<span class="number">1</span>));
+world.spawn(T(<span class="number">1</span>));
+<span class="kw">let </span>count = world.run_system_once(count).unwrap();
+</code></pre></div></div></details><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.run_system_once_with" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/system.rs.html#389-396">Source</a><h4 class="code-header">fn <a href="#tymethod.run_system_once_with" class="fn">run_system_once_with</a>&lt;T, In, Out, Marker&gt;(
+    self,
+    system: T,
+    input: <a class="type" href="type.SystemIn.html" title="type bevy_ecs::system::SystemIn">SystemIn</a>&lt;'_, T::<a class="associatedtype" href="trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Out, <a class="enum" href="enum.RunSystemError.html" title="enum bevy_ecs::system::RunSystemError">RunSystemError</a>&gt;<div class="where">where
+    T: <a class="trait" href="trait.IntoSystem.html" title="trait bevy_ecs::system::IntoSystem">IntoSystem</a>&lt;In, Out, Marker&gt;,
+    In: <a class="trait" href="trait.SystemInput.html" title="trait bevy_ecs::system::SystemInput">SystemInput</a>,</div></h4></section></summary><div class="docblock"><p>Tries to run a system with given input and apply deferred parameters.</p>
+</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.run_system_once" class="method"><a class="src rightside" href="../../src/bevy_ecs/system/system.rs.html#381-386">Source</a><h4 class="code-header">fn <a href="#method.run_system_once" class="fn">run_system_once</a>&lt;T, Out, Marker&gt;(
+    self,
+    system: T,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Out, <a class="enum" href="enum.RunSystemError.html" title="enum bevy_ecs::system::RunSystemError">RunSystemError</a>&gt;<div class="where">where
+    T: <a class="trait" href="trait.IntoSystem.html" title="trait bevy_ecs::system::IntoSystem">IntoSystem</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>, Out, Marker&gt;,</div></h4></section></summary><div class="docblock"><p>Tries to run a system and apply its deferred parameters.</p>
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.92.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety", so this trait is not object safe.</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><section id="impl-RunSystemOnce-for-%26mut+World" class="impl"><a class="src rightside" href="../../src/bevy_ecs/system/system.rs.html#399-413">Source</a><a href="#impl-RunSystemOnce-for-%26mut+World" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.RunSystemOnce.html" title="trait bevy_ecs::system::RunSystemOnce">RunSystemOnce</a> for &amp;mut <a class="struct" href="../world/struct.World.html" title="struct bevy_ecs::world::World">World</a></h3></section></div><script src="../../trait.impl/bevy_ecs/system/system/trait.RunSystemOnce.js" async></script></section></div></main></body></html>

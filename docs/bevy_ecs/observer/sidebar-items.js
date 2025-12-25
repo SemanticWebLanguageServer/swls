@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CachedComponentObservers","CachedObservers","ObservedBy","Observer","ObserverDescriptor","Observers","On","TriggerContext"],"type":["ObserverMap","ObserverRunner","Trigger"]};

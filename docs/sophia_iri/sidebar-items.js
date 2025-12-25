@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["is_absolute_iri_ref","is_relative_iri_ref","is_valid_iri_ref","is_valid_suffixed_iri_ref"],"macro":["wrap"],"mod":["resolve"],"struct":["InvalidIri","Iri","IriRef"],"trait":["AsIri","AsIriRef","IsIri","IsIriRef"],"type":["Result"]};

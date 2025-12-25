@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["completion","diagnostics","format","goto_definition","goto_type","hover","inlay","parse","references","rename","save","semantic"]};

@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Defines an alias for a particular configuration. This has two advantages over directly using `#[cfg(...)]`:"><title>define_alias in bevy_platform::cfg - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_platform" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">define_alias</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_platform/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_platform/index.html">bevy_<wbr>platform</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>platform::<wbr>cfg</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_platform</a>::<wbr><a href="index.html">cfg</a></div><h1>Macro <span class="macro">define_<wbr>alias</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_platform/cfg.rs.html#180-233">Source</a> </span></div><pre class="rust item-decl"><code>macro_rules! define_alias {
+    (
+        #[cfg($meta:meta)] =&gt; $p:ident
+        $(, $( $rest:tt )+)?
+    ) =&gt; { ... };
+    (
+        #[cfg($meta:meta)] =&gt; $p:ident,
+        $($( $rest:tt )+)?
+    ) =&gt; { ... };
+    (
+        #[cfg($meta:meta)] =&gt; {
+            $(#[$p_meta:meta])*
+            $p:ident
+        }
+        $($( $rest:tt )+)?
+    ) =&gt; { ... };
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Defines an alias for a particular configuration.
+This has two advantages over directly using <code>#[cfg(...)]</code>:</p>
+<ol>
+<li>Complex configurations can be abbreviated to more meaningful shorthand.</li>
+<li>Features are evaluated in the context of the <em>defining</em> crate, not the consuming.</li>
+</ol>
+<p>The second advantage is a particularly powerful tool, as it allows consuming crates to use
+functionality in a defining crate regardless of what crate in the dependency graph enabled the
+relevant feature.</p>
+<p>For example, consider a crate <code>foo</code> that depends on another crate <code>bar</code>.
+<code>bar</code> has a feature “<code>faster_algorithms</code>”.
+If <code>bar</code> defines a “<code>faster_algorithms</code>” alias:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="macro">define_alias!</span> {
+    <span class="attr">#[cfg(feature = <span class="string">"faster_algorithms"</span>)] </span>=&gt; { faster_algorithms }
+}</code></pre></div>
+<p>Now, <code>foo</code> can gate its usage of those faster algorithms on the alias, avoiding the need to
+expose its own “<code>faster_algorithms</code>” feature.
+This also avoids the unfortunate situation where one crate activates “<code>faster_algorithms</code>” on
+<code>bar</code> without activating that same feature on <code>foo</code>.</p>
+<p>Once an alias is defined, there are 4 ways you can use it:</p>
+<ol>
+<li>Evaluate with no contents to return a <code>bool</code> indicating if the alias is active.
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">if </span><span class="macro">cfg::std!</span>() {
+    <span class="comment">// Have `std`!
+</span>} <span class="kw">else </span>{
+    <span class="comment">// No `std`...
+</span>}</code></pre></div></li>
+<li>Pass a single code block which will only be compiled if the alias is active.
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">cfg::std!</span> {
+    <span class="comment">// Have `std`!
+</span>}</code></pre></div></li>
+<li>Pass a single <code>if { ... } else { ... }</code> expression to conditionally compile either the first
+or the second code block.
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">cfg::std!</span> {
+    <span class="kw">if </span>{
+        <span class="comment">// Have `std`!
+    </span>} <span class="kw">else </span>{
+        <span class="comment">// No `std`...
+    </span>}
+}</code></pre></div></li>
+<li>Use in a <a href="macro.switch.html" title="macro bevy_platform::cfg::switch"><code>switch</code></a> arm for more complex conditional compilation.
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">cfg::switch!</span> {
+    cfg::std =&gt; {
+        <span class="comment">// Have `std`!
+    </span>}
+    cfg::alloc =&gt; {
+        <span class="comment">// No `std`, but do have `alloc`!
+    </span>}
+    <span class="kw">_ </span>=&gt; {
+        <span class="comment">// No `std` or `alloc`...
+    </span>}
+}</code></pre></div></li>
+</ol>
+</div></details></section></div></main></body></html>

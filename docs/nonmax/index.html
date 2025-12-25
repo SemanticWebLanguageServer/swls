@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="GitHub CI Status nonmax on crates.io nonmax docs"><title>nonmax - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="nonmax" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate nonmax</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../nonmax/index.html">nonmax</a><span class="version">0.5.5</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#example" title="Example">Example</a></li><li><a href="#features" title="Features">Features</a></li><li><a href="#minimum-supported-rust-version-msrv" title="Minimum Supported Rust Version (MSRV)">Minimum Supported Rust Version (MSRV)</a></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>nonmax</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/nonmax/lib.rs.html#1-546">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><a href="https://github.com/LPGhatguy/nonmax/actions"><img src="https://github.com/LPGhatguy/nonmax/workflows/CI/badge.svg" alt="GitHub CI Status" /></a>
+<a href="https://crates.io/crates/nonmax"><img src="https://img.shields.io/crates/v/nonmax.svg" alt="nonmax on crates.io" /></a>
+<a href="https://docs.rs/nonmax"><img src="https://img.shields.io/badge/docs-docs.rs-orange.svg" alt="nonmax docs" /></a></p>
+<p>nonmax provides types similar to the std <code>NonZero*</code> types, but instead requires
+that their values are not the maximum for their type. This ensures that
+<code>Option&lt;NonMax*&gt;</code> is no larger than <code>NonMax*</code>.</p>
+<p>nonmax supports every type that has a corresponding non-zero variant in the
+standard library:</p>
+<ul>
+<li><code>NonMaxI8</code></li>
+<li><code>NonMaxI16</code></li>
+<li><code>NonMaxI32</code></li>
+<li><code>NonMaxI64</code></li>
+<li><code>NonMaxI128</code></li>
+<li><code>NonMaxIsize</code></li>
+<li><code>NonMaxU8</code></li>
+<li><code>NonMaxU16</code></li>
+<li><code>NonMaxU32</code></li>
+<li><code>NonMaxU64</code></li>
+<li><code>NonMaxU128</code></li>
+<li><code>NonMaxUsize</code></li>
+</ul>
+<h3 id="example"><a class="doc-anchor" href="#example">§</a>Example</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>nonmax::{NonMaxI16, NonMaxU8};
+
+<span class="kw">let </span>value = NonMaxU8::new(<span class="number">16</span>).expect(<span class="string">"16 should definitely fit in a u8"</span>);
+<span class="macro">assert_eq!</span>(value.get(), <span class="number">16</span>);
+<span class="macro">assert_eq!</span>(std::mem::size_of_val(<span class="kw-2">&amp;</span>value), <span class="number">1</span>);
+
+<span class="kw">let </span>signed = NonMaxI16::new(i16::min_value()).expect(<span class="string">"minimum values are fine"</span>);
+<span class="macro">assert_eq!</span>(signed.get(), i16::min_value());
+<span class="macro">assert_eq!</span>(std::mem::size_of_val(<span class="kw-2">&amp;</span>signed), <span class="number">2</span>);
+
+<span class="kw">let </span>oops = NonMaxU8::new(<span class="number">255</span>);
+<span class="macro">assert_eq!</span>(oops, <span class="prelude-val">None</span>);</code></pre></div><h3 id="features"><a class="doc-anchor" href="#features">§</a>Features</h3>
+<ul>
+<li><code>std</code> (default): implements [<code>std::error::Error</code>] for <a href="struct.ParseIntError.html" title="struct nonmax::ParseIntError"><code>ParseIntError</code></a> and
+<a href="struct.TryFromIntError.html" title="struct nonmax::TryFromIntError"><code>TryFromIntError</code></a>. Disable this feature for
+<a href="https://rust-embedded.github.io/book/intro/no-std.html"><code>#![no_std]</code></a> support.</li>
+</ul>
+<h3 id="minimum-supported-rust-version-msrv"><a class="doc-anchor" href="#minimum-supported-rust-version-msrv">§</a>Minimum Supported Rust Version (MSRV)</h3>
+<p>nonmax supports Rust 1.47.0 and newer. Until this library reaches 1.0,
+changes to the MSRV will require major version bumps. After 1.0, MSRV changes
+will only require minor version bumps, but will need significant justification.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.NonMaxI8.html" title="struct nonmax::NonMaxI8">NonMax<wbr>I8</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxI16.html" title="struct nonmax::NonMaxI16">NonMax<wbr>I16</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxI32.html" title="struct nonmax::NonMaxI32">NonMax<wbr>I32</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxI64.html" title="struct nonmax::NonMaxI64">NonMax<wbr>I64</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxI128.html" title="struct nonmax::NonMaxI128">NonMax<wbr>I128</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxIsize.html" title="struct nonmax::NonMaxIsize">NonMax<wbr>Isize</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxU8.html" title="struct nonmax::NonMaxU8">NonMax<wbr>U8</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxU16.html" title="struct nonmax::NonMaxU16">NonMax<wbr>U16</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxU32.html" title="struct nonmax::NonMaxU32">NonMax<wbr>U32</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxU64.html" title="struct nonmax::NonMaxU64">NonMax<wbr>U64</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxU128.html" title="struct nonmax::NonMaxU128">NonMax<wbr>U128</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.NonMaxUsize.html" title="struct nonmax::NonMaxUsize">NonMax<wbr>Usize</a></dt><dd>An integer that is known not to equal its maximum value.</dd><dt><a class="struct" href="struct.ParseIntError.html" title="struct nonmax::ParseIntError">Parse<wbr>IntError</a></dt><dd>An error type returned when an integer cannot be parsed (mimics [std::num::ParseIntError])</dd><dt><a class="struct" href="struct.TryFromIntError.html" title="struct nonmax::TryFromIntError">TryFrom<wbr>IntError</a></dt><dd>An error type returned when a checked integral type conversion fails (mimics [std::num::TryFromIntError])</dd></dl></section></div></main></body></html>

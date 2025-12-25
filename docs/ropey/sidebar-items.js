@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["iter","str_utils"],"struct":["Rope","RopeBuilder","RopeSlice"],"type":["Result"]};

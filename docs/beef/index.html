@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Faster, more compact implementation of `Cow`."><title>beef - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="beef" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate beef</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../beef/index.html">beef</a><span class="version">0.5.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>beef</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/beef/lib.rs.html#1-285">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Faster, more compact implementation of <code>Cow</code>.</p>
+<p><strong><a href="https://github.com/maciejhirsz/beef/releases">Changelog</a> -</strong>
+<strong><a href="https://crates.io/crates/beef">Cargo</a> -</strong>
+<strong><a href="https://github.com/maciejhirsz/beef">Repository</a></strong></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>beef::Cow;
+
+<span class="kw">let </span>borrowed: Cow&lt;str&gt; = Cow::borrowed(<span class="string">"Hello"</span>);
+<span class="kw">let </span>owned: Cow&lt;str&gt; = Cow::owned(String::from(<span class="string">"World"</span>));
+
+<span class="macro">assert_eq!</span>(
+    <span class="macro">format!</span>(<span class="string">"{} {}!"</span>, borrowed, owned),
+    <span class="string">"Hello World!"</span>,
+);</code></pre></div>
+<p>There are two versions of <code>Cow</code> exposed by this crate:</p>
+<ul>
+<li><code>beef::Cow</code> is 3 words wide: pointer, length, and capacity. It stores the ownership tag in capacity.</li>
+<li><code>beef::lean::Cow</code> is 2 words wide, storing length, capacity, and the ownership tag all in one word.</li>
+</ul>
+<p>Both versions are leaner than the <code>std::borrow::Cow</code>:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::mem::size_of;
+
+<span class="kw">const </span>WORD: usize = size_of::&lt;usize&gt;();
+
+<span class="macro">assert_eq!</span>(size_of::&lt;std::borrow::Cow&lt;str&gt;&gt;(), <span class="number">4 </span>* WORD);
+<span class="macro">assert_eq!</span>(size_of::&lt;beef::Cow&lt;str&gt;&gt;(), <span class="number">3 </span>* WORD);
+
+<span class="comment">// Lean variant is two words on 64-bit architecture
+</span><span class="attr">#[cfg(target_pointer_width = <span class="string">"64"</span>)]
+</span><span class="macro">assert_eq!</span>(size_of::&lt;beef::lean::Cow&lt;str&gt;&gt;(), <span class="number">2 </span>* WORD);</code></pre></div></div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="generic/index.html" title="mod beef::generic">generic</a></dt><dd>This module contains the actual, albeit generic, implementaiton of the <code>Cow</code>,
+and the traits that are available to it.</dd><dt><a class="mod" href="lean/index.html" title="mod beef::lean">lean</a></dt><dd>Namespace containing the 2-word <code>Cow</code> implementation.</dd></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Cow.html" title="type beef::Cow">Cow</a></dt><dd>Compact three word <code>Cow</code> that puts the ownership tag in capacity.
+This is a type alias, for documentation see <a href="./generic/struct.Cow.html"><code>beef::generic::Cow</code></a>.</dd></dl></section></div></main></body></html>

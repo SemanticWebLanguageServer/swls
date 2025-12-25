@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["iter_spog"],"trait":["Quad"],"type":["Gspo","QBorrowTerm","Spog"]};

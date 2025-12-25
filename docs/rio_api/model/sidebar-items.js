@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GeneralizedTerm","GraphName","Literal","Subject","Term"],"struct":["BlankNode","GeneralizedQuad","NamedNode","Quad","StrictRdfError","Triple","Variable"]};

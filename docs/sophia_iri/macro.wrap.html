@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This macro is used to create a read-only wrapper around a type T, usually for the purpose of guaranteeing that the wrapped value verifies some condition. This macro takes care of defining all the usual traits for the wrapper type."><title>wrap in sophia_iri - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="sophia_iri" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">wrap</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../sophia_iri/index.html">sophia_<wbr>iri</a><span class="version">0.9.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">sophia_iri</a></div><h1>Macro <span class="macro">wrap</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/sophia_iri/_wrap_macro.rs.html#60-308">Source</a> </span></div><pre class="rust item-decl"><code>macro_rules! wrap {
+    (#[derive($($derive:ident),*)] $wid:ident&lt;$tid:ident: $bound:path&gt;: $new:item $($item:item)*) =&gt; { ... };
+    ($wid:ident&lt;$tid:ident: $bound:path&gt;: $new:item $($item:item)*) =&gt; { ... };
+    ($wid:ident borrowing str: $new:item $($item:item)*) =&gt; { ... };
+    (#[derive($($derive:ident),*)] $wid:ident borrowing $bid:ty: $new:item $($item:item)*) =&gt; { ... };
+    ($wid:ident borrowing $bid:ty: $new:item $($item:item)*) =&gt; { ... };
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This macro is used to create a read-only wrapper around a type T,
+usually for the purpose of guaranteeing that the wrapped value verifies some condition.
+This macro takes care of defining all the usual traits for the wrapper type.</p>
+<p>In its most general form, it is used like this:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">wrap!</span> {
+    <span class="attr">#[derive(Clone, Debug)]
+    </span>MyWrapper&lt;T: SomeTrait&gt; :
+
+    <span class="comment">// NB: the trait bound is required, as well as the trailing colon (':').
+    // The derive clause, however, is optional (it will default to Clone, Copy, Debug).
+
+    // You can include members in the impl of the wrapper type.
+    // At the very least, you must define a `new` constructor as the first member,
+    // that will check the appropriate condition on the wrapped value,
+    // and return a `Result`.
+
+    </span><span class="doccomment">/// The `new` constructor should carry the documentation of the type;
+    /// since the generated documentation for the type will point to it.
+    </span><span class="kw">pub fn </span>new(inner: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, SomeError&gt; {
+        <span class="kw">if </span>inner.check_some_property() {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>(inner))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(SomeError {})
+        }
+    }
+}</code></pre></div>
+<p>A more specific form is when the trait that T must satisfy
+is <a href="https://doc.rust-lang.org/1.92.0/core/borrow/trait.Borrow.html" title="trait core::borrow::Borrow"><code>std::borrow::Borrow&lt;U&gt;</code></a>, in which case more traits
+can be implemented by the wrapper. This is achieved with
+the following syntax:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">wrap!</span> { Foo borrowing str :
+    <span class="doccomment">/// As before
+    </span><span class="kw">pub fn </span>new(inner: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
+        <span class="kw">if </span>inner.borrow().contains(<span class="string">"foo"</span>) {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>(inner))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"{:?} is not a valid Foo"</span>, inner.borrow()))
+        }
+    }
+}</code></pre></div>
+<p>Two <a href="crate::wrap_macro_examples">examples</a> are available,
+illustrating the members and trait implementation generated by this macro.</p>
+<p>NB: the documentation of the wrapper will point to the documentation of the <code>new</code> method.</p>
+</div></details></section></div></main></body></html>

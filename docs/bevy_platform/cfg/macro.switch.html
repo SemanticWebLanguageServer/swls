@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Provides a `match`-like expression similar to `cfg_if` and based on the experimental `cfg_match`. The name `switch` is used to avoid conflict with the `match` keyword. Arms are evaluated top to bottom, and an optional wildcard arm can be provided if no match can be made."><title>switch in bevy_platform::cfg - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_platform" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">switch</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_platform/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_platform/index.html">bevy_<wbr>platform</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">switch</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>platform::<wbr>cfg</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_platform</a>::<wbr><a href="index.html">cfg</a></div><h1>Macro <span class="macro">switch</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_platform/cfg.rs.html#128-160">Source</a> </span></div><pre class="rust item-decl"><code>macro_rules! switch {
+    ({ $($tt:tt)* }) =&gt; { ... };
+    (_ =&gt; { $($output:tt)* }) =&gt; { ... };
+    (
+        $cond:path =&gt; $output:tt
+        $($( $rest:tt )+)?
+    ) =&gt; { ... };
+    (
+        #[cfg($cfg:meta)] =&gt; $output:tt
+        $($( $rest:tt )+)?
+    ) =&gt; { ... };
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Provides a <code>match</code>-like expression similar to <a href="https://crates.io/crates/cfg-if"><code>cfg_if</code></a> and based on the experimental
+<a href="https://github.com/rust-lang/rust/issues/115585"><code>cfg_match</code></a>.
+The name <code>switch</code> is used to avoid conflict with the <code>match</code> keyword.
+Arms are evaluated top to bottom, and an optional wildcard arm can be provided if no match
+can be made.</p>
+<p>An arm can either be:</p>
+<ul>
+<li>a <code>cfg(...)</code> pattern (e.g., <code>feature = "foo"</code>)</li>
+<li>a wildcard <code>_</code></li>
+<li>an alias defined using <a href="macro.define_alias.html" title="macro bevy_platform::cfg::define_alias"><code>define_alias</code></a></li>
+</ul>
+<p>Common aliases are provided by <a href="index.html" title="mod bevy_platform::cfg"><code>cfg</code></a>.
+Note that aliases are evaluated from the context of the defining crate, not the consumer.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="macro">cfg::switch!</span> {
+    <span class="attr">#[cfg(feature = <span class="string">"foo"</span>)] </span>=&gt; {
+        foo(<span class="string">"We have the `foo` feature!"</span>)
+    }
+    cfg::std =&gt; {
+        <span class="kw">extern crate </span>std;
+        <span class="macro">std::println!</span>(<span class="string">"No `foo`, but we have `std`!"</span>);
+    }
+    <span class="kw">_ </span>=&gt; {
+        log(<span class="string">"Don't have `std` or `foo`"</span>);
+    }
+}</code></pre></div></div></details></section></div></main></body></html>

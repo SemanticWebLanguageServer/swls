@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EntityCommandError"],"fn":["clear","clone_components","clone_with_opt_in","clone_with_opt_out","despawn","insert","insert_by_id","insert_from_world","insert_with","log_components","move_components","observe","remove","remove_by_id","remove_with_requires","retain"],"trait":["EntityCommand"]};

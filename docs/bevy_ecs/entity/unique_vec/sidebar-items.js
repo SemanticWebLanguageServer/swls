@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["UniqueEntityEquivalentVec"],"type":["Drain","IntoIter","Splice","UniqueEntityVec"]};

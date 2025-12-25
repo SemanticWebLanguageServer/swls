@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A variant of `all_tuples!` that enumerates its output."><title>all_tuples_enumerated in variadics_please - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="variadics_please" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">all_tuples_enumerated</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../variadics_please/index.html">variadics_<wbr>please</a><span class="version">1.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">variadics_please</a></div><h1>Macro <span class="macro">all_<wbr>tuples_<wbr>enumerated</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/variadics_please/lib.rs.html#238-267">Source</a> </span></div><pre class="rust item-decl"><code>all_tuples_enumerated!() { <span class="comment">/* proc-macro */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A variant of <a href="macro.all_tuples.html" title="macro variadics_please::all_tuples"><code>all_tuples!</code></a> that enumerates its output.</p>
+<p>In particular, the tuples used by the inner macro will themselves be composed
+of tuples which contain the index.</p>
+<p>For example, with a single parameter:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">trait </span>Squawk {
+    <span class="kw">fn </span>squawk(<span class="kw-2">&amp;</span><span class="self">self</span>);
+}
+
+<span class="comment">// If every type in a tuple is `Squawk`, the tuple can squawk by having its
+// constituents squawk sequentially:
+</span><span class="macro">macro_rules!</span> impl_squawk {
+    ($((<span class="macro-nonterminal">$n</span>:tt, <span class="macro-nonterminal">$T</span>:ident)),<span class="kw-2">*</span>) =&gt; {
+        <span class="kw">impl</span>&lt;$(<span class="macro-nonterminal">$T</span>: Squawk),<span class="kw-2">*</span>&gt; Squawk <span class="kw">for </span>($(<span class="macro-nonterminal">$T</span>,)<span class="kw-2">*</span>) {
+            <span class="kw">fn </span>squawk(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+                $(
+                    <span class="self">self</span>.<span class="macro-nonterminal">$n</span>.squawk();
+                )*
+            }
+        }
+    };
+}
+
+<span class="macro">all_tuples_enumerated!</span>(impl_squawk, <span class="number">1</span>, <span class="number">15</span>, T);
+<span class="comment">// impl_squawk!((0, T0));
+// impl_squawk!((0, T0), (1, T1));
+// ..
+// impl_squawk!((0, T0) .. (14, T14));</span></code></pre></div>
+<p>With multiple parameters, the result is similar, but with the additional parameters
+included in each tuple; e.g.:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="macro">all_tuples_enumerated!</span>(impl_squawk, <span class="number">1</span>, <span class="number">15</span>, P, p);
+<span class="comment">// impl_squawk!((0, P0, p0));
+// impl_squawk!((0, P0, p0), (1, P1, p1));
+// ..
+// impl_squawk!((0, P0, p0) .. (14, P14, p14));</span></code></pre></div></div></details></section></div></main></body></html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Generic trait for mutable RDF datasets."><title>MutableDataset in sophia_api::dataset - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sophia_api" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">MutableDataset</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../sophia_api/index.html">sophia_<wbr>api</a><span class="version">0.9.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Mutable<wbr>Dataset</a></h2><h3><a href="#required-associated-types">Required Associated Types</a></h3><ul class="block"><li><a href="#associatedtype.MutationError" title="MutationError">MutationError</a></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.insert" title="insert">insert</a></li><li><a href="#tymethod.remove" title="remove">remove</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.insert_all" title="insert_all">insert_all</a></li><li><a href="#method.insert_quad" title="insert_quad">insert_quad</a></li><li><a href="#method.remove_all" title="remove_all">remove_all</a></li><li><a href="#method.remove_matching" title="remove_matching">remove_matching</a></li><li><a href="#method.remove_quad" title="remove_quad">remove_quad</a></li><li><a href="#method.retain_matching" title="retain_matching">retain_matching</a></li></ul><h3><a href="#foreign-impls">Implementations on Foreign Types</a></h3><ul class="block"><li><a href="#impl-MutableDataset-for-%26mut+T" title="&#38;mut T">&#38;mut T</a></li><li><a href="#impl-MutableDataset-for-BTreeSet%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" title="BTreeSet&#60;Gspo&#60;T&#62;&#62;">BTreeSet&#60;Gspo&#60;T&#62;&#62;</a></li><li><a href="#impl-MutableDataset-for-BTreeSet%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" title="BTreeSet&#60;Spog&#60;T&#62;&#62;">BTreeSet&#60;Spog&#60;T&#62;&#62;</a></li><li><a href="#impl-MutableDataset-for-HashSet%3C(Option%3CT%3E,+%5BT;+3%5D),+S%3E" title="HashSet&#60;Gspo&#60;T&#62;, S&#62;">HashSet&#60;Gspo&#60;T&#62;, S&#62;</a></li><li><a href="#impl-MutableDataset-for-HashSet%3C(%5BT;+3%5D,+Option%3CT%3E),+S%3E" title="HashSet&#60;Spog&#60;T&#62;, S&#62;">HashSet&#60;Spog&#60;T&#62;, S&#62;</a></li><li><a href="#impl-MutableDataset-for-Vec%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" title="Vec&#60;Gspo&#60;T&#62;&#62;">Vec&#60;Gspo&#60;T&#62;&#62;</a></li><li><a href="#impl-MutableDataset-for-Vec%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" title="Vec&#60;Spog&#60;T&#62;&#62;">Vec&#60;Spog&#60;T&#62;&#62;</a></li></ul><h3><a href="#dyn-compatibility">Dyn Compatibility</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In sophia_<wbr>api::<wbr>dataset</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">sophia_api</a>::<wbr><a href="index.html">dataset</a></div><h1>Trait <span class="trait">Mutable<wbr>Dataset</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/sophia_api/dataset.rs.html#349-589">Source</a> </span></div><pre class="rust item-decl"><code>pub trait MutableDataset: <a class="trait" href="trait.Dataset.html" title="trait sophia_api::dataset::Dataset">Dataset</a> {
+    type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/error/trait.Error.html" title="trait core::error::Error">Error</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static;
+
+    // Required methods
+    fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+        &amp;mut self,
+        s: TS,
+        p: TP,
+        o: TO,
+        g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+    ) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;
+       <span class="where">where TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a></span>;
+<span class="item-spacer"></span>    fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+        &amp;mut self,
+        s: TS,
+        p: TP,
+        o: TO,
+        g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+    ) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;
+       <span class="where">where TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+             TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a></span>;
+
+    // Provided methods
+    fn <a href="#method.insert_quad" class="fn">insert_quad</a>&lt;T&gt;(&amp;mut self, quad: T) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;
+       <span class="where">where T: <a class="trait" href="../quad/trait.Quad.html" title="trait sophia_api::quad::Quad">Quad</a></span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.remove_quad" class="fn">remove_quad</a>&lt;T&gt;(&amp;mut self, quad: T) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;
+       <span class="where">where T: <a class="trait" href="../quad/trait.Quad.html" title="trait sophia_api::quad::Quad">Quad</a></span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.insert_all" class="fn">insert_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+        &amp;mut self,
+        src: TS,
+    ) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, &lt;Self as <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a>&gt;::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.remove_all" class="fn">remove_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+        &amp;mut self,
+        src: TS,
+    ) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, &lt;Self as <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a>&gt;::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.remove_matching" class="fn">remove_matching</a>&lt;S, P, O, G&gt;(
+        &amp;mut self,
+        ms: S,
+        mp: P,
+        mo: O,
+        mg: G,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;
+       <span class="where">where S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+             Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;</span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.retain_matching" class="fn">retain_matching</a>&lt;S, P, O, G&gt;(
+        &amp;mut self,
+        ms: S,
+        mp: P,
+        mo: O,
+        mg: G,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;
+       <span class="where">where S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+             G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+             Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;</span> { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Generic trait for mutable RDF datasets.</p>
+<p>NB: the semantics of this trait allows a dataset to contain duplicate quads;
+see also <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+</div></details><h2 id="required-associated-types" class="section-header">Required Associated Types<a href="#required-associated-types" class="anchor">§</a></h2><div class="methods"><details class="toggle" open><summary><section id="associatedtype.MutationError" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#351">Source</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/error/trait.Error.html" title="trait core::error::Error">Error</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static</h4></section></summary><div class="docblock"><p>The error type that this dataset may raise during mutations.</p>
+</div></details></div><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.insert" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#385-396">Source</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></summary><div class="docblock"><p>Insert the given quad in this dataset.</p>
+<h5 id="return-value"><a class="doc-anchor" href="#return-value">§</a>Return value</h5>
+<p>The <code>bool</code> value returned in case of success is
+<strong>not significant unless</strong> this dataset also implements <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>If it does,
+<code>true</code> is returned iff the insertion actually changed the dataset.
+In other words,
+a return value of <code>false</code> means that the dataset was not changed,
+because the quad was already present in this <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>See also <a href="trait.MutableDataset.html#method.insert_quad" title="method sophia_api::dataset::MutableDataset::insert_quad"><code>MutableDataset::insert_quad</code></a></p>
+<h5 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>schema = Namespace::new(<span class="string">"http://schema.org/"</span>).unwrap();
+<span class="kw">let </span>s_name = schema.get(<span class="string">"name"</span>).unwrap();
+<span class="kw">let </span>default_graph: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'static </span>SimpleTerm&lt;<span class="lifetime">'static</span>&gt;&gt; = <span class="prelude-val">None</span>;
+
+dataset.insert(<span class="kw-2">&amp;</span>s_name, <span class="kw-2">&amp;</span>rdf::type_, <span class="kw-2">&amp;</span>rdf::Property, default_graph)<span class="question-mark">?</span>;
+dataset.insert(<span class="kw-2">&amp;</span>s_name, <span class="kw-2">&amp;</span>rdfs::range, <span class="kw-2">&amp;</span>xsd::string, default_graph)<span class="question-mark">?</span>;
+dataset.insert(<span class="kw-2">&amp;</span>s_name, <span class="kw-2">&amp;</span>rdfs::comment, <span class="string">"The name of the item."</span>, <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>rdfs::comment))<span class="question-mark">?</span>;</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="tymethod.remove" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#423-434">Source</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></summary><div class="docblock"><p>Remove the given quad from this dataset.</p>
+<h5 id="return-value-1"><a class="doc-anchor" href="#return-value-1">§</a>Return value</h5>
+<p>The <code>bool</code> value returned in case of success is
+<strong>not significant unless</strong> this dataset also implements <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>If it does,
+<code>true</code> is returned iff the removal actually changed the dataset.
+In other words,
+a return value of <code>false</code> means that the dataset was not changed,
+because the quad was already absent from this <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.insert_quad" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#404-410">Source</a><h4 class="code-header">fn <a href="#method.insert_quad" class="fn">insert_quad</a>&lt;T&gt;(&amp;mut self, quad: T) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    T: <a class="trait" href="../quad/trait.Quad.html" title="trait sophia_api::quad::Quad">Quad</a>,</div></h4></section></summary><div class="docblock"><p>Insert in this graph the given quad.</p>
+<p>NB: if you want to insert a quad <code>q</code> while keeping its ownership,
+you can still pass <a href="../quad/trait.Quad.html#method.spog" title="method sophia_api::quad::Quad::spog"><code>q.spog()</code></a>.</p>
+<p>See also <a href="trait.MutableDataset.html#tymethod.insert" title="method sophia_api::dataset::MutableDataset::insert"><code>MutableDataset::insert</code></a></p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_quad" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#442-448">Source</a><h4 class="code-header">fn <a href="#method.remove_quad" class="fn">remove_quad</a>&lt;T&gt;(&amp;mut self, quad: T) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    T: <a class="trait" href="../quad/trait.Quad.html" title="trait sophia_api::quad::Quad">Quad</a>,</div></h4></section></summary><div class="docblock"><p>Remove from this graph a the given quad.</p>
+<p>NB: if you want to remove a quad <code>q</code> while keeping its ownership,
+you can still pass <a href="../quad/trait.Quad.html#method.spog" title="method sophia_api::quad::Quad::spog"><code>q.spog()</code></a>.</p>
+<p>See also <a href="trait.MutableDataset.html#tymethod.remove" title="method sophia_api::dataset::MutableDataset::remove">MutableDataset::remove</a></p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.insert_all" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#471-484">Source</a><h4 class="code-header">fn <a href="#method.insert_all" class="fn">insert_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+    &amp;mut self,
+    src: TS,
+) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, &lt;Self as <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a>&gt;::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;</h4></section></summary><div class="docblock"><p>Insert into this dataset all quads from the given source.</p>
+<h5 id="blank-node-scope"><a class="doc-anchor" href="#blank-node-scope">§</a>Blank node scope</h5>
+<p>The blank nodes contained in the quad source will be inserted as is.
+If they happen to have the same identifier as blank nodes already present,
+they will be considered equal.
+This might <em>not</em> be what you want,
+especially if the dataset contains data from a file,
+and you are inserting data from a different file.
+In that case, you should first transform the quad source,
+in order to get fresh blank node identifiers.</p>
+<h5 id="return-value-2"><a class="doc-anchor" href="#return-value-2">§</a>Return value</h5>
+<p>The <code>usize</code> value returned in case of success is
+<strong>not significant unless</strong> this dataset also implements <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>If it does,
+the number of quads that were <em>actually</em> inserted
+(i.e. that were not already present in this <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>)
+is returned.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_all" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#497-510">Source</a><h4 class="code-header">fn <a href="#method.remove_all" class="fn">remove_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+    &amp;mut self,
+    src: TS,
+) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, &lt;Self as <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a>&gt;::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;</h4></section></summary><div class="docblock"><p>Remove from this dataset all quads from the given source.</p>
+<h5 id="return-value-3"><a class="doc-anchor" href="#return-value-3">§</a>Return value</h5>
+<p>The <code>usize</code> value returned in case of success is
+<strong>not significant unless</strong> this dataset also implements <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>If it does,
+the number of quads that were <em>actually</em> removed
+(i.e. that were not already absent from this <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>)
+is returned.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_matching" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#526-549">Source</a><h4 class="code-header">fn <a href="#method.remove_matching" class="fn">remove_matching</a>&lt;S, P, O, G&gt;(
+    &amp;mut self,
+    ms: S,
+    mp: P,
+    mo: O,
+    mg: G,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;<div class="where">where
+    S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+    Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;,</div></h4></section></summary><div class="docblock"><p>Remove all quads matching the given matchers.</p>
+<h5 id="return-value-4"><a class="doc-anchor" href="#return-value-4">§</a>Return value</h5>
+<p>The <code>usize</code> value returned in case of success is
+<strong>not significant unless</strong> this dataset also implements <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>.</p>
+<p>If it does,
+the number of quads that were <em>actually</em> removed
+(i.e. that were not already absent from this <a href="trait.SetDataset.html" title="trait sophia_api::dataset::SetDataset"><code>SetDataset</code></a>)
+is returned.</p>
+<h5 id="note-to-implementors"><a class="doc-anchor" href="#note-to-implementors">§</a>Note to implementors</h5>
+<p>The default implementation is rather naive,
+and could be improved in specific implementations of the trait.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.retain_matching" class="method"><a class="src rightside" href="../../src/sophia_api/dataset.rs.html#556-588">Source</a><h4 class="code-header">fn <a href="#method.retain_matching" class="fn">retain_matching</a>&lt;S, P, O, G&gt;(
+    &amp;mut self,
+    ms: S,
+    mp: P,
+    mo: O,
+    mg: G,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;<div class="where">where
+    S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+    Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;,</div></h4></section></summary><div class="docblock"><p>Keep only the quads matching the given matchers.</p>
+<h5 id="note-to-implementors-1"><a class="doc-anchor" href="#note-to-implementors-1">§</a>Note to implementors</h5>
+<p>The default implementation is rather naive,
+and could be improved in specific implementations of the trait.</p>
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.92.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety", so this trait is not object safe.</i></p></div><h2 id="foreign-impls" class="section-header">Implementations on Foreign Types<a href="#foreign-impls" class="anchor">§</a></h2><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-BTreeSet%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#674-717">Source</a><a href="#impl-MutableDataset-for-BTreeSet%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/alloc/collections/btree/set/struct.BTreeSet.html" title="struct alloc::collections::btree::set::BTreeSet">BTreeSet</a>&lt;<a class="type" href="../quad/type.Gspo.html" title="type sophia_api::quad::Gspo">Gspo</a>&lt;T&gt;&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/cmp/trait.Ord.html" title="trait core::cmp::Ord">Ord</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-1" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#678">Source</a><a href="#associatedtype.MutationError-1" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#680-697">Source</a><a href="#method.insert" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#699-716">Source</a><a href="#method.remove" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-BTreeSet%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#609-652">Source</a><a href="#impl-MutableDataset-for-BTreeSet%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/alloc/collections/btree/set/struct.BTreeSet.html" title="struct alloc::collections::btree::set::BTreeSet">BTreeSet</a>&lt;<a class="type" href="../quad/type.Spog.html" title="type sophia_api::quad::Spog">Spog</a>&lt;T&gt;&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/cmp/trait.Ord.html" title="trait core::cmp::Ord">Ord</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-2" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#613">Source</a><a href="#associatedtype.MutationError-2" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#615-632">Source</a><a href="#method.insert-1" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#634-651">Source</a><a href="#method.remove-1" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-Vec%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#373-424">Source</a><a href="#impl-MutableDataset-for-Vec%3C(Option%3CT%3E,+%5BT;+3%5D)%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="type" href="../quad/type.Gspo.html" title="type sophia_api::quad::Gspo">Gspo</a>&lt;T&gt;&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-3" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#377">Source</a><a href="#associatedtype.MutationError-3" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert-2" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#379-397">Source</a><a href="#method.insert-2" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-2" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#399-423">Source</a><a href="#method.remove-2" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-Vec%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#297-350">Source</a><a href="#impl-MutableDataset-for-Vec%3C(%5BT;+3%5D,+Option%3CT%3E)%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="type" href="../quad/type.Spog.html" title="type sophia_api::quad::Spog">Spog</a>&lt;T&gt;&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-4" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#301">Source</a><a href="#associatedtype.MutationError-4" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert-3" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#303-321">Source</a><a href="#method.insert-3" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-3" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#323-349">Source</a><a href="#method.remove-3" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-HashSet%3C(Option%3CT%3E,+%5BT;+3%5D),+S%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#527-571">Source</a><a href="#impl-MutableDataset-for-HashSet%3C(Option%3CT%3E,+%5BT;+3%5D),+S%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T, S&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;<a class="type" href="../quad/type.Gspo.html" title="type sophia_api::quad::Gspo">Gspo</a>&lt;T&gt;, S&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a>,
+    S: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/hash/trait.BuildHasher.html" title="trait core::hash::BuildHasher">BuildHasher</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/default/trait.Default.html" title="trait core::default::Default">Default</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-5" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#532">Source</a><a href="#associatedtype.MutationError-5" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert-4" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#534-551">Source</a><a href="#method.insert-4" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-4" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#553-570">Source</a><a href="#method.remove-4" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-HashSet%3C(%5BT;+3%5D,+Option%3CT%3E),+S%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#459-503">Source</a><a href="#impl-MutableDataset-for-HashSet%3C(%5BT;+3%5D,+Option%3CT%3E),+S%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T, S&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="https://doc.rust-lang.org/1.92.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;<a class="type" href="../quad/type.Spog.html" title="type sophia_api::quad::Spog">Spog</a>&lt;T&gt;, S&gt;<div class="where">where
+    T: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> + <a class="trait" href="../term/trait.FromTerm.html" title="trait sophia_api::term::FromTerm">FromTerm</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a>,
+    S: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/hash/trait.BuildHasher.html" title="trait core::hash::BuildHasher">BuildHasher</a> + <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/default/trait.Default.html" title="trait core::default::Default">Default</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-6" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#464">Source</a><a href="#associatedtype.MutationError-6" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section><section id="method.insert-5" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#466-483">Source</a><a href="#method.insert-5" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-5" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#485-502">Source</a><a href="#method.remove-5" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section></div></details><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-%26mut+T" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#166-248">Source</a><a href="#impl-MutableDataset-for-%26mut+T" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> + ?<a class="trait" href="https://doc.rust-lang.org/1.92.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.reference.html">&amp;mut T</a></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-7" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#167">Source</a><a href="#associatedtype.MutationError-7" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = &lt;T as <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a>&gt;::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a></h4></section><section id="method.insert-6" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#169-183">Source</a><a href="#method.insert-6" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.insert" class="fn">insert</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.remove-6" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#185-199">Source</a><a href="#method.remove-6" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.remove" class="fn">remove</a>&lt;TS, TP, TO, TG&gt;(
+    &amp;mut self,
+    s: TS,
+    p: TP,
+    o: TO,
+    g: <a class="type" href="../term/type.GraphName.html" title="type sophia_api::term::GraphName">GraphName</a>&lt;TG&gt;,
+) -&gt; <a class="type" href="type.MdResult.html" title="type sophia_api::dataset::MdResult">MdResult</a>&lt;Self, <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.bool.html">bool</a>&gt;<div class="where">where
+    TS: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TP: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TO: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,
+    TG: <a class="trait" href="../term/trait.Term.html" title="trait sophia_api::term::Term">Term</a>,</div></h4></section><section id="method.insert_all-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#201-206">Source</a><a href="#method.insert_all-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.insert_all" class="fn">insert_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+    &amp;mut self,
+    src: TS,
+) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;</h4></section><section id="method.remove_all-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#208-213">Source</a><a href="#method.remove_all-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.remove_all" class="fn">remove_all</a>&lt;TS: <a class="trait" href="../source/trait.QuadSource.html" title="trait sophia_api::source::QuadSource">QuadSource</a>&gt;(
+    &amp;mut self,
+    src: TS,
+) -&gt; <a class="type" href="../source/type.StreamResult.html" title="type sophia_api::source::StreamResult">StreamResult</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, TS::<a class="associatedtype" href="../source/trait.Source.html#associatedtype.Error" title="type sophia_api::source::Source::Error">Error</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;</h4></section><section id="method.remove_matching-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#215-230">Source</a><a href="#method.remove_matching-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.remove_matching" class="fn">remove_matching</a>&lt;S, P, O, G&gt;(
+    &amp;mut self,
+    ms: S,
+    mp: P,
+    mo: O,
+    mg: G,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.usize.html">usize</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;<div class="where">where
+    S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+    Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;,</div></h4></section><section id="method.retain_matching-1" class="method trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/_foreign_impl.rs.html#232-247">Source</a><a href="#method.retain_matching-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.retain_matching" class="fn">retain_matching</a>&lt;S, P, O, G&gt;(
+    &amp;mut self,
+    ms: S,
+    mp: P,
+    mo: O,
+    mg: G,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.92.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>, Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>&gt;<div class="where">where
+    S: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    P: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    O: <a class="trait" href="../term/matcher/trait.TermMatcher.html" title="trait sophia_api::term::matcher::TermMatcher">TermMatcher</a>,
+    G: <a class="trait" href="../term/matcher/trait.GraphNameMatcher.html" title="trait sophia_api::term::matcher::GraphNameMatcher">GraphNameMatcher</a>,
+    Self::<a class="associatedtype" href="trait.MutableDataset.html#associatedtype.MutationError" title="type sophia_api::dataset::MutableDataset::MutationError">MutationError</a>: <a class="trait" href="https://doc.rust-lang.org/1.92.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;Self::<a class="associatedtype" href="trait.Dataset.html#associatedtype.Error" title="type sophia_api::dataset::Dataset::Error">Error</a>&gt;,</div></h4></section></div></details><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><details class="toggle implementors-toggle"><summary><section id="impl-MutableDataset-for-GraphAsDataset%3CT%3E" class="impl"><a class="src rightside" href="../../src/sophia_api/dataset/adapter.rs.html#123-172">Source</a><a href="#impl-MutableDataset-for-GraphAsDataset%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.MutableDataset.html" title="trait sophia_api::dataset::MutableDataset">MutableDataset</a> for <a class="struct" href="adapter/struct.GraphAsDataset.html" title="struct sophia_api::dataset::adapter::GraphAsDataset">GraphAsDataset</a>&lt;T&gt;<div class="where">where
+    T: <a class="trait" href="../graph/trait.MutableGraph.html" title="trait sophia_api::graph::MutableGraph">MutableGraph</a>,</div></h3></section></summary><div class="impl-items"><section id="associatedtype.MutationError-8" class="associatedtype trait-impl"><a class="src rightside" href="../../src/sophia_api/dataset/adapter.rs.html#127">Source</a><a href="#associatedtype.MutationError-8" class="anchor">§</a><h4 class="code-header">type <a href="#associatedtype.MutationError" class="associatedtype">MutationError</a> = <a class="enum" href="adapter/enum.GraphAsDatasetMutationError.html" title="enum sophia_api::dataset::adapter::GraphAsDatasetMutationError">GraphAsDatasetMutationError</a>&lt;&lt;T as <a class="trait" href="../graph/trait.MutableGraph.html" title="trait sophia_api::graph::MutableGraph">MutableGraph</a>&gt;::<a class="associatedtype" href="../graph/trait.MutableGraph.html#associatedtype.MutationError" title="type sophia_api::graph::MutableGraph::MutationError">MutationError</a>&gt;</h4></section></div></details></div><script src="../../trait.impl/sophia_api/dataset/trait.MutableDataset.js" data-ignore-extern-crates="alloc,std" async></script></section></div></main></body></html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A system that determines if one or more scheduled systems should run."><title>SystemCondition in bevy_ecs::schedule - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bevy_ecs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="icon" href="https://bevy.org/assets/icon.png"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">SystemCondition</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../bevy_ecs/index.html"><img src="https://bevy.org/assets/icon.png" alt="logo"></a><h2><a href="../../bevy_ecs/index.html">bevy_<wbr>ecs</a><span class="version">0.17.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">System<wbr>Condition</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#marker-type-parameter" title="Marker type parameter">Marker type parameter</a></li><li><a href="#examples" title="Examples">Examples</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.and" title="and">and</a></li><li><a href="#method.nand" title="nand">nand</a></li><li><a href="#method.nor" title="nor">nor</a></li><li><a href="#method.or" title="or">or</a></li><li><a href="#method.xnor" title="xnor">xnor</a></li><li><a href="#method.xor" title="xor">xor</a></li></ul><h3><a href="#dyn-compatibility">Dyn Compatibility</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In bevy_<wbr>ecs::<wbr>schedule</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">bevy_ecs</a>::<wbr><a href="index.html">schedule</a></div><h1>Trait <span class="trait">System<wbr>Condition</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/bevy_ecs/schedule/condition.rs.html#75-373">Source</a> </span></div><pre class="rust item-decl"><code>pub trait SystemCondition&lt;Marker, In: <a class="trait" href="../system/trait.SystemInput.html" title="trait bevy_ecs::system::SystemInput">SystemInput</a> = <a class="primitive" href="https://doc.rust-lang.org/1.92.0/std/primitive.unit.html">()</a>&gt;: SystemCondition&lt;Marker, In&gt; {
+    // Provided methods
+    fn <a href="#method.and" class="fn">and</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        and: C,
+    ) -&gt; <a class="type" href="type.And.html" title="type bevy_ecs::schedule::And">And</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.nand" class="fn">nand</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        nand: C,
+    ) -&gt; <a class="type" href="type.Nand.html" title="type bevy_ecs::schedule::Nand">Nand</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.nor" class="fn">nor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        nor: C,
+    ) -&gt; <a class="type" href="type.Nor.html" title="type bevy_ecs::schedule::Nor">Nor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.or" class="fn">or</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        or: C,
+    ) -&gt; <a class="type" href="type.Or.html" title="type bevy_ecs::schedule::Or">Or</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.xnor" class="fn">xnor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        xnor: C,
+    ) -&gt; <a class="type" href="type.Xnor.html" title="type bevy_ecs::schedule::Xnor">Xnor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.xor" class="fn">xor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+        self,
+        xor: C,
+    ) -&gt; <a class="type" href="type.Xor.html" title="type bevy_ecs::schedule::Xor">Xor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt; { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A system that determines if one or more scheduled systems should run.</p>
+<p>Implemented for functions and closures that convert into <a href="../system/trait.System.html" title="trait bevy_ecs::system::System"><code>System&lt;Out=bool&gt;</code></a>
+with <a href="../system/trait.ReadOnlySystemParam.html" title="trait bevy_ecs::system::ReadOnlySystemParam">read-only</a> parameters.</p>
+<h2 id="marker-type-parameter"><a class="doc-anchor" href="#marker-type-parameter">§</a>Marker type parameter</h2>
+<p><code>SystemCondition</code> trait has <code>Marker</code> type parameter, which has no special meaning,
+but exists to work around the limitation of Rust’s trait system.</p>
+<p>Type parameter in return type can be set to <code>&lt;()&gt;</code> by calling <a href="../system/trait.IntoSystem.html#tymethod.into_system" title="associated function bevy_ecs::system::IntoSystem::into_system"><code>IntoSystem::into_system</code></a>,
+but usually have to be specified when passing a condition to a function.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>not_condition&lt;Marker&gt;(a: <span class="kw">impl </span>SystemCondition&lt;Marker&gt;) -&gt; <span class="kw">impl </span>SystemCondition&lt;()&gt; {
+   IntoSystem::into_system(a.map(|x| !x))
+}</code></pre></div><h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<p>A condition that returns true every other time it’s called.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>every_other_time() -&gt; <span class="kw">impl </span>SystemCondition&lt;()&gt; {
+    IntoSystem::into_system(|<span class="kw-2">mut </span>flag: Local&lt;bool&gt;| {
+        <span class="kw-2">*</span>flag = !<span class="kw-2">*</span>flag;
+        <span class="kw-2">*</span>flag
+    })
+}
+
+schedule.add_systems(my_system.run_if(every_other_time()));</code></pre></div>
+<p>A condition that takes a bool as an input and returns it unchanged.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>identity() -&gt; <span class="kw">impl </span>SystemCondition&lt;(), In&lt;bool&gt;&gt; {
+    IntoSystem::into_system(|In(x): In&lt;bool&gt;| x)
+}
+
+app.add_systems(my_system.run_if(always_true.pipe(identity())));</code></pre></div></div></details><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.and" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#122-127">Source</a><h4 class="code-header">fn <a href="#method.and" class="fn">and</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+    self,
+    and: C,
+) -&gt; <a class="type" href="type.And.html" title="type bevy_ecs::schedule::And">And</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that only returns <code>true</code>
+if both this one and the passed <code>and</code> return <code>true</code>.</p>
+<p>The returned run condition is short-circuiting, meaning
+<code>and</code> will only be invoked if <code>self</code> returns <code>true</code>.</p>
+<h5 id="examples-1"><a class="doc-anchor" href="#examples-1">§</a>Examples</h5>
+<div class="example-wrap should_panic"><a href="#" class="tooltip" title="This example panics">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(Resource, PartialEq)]
+</span><span class="kw">struct </span>R(u32);
+
+app.add_systems(
+    <span class="comment">// The `resource_equals` run condition will panic since we don't initialize `R`,
+    // just like if we used `Res&lt;R&gt;` in a system.
+    </span>my_system.run_if(resource_equals(R(<span class="number">0</span>))),
+);</code></pre></div>
+<p>Use <code>.and()</code> to avoid checking the condition.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>app.add_systems(
+    <span class="comment">// `resource_equals` will only get run if the resource `R` exists.
+    </span>my_system.run_if(resource_exists::&lt;R&gt;.and(resource_equals(R(<span class="number">0</span>)))),
+);</code></pre></div>
+<p>Note that in this case, it’s better to just use the run condition <a href="common_conditions/fn.resource_exists_and_equals.html" title="fn bevy_ecs::schedule::common_conditions::resource_exists_and_equals"><code>resource_exists_and_equals</code></a>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.nand" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#174-179">Source</a><h4 class="code-header">fn <a href="#method.nand" class="fn">nand</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+    self,
+    nand: C,
+) -&gt; <a class="type" href="type.Nand.html" title="type bevy_ecs::schedule::Nand">Nand</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that only returns <code>false</code>
+if both this one and the passed <code>nand</code> return <code>true</code>.</p>
+<p>The returned run condition is short-circuiting, meaning
+<code>nand</code> will only be invoked if <code>self</code> returns <code>true</code>.</p>
+<h5 id="examples-2"><a class="doc-anchor" href="#examples-2">§</a>Examples</h5>
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>PlayerState {
+    Alive,
+    Dead,
+}
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>EnemyState {
+    Alive,
+    Dead,
+}
+
+app.add_systems(
+    <span class="comment">// The game_over_credits system will only execute if either the `in_state(PlayerState::Alive)`
+    // run condition or `in_state(EnemyState::Alive)` run condition evaluates to `false`.
+    </span>game_over_credits.run_if(
+        in_state(PlayerState::Alive).nand(in_state(EnemyState::Alive))
+    ),
+);</code></pre></div>
+<p>Equivalent logic can be achieved by using <code>not</code> in concert with <code>and</code>:</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code>app.add_systems(
+    game_over_credits.run_if(
+        not(in_state(PlayerState::Alive).and(in_state(EnemyState::Alive)))
+    ),
+);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.nor" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#226-231">Source</a><h4 class="code-header">fn <a href="#method.nor" class="fn">nor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+    self,
+    nor: C,
+) -&gt; <a class="type" href="type.Nor.html" title="type bevy_ecs::schedule::Nor">Nor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that only returns <code>true</code>
+if both this one and the passed <code>nor</code> return <code>false</code>.</p>
+<p>The returned run condition is short-circuiting, meaning
+<code>nor</code> will only be invoked if <code>self</code> returns <code>false</code>.</p>
+<h5 id="examples-3"><a class="doc-anchor" href="#examples-3">§</a>Examples</h5>
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>WeatherState {
+    Sunny,
+    Cloudy,
+}
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>SoilState {
+    Fertilized,
+    NotFertilized,
+}
+
+app.add_systems(
+    <span class="comment">// The slow_plant_growth system will only execute if both the `in_state(WeatherState::Sunny)`
+    // run condition and `in_state(SoilState::Fertilized)` run condition evaluate to `false`.
+    </span>slow_plant_growth.run_if(
+        in_state(WeatherState::Sunny).nor(in_state(SoilState::Fertilized))
+    ),
+);</code></pre></div>
+<p>Equivalent logic can be achieved by using <code>not</code> in concert with <code>or</code>:</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code>app.add_systems(
+    slow_plant_growth.run_if(
+        not(in_state(WeatherState::Sunny).or(in_state(SoilState::Fertilized)))
+    ),
+);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.or" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#273-278">Source</a><h4 class="code-header">fn <a href="#method.or" class="fn">or</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(self, or: C) -&gt; <a class="type" href="type.Or.html" title="type bevy_ecs::schedule::Or">Or</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that returns <code>true</code>
+if either this one or the passed <code>or</code> return <code>true</code>.</p>
+<p>The returned run condition is short-circuiting, meaning
+<code>or</code> will only be invoked if <code>self</code> returns <code>false</code>.</p>
+<h5 id="examples-4"><a class="doc-anchor" href="#examples-4">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(Resource, PartialEq)]
+</span><span class="kw">struct </span>A(u32);
+
+<span class="attr">#[derive(Resource, PartialEq)]
+</span><span class="kw">struct </span>B(u32);
+
+app.add_systems(
+    <span class="comment">// Only run the system if either `A` or `B` exist.
+    </span>my_system.run_if(resource_exists::&lt;A&gt;.or(resource_exists::&lt;B&gt;)),
+);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.xnor" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#325-330">Source</a><h4 class="code-header">fn <a href="#method.xnor" class="fn">xnor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+    self,
+    xnor: C,
+) -&gt; <a class="type" href="type.Xnor.html" title="type bevy_ecs::schedule::Xnor">Xnor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that only returns <code>true</code>
+if <code>self</code> and <code>xnor</code> <strong>both</strong> return <code>false</code> or <strong>both</strong> return <code>true</code>.</p>
+<h5 id="examples-5"><a class="doc-anchor" href="#examples-5">§</a>Examples</h5>
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>CoffeeMachineState {
+    Heating,
+    Brewing,
+    Inactive,
+}
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>TeaKettleState {
+    Heating,
+    Steeping,
+    Inactive,
+}
+
+app.add_systems(
+    <span class="comment">// The take_drink_orders system will only execute if the `in_state(CoffeeMachineState::Inactive)`
+    // run condition and `in_state(TeaKettleState::Inactive)` run conditions both evaluate to `false`,
+    // or both evaluate to `true`.
+    </span>take_drink_orders.run_if(
+        in_state(CoffeeMachineState::Inactive).xnor(in_state(TeaKettleState::Inactive))
+    ),
+);</code></pre></div>
+<p>Equivalent logic can be achieved by using <code>not</code> in concert with <code>xor</code>:</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code>app.add_systems(
+    take_drink_orders.run_if(
+        not(in_state(CoffeeMachineState::Inactive).xor(in_state(TeaKettleState::Inactive)))
+    ),
+);</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.xor" class="method"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#367-372">Source</a><h4 class="code-header">fn <a href="#method.xor" class="fn">xor</a>&lt;M, C: <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;M, In&gt;&gt;(
+    self,
+    xor: C,
+) -&gt; <a class="type" href="type.Xor.html" title="type bevy_ecs::schedule::Xor">Xor</a>&lt;Self::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>, C::<a class="associatedtype" href="../system/trait.IntoSystem.html#associatedtype.System" title="type bevy_ecs::system::IntoSystem::System">System</a>&gt;</h4></section></summary><div class="docblock"><p>Returns a new run condition that only returns <code>true</code>
+if either <code>self</code> or <code>xor</code> return <code>true</code>, but not both.</p>
+<h5 id="examples-6"><a class="doc-anchor" href="#examples-6">§</a>Examples</h5>
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>bevy::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>CoffeeMachineState {
+    Heating,
+    Brewing,
+    Inactive,
+}
+
+<span class="attr">#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+</span><span class="kw">pub enum </span>TeaKettleState {
+    Heating,
+    Steeping,
+    Inactive,
+}
+
+app.add_systems(
+    <span class="comment">// The prepare_beverage system will only execute if either the `in_state(CoffeeMachineState::Inactive)`
+    // run condition or `in_state(TeaKettleState::Inactive)` run condition evaluates to `true`,
+    // but not both.
+    </span>prepare_beverage.run_if(
+        in_state(CoffeeMachineState::Inactive).xor(in_state(TeaKettleState::Inactive))
+    ),
+);</code></pre></div></div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.92.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety", so this trait is not object safe.</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><section id="impl-SystemCondition%3CMarker,+In%3E-for-F" class="impl"><a class="src rightside" href="../../src/bevy_ecs/schedule/condition.rs.html#375-378">Source</a><a href="#impl-SystemCondition%3CMarker,+In%3E-for-F" class="anchor">§</a><h3 class="code-header">impl&lt;Marker, In: <a class="trait" href="../system/trait.SystemInput.html" title="trait bevy_ecs::system::SystemInput">SystemInput</a>, F&gt; <a class="trait" href="trait.SystemCondition.html" title="trait bevy_ecs::schedule::SystemCondition">SystemCondition</a>&lt;Marker, In&gt; for F<div class="where">where
+    F: SystemCondition&lt;Marker, In&gt;,</div></h3></section></div><script src="../../trait.impl/bevy_ecs/schedule/condition/trait.SystemCondition.js" async></script></section></div></main></body></html>

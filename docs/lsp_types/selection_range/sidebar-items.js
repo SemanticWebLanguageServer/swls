@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SelectionRangeProviderCapability"],"struct":["SelectionRange","SelectionRangeClientCapabilities","SelectionRangeOptions","SelectionRangeParams","SelectionRangeRegistrationOptions"]};

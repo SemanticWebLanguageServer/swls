@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["basic_semantic_tokens","semantic_tokens_system","setup_world"],"struct":["HighlightRequest","Label","SemanticTokensDict"],"type":["TokenTypesComponent"]};

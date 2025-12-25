@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default"],"macro":["once"],"mod":["cfg","prelude"],"struct":["OnDrop"],"trait":["PreHashMapExt","TypeIdMapExt"],"type":["PreHashMap","TypeIdMap"]};

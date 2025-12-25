@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["hash_map","hash_set","hash_table"],"struct":["HashTable"],"trait":["Equivalent"]};

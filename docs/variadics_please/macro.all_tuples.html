@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Helper macro to generate tuple pyramids. Useful to generate scaffolding to work around Rust lacking variadics. Invoking `all_tuples!(impl_foo, start, end, P, Q, ..)` invokes `impl_foo` providing ident tuples through arity `start..end`. If you require the length of the tuple, see `all_tuples_with_size!`."><title>all_tuples in variadics_please - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="variadics_please" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">all_tuples</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../variadics_please/index.html">variadics_<wbr>please</a><span class="version">1.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">all_<wbr>tuples</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#single-parameter" title="Single parameter">Single parameter</a></li></ul></li><li><a href="#multiple-parameters" title="Multiple parameters">Multiple parameters</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate variadics_<wbr>please</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">variadics_please</a></div><h1>Macro <span class="macro">all_<wbr>tuples</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/variadics_please/lib.rs.html#163-192">Source</a> </span></div><pre class="rust item-decl"><code>all_tuples!() { <span class="comment">/* proc-macro */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Helper macro to generate tuple pyramids. Useful to generate scaffolding to work around Rust
+lacking variadics. Invoking <code>all_tuples!(impl_foo, start, end, P, Q, ..)</code>
+invokes <code>impl_foo</code> providing ident tuples through arity <code>start..end</code>.
+If you require the length of the tuple, see <a href="macro.all_tuples_with_size.html" title="macro variadics_please::all_tuples_with_size"><code>all_tuples_with_size!</code></a>.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="single-parameter"><a class="doc-anchor" href="#single-parameter">§</a>Single parameter</h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>Foo&lt;T&gt; {
+    <span class="comment">// ..
+</span>}
+
+<span class="kw">trait </span>WrappedInFoo {
+    <span class="kw">type </span>Tup;
+}
+
+<span class="macro">macro_rules!</span> impl_wrapped_in_foo {
+    ($(<span class="macro-nonterminal">$T</span>:ident),<span class="kw-2">*</span>) =&gt; {
+        <span class="kw">impl</span>&lt;$(<span class="macro-nonterminal">$T</span>),<span class="kw-2">*</span>&gt; WrappedInFoo <span class="kw">for </span>($(<span class="macro-nonterminal">$T</span>,)<span class="kw-2">*</span>) {
+            <span class="kw">type </span>Tup = ($(Foo&lt;<span class="macro-nonterminal">$T</span>&gt;,)<span class="kw-2">*</span>);
+        }
+    };
+}
+
+<span class="macro">all_tuples!</span>(impl_wrapped_in_foo, <span class="number">0</span>, <span class="number">15</span>, T);
+<span class="comment">// impl_wrapped_in_foo!();
+// impl_wrapped_in_foo!(T0);
+// impl_wrapped_in_foo!(T0, T1);
+// ..
+// impl_wrapped_in_foo!(T0 .. T14);</span></code></pre></div><h2 id="multiple-parameters"><a class="doc-anchor" href="#multiple-parameters">§</a>Multiple parameters</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">trait </span>Append {
+    <span class="kw">type </span>Out&lt;Item&gt;;
+    <span class="kw">fn </span>append&lt;Item&gt;(tup: <span class="self">Self</span>, item: Item) -&gt; <span class="self">Self</span>::Out&lt;Item&gt;;
+}
+
+<span class="kw">impl </span>Append <span class="kw">for </span>() {
+    <span class="kw">type </span>Out&lt;Item&gt; = (Item,);
+    <span class="kw">fn </span>append&lt;Item&gt;(<span class="kw">_</span>: <span class="self">Self</span>, item: Item) -&gt; <span class="self">Self</span>::Out&lt;Item&gt; {
+        (item,)
+    }
+}
+
+<span class="macro">macro_rules!</span> impl_append {
+    ($((<span class="macro-nonterminal">$P</span>:ident, <span class="macro-nonterminal">$p</span>:ident)),<span class="kw-2">*</span>) =&gt; {
+        <span class="kw">impl</span>&lt;$(<span class="macro-nonterminal">$P</span>),<span class="kw-2">*</span>&gt; Append <span class="kw">for </span>($(<span class="macro-nonterminal">$P</span>,)<span class="kw-2">*</span>) {
+            <span class="kw">type </span>Out&lt;Item&gt; = ($(<span class="macro-nonterminal">$P</span>),<span class="kw-2">*</span>, Item);
+            <span class="kw">fn </span>append&lt;Item&gt;(($(<span class="macro-nonterminal">$p</span>,)<span class="kw-2">*</span>): <span class="self">Self</span>, item: Item) -&gt; <span class="self">Self</span>::Out&lt;Item&gt; {
+                ($(<span class="macro-nonterminal">$p</span>),<span class="kw-2">*</span>, item)
+            }
+        }
+    }
+}
+
+<span class="macro">all_tuples!</span>(impl_append, <span class="number">1</span>, <span class="number">15</span>, P, p);
+<span class="comment">// impl_append!((P0, p0));
+// impl_append!((P0, p0), (P1, p1));
+// impl_append!((P0, p0), (P1, p1), (P2, p2));
+// ..
+// impl_append!((P0, p0) .. (P14, p14));</span></code></pre></div>
+<p><strong><code>#[doc(fake_variadic)]</code></strong></p>
+<p>To improve the readability of your docs when implementing a trait for
+tuples or fn pointers of varying length you can use the rustdoc-internal <code>fake_variadic</code> marker.
+All your impls are collapsed and shown as a single <code>impl Trait for (F₁, F₂, …, Fₙ)</code>.</p>
+<p>The <code>all_tuples!</code> macro does most of the work for you, the only change to your implementation macro
+is that you have to accept attributes using <code>$(#[$meta:meta])*</code>.</p>
+<p>Since this feature requires a nightly compiler, it’s only enabled on docs.rs by default.
+Add the following to your lib.rs if not already present:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// `rustdoc_internals` is needed for `#[doc(fake_variadics)]`
+</span><span class="attr">#![allow(internal_features)]
+#![cfg_attr(any(docsrs, docsrs_dep), feature(rustdoc_internals))]</span></code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">trait </span>Variadic {}
+
+<span class="kw">impl </span>Variadic <span class="kw">for </span>() {}
+
+<span class="macro">macro_rules!</span> impl_variadic {
+    ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)* $((<span class="macro-nonterminal">$P</span>:ident, <span class="macro-nonterminal">$p</span>:ident)),<span class="kw-2">*</span>) =&gt; {
+        $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
+        <span class="kw">impl</span>&lt;$(<span class="macro-nonterminal">$P</span>),<span class="kw-2">*</span>&gt; Variadic <span class="kw">for </span>($(<span class="macro-nonterminal">$P</span>,)<span class="kw-2">*</span>) {}
+    }
+}
+
+<span class="macro">all_tuples!</span>(<span class="attr">#[doc(fake_variadic)] </span>impl_variadic, <span class="number">1</span>, <span class="number">15</span>, P, p);</code></pre></div></div></details></section></div></main></body></html>

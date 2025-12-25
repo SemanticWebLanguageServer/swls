@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Disabled"],"struct":["CommandReceiver","CommandSender","Config","CurrentType","Dirty","DocumentLinks","DynLang","Element","Errors","KeyWords","Label","LocalConfig","Open","PositionComponent","RopeC","ServerConfig","Source","TypeHierarchy","Types","Wrapped"]};

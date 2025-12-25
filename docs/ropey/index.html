@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Ropey is a utf8 text rope for Rust.  It is fast, robust, and can handle huge texts and memory-incoherent edits with ease."><title>ropey - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="ropey" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate ropey</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../ropey/index.html">ropey</a><span class="version">1.6.1</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#a-basic-example" title="A Basic Example">A Basic Example</a></li><li><a href="#low-level-apis" title="Low-level APIs">Low-level APIs</a></li><li><a href="#a-note-about-line-breaks" title="A Note About Line Breaks">A Note About Line Breaks</a></li><li><a href="#a-note-about-simd-acceleration" title="A Note About SIMD Acceleration">A Note About SIMD Acceleration</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>ropey</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/ropey/lib.rs.html#1-419">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Ropey is a utf8 text rope for Rust.  It is fast, robust, and can handle
+huge texts and memory-incoherent edits with ease.</p>
+<p>Ropey’s atomic unit of text is Unicode scalar values (or <code>char</code>s in Rust)
+encoded as utf8.  All of Ropey’s editing and slicing operations are done
+in terms of char indices, which prevents accidental creation of invalid
+utf8 data.</p>
+<p>The library is made up of four main components:</p>
+<ul>
+<li><a href="struct.Rope.html" title="struct ropey::Rope"><code>Rope</code></a>: the main rope type.</li>
+<li><a href="struct.RopeSlice.html" title="struct ropey::RopeSlice"><code>RopeSlice</code></a>: an immutable view into part of a
+<code>Rope</code>.</li>
+<li><a href="iter/index.html" title="mod ropey::iter"><code>iter</code></a>: iterators over <code>Rope</code>/<code>RopeSlice</code> data.</li>
+<li><a href="struct.RopeBuilder.html" title="struct ropey::RopeBuilder"><code>RopeBuilder</code></a>: an efficient incremental
+<code>Rope</code> builder.</li>
+</ul>
+<h2 id="a-basic-example"><a class="doc-anchor" href="#a-basic-example">§</a>A Basic Example</h2>
+<p>Let’s say we want to open up a text file, replace the 516th line (the
+writing was terrible!), and save it back to disk.  It’s contrived, but will
+give a good sampling of the APIs and how they work together.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::fs::File;
+<span class="kw">use </span>std::io::{BufReader, BufWriter};
+<span class="kw">use </span>ropey::Rope;
+
+<span class="comment">// Load a text file.
+</span><span class="kw">let </span><span class="kw-2">mut </span>text = Rope::from_reader(
+    BufReader::new(File::open(<span class="string">"my_great_book.txt"</span>)<span class="question-mark">?</span>)
+)<span class="question-mark">?</span>;
+
+<span class="comment">// Print the 516th line (zero-indexed) to see the terrible
+// writing.
+</span><span class="macro">println!</span>(<span class="string">"{}"</span>, text.line(<span class="number">515</span>));
+
+<span class="comment">// Get the start/end char indices of the line.
+</span><span class="kw">let </span>start_idx = text.line_to_char(<span class="number">515</span>);
+<span class="kw">let </span>end_idx = text.line_to_char(<span class="number">516</span>);
+
+<span class="comment">// Remove the line...
+</span>text.remove(start_idx..end_idx);
+
+<span class="comment">// ...and replace it with something better.
+</span>text.insert(start_idx, <span class="string">"The flowers are... so... dunno.\n"</span>);
+
+<span class="comment">// Print the changes, along with the previous few lines for context.
+</span><span class="kw">let </span>start_idx = text.line_to_char(<span class="number">511</span>);
+<span class="kw">let </span>end_idx = text.line_to_char(<span class="number">516</span>);
+<span class="macro">println!</span>(<span class="string">"{}"</span>, text.slice(start_idx..end_idx));
+
+<span class="comment">// Write the file back out to disk.
+</span>text.write_to(
+    BufWriter::new(File::create(<span class="string">"my_great_book.txt"</span>)<span class="question-mark">?</span>)
+)<span class="question-mark">?</span>;</code></pre></div>
+<p>More examples can be found in the <code>examples</code> directory of the git
+repository.  Many of those examples demonstrate doing non-trivial things
+with Ropey such as grapheme handling, search-and-replace, and streaming
+loading of non-utf8 text files.</p>
+<h2 id="low-level-apis"><a class="doc-anchor" href="#low-level-apis">§</a>Low-level APIs</h2>
+<p>Ropey also provides access to some of its low-level APIs, enabling client
+code to efficiently work with a <code>Rope</code>’s data and implement new
+functionality.  The most important of those API’s are:</p>
+<ul>
+<li>The <a href="struct.Rope.html#method.chunk_at_byte" title="method ropey::Rope::chunk_at_byte"><code>chunk_at_*()</code></a>
+chunk-fetching methods of <code>Rope</code> and <code>RopeSlice</code>.</li>
+<li>The <a href="iter/struct.Chunks.html" title="struct ropey::iter::Chunks"><code>Chunks</code></a> iterator.</li>
+<li>The functions in <a href="str_utils/index.html" title="mod ropey::str_utils"><code>str_utils</code></a> for operating on
+<code>&amp;str</code> slices.</li>
+</ul>
+<p>Internally, each <code>Rope</code> stores text as a segemented collection of utf8
+strings.  The chunk-fetching methods and <code>Chunks</code> iterator provide direct
+access to those strings (or “chunks”) as <code>&amp;str</code> slices, allowing client
+code to work directly with the underlying utf8 data.</p>
+<p>The chunk-fetching methods and <code>str_utils</code> functions are the basic
+building blocks that Ropey itself uses to build much of its functionality.
+For example, the <a href="struct.Rope.html#method.byte_to_char" title="method ropey::Rope::byte_to_char"><code>Rope::byte_to_char()</code></a>
+method can be reimplemented as a free function like this:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ropey::{
+    Rope,
+    str_utils::byte_to_char_idx
+};
+
+<span class="kw">fn </span>byte_to_char(rope: <span class="kw-2">&amp;</span>Rope, byte_idx: usize) -&gt; usize {
+    <span class="kw">let </span>(chunk, b, c, <span class="kw">_</span>) = rope.chunk_at_byte(byte_idx);
+    c + byte_to_char_idx(chunk, byte_idx - b)
+}</code></pre></div>
+<p>And this will be just as efficient as Ropey’s implementation.</p>
+<p>The chunk-fetching methods in particular are among the fastest functions
+that Ropey provides, generally operating in the sub-hundred nanosecond
+range for medium-sized (~200kB) documents on recent-ish computer systems.</p>
+<h2 id="a-note-about-line-breaks"><a class="doc-anchor" href="#a-note-about-line-breaks">§</a>A Note About Line Breaks</h2>
+<p>Some of Ropey’s APIs use the concept of line breaks or lines of text.</p>
+<p>Ropey considers the start of the rope and positions immediately
+<em>after</em> line breaks to be the start of new lines.  And it treats
+line breaks as being a part of the lines they mark the end of.</p>
+<p>For example, the rope <code>"Hello"</code> has a single line: <code>"Hello"</code>.  The
+rope <code>"Hello\nworld"</code> has two lines: <code>"Hello\n"</code> and <code>"world"</code>.  And
+the rope <code>"Hello\nworld\n"</code> has three lines: <code>"Hello\n"</code>,
+<code>"world\n"</code>, and <code>""</code>.</p>
+<p>Ropey can be configured at build time via feature flags to recognize
+different line breaks.  Ropey always recognizes:</p>
+<ul>
+<li><code>U+000A</code>          — LF (Line Feed)</li>
+<li><code>U+000D</code> <code>U+000A</code> — CRLF (Carriage Return + Line Feed)</li>
+</ul>
+<p>With the <code>cr_lines</code> feature, the following are also recognized:</p>
+<ul>
+<li><code>U+000D</code>          — CR (Carriage Return)</li>
+</ul>
+<p>With the <code>unicode_lines</code> feature, in addition to all of the
+above, the following are also recognized (bringing Ropey into
+conformance with
+<a href="https://www.unicode.org/reports/tr14/#BK">Unicode Annex #14</a>):</p>
+<ul>
+<li><code>U+000B</code>          — VT (Vertical Tab)</li>
+<li><code>U+000C</code>          — FF (Form Feed)</li>
+<li><code>U+0085</code>          — NEL (Next Line)</li>
+<li><code>U+2028</code>          — Line Separator</li>
+<li><code>U+2029</code>          — Paragraph Separator</li>
+</ul>
+<p>(Note: <code>unicode_lines</code> is enabled by default, and always implies
+<code>cr_lines</code>.)</p>
+<p>CRLF pairs are always treated as a single line break, and are never split
+across chunks.  Note, however, that slicing can still split them.</p>
+<h2 id="a-note-about-simd-acceleration"><a class="doc-anchor" href="#a-note-about-simd-acceleration">§</a>A Note About SIMD Acceleration</h2>
+<p>Ropey has a <code>simd</code> feature flag (enabled by default) that enables
+explicit SIMD on supported platforms to improve performance.</p>
+<p>There is a bit of a footgun here: if you disable default features to
+configure line break behavior (as per the section above) then SIMD
+will also get disabled, and performance will suffer.  So be careful
+to explicitly re-enable the <code>simd</code> feature flag (if desired) when
+doing that.</p>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="iter/index.html" title="mod ropey::iter">iter</a></dt><dd>Iterators over a <code>Rope</code>’s data.</dd><dt><a class="mod" href="str_utils/index.html" title="mod ropey::str_utils">str_<wbr>utils</a></dt><dd>Utility functions for utf8 string slices.</dd></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Rope.html" title="struct ropey::Rope">Rope</a></dt><dd>A utf8 text rope.</dd><dt><a class="struct" href="struct.RopeBuilder.html" title="struct ropey::RopeBuilder">Rope<wbr>Builder</a></dt><dd>An efficient incremental <code>Rope</code> builder.</dd><dt><a class="struct" href="struct.RopeSlice.html" title="struct ropey::RopeSlice">Rope<wbr>Slice</a></dt><dd>An immutable view into part of a <code>Rope</code>.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.Error.html" title="enum ropey::Error">Error</a></dt><dd>Ropey’s error type.</dd></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Result.html" title="type ropey::Result">Result</a></dt><dd>Ropey’s result type.</dd></dl></section></div></main></body></html>
