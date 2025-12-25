@@ -11,8 +11,8 @@ sophia_iri.workspace   = true
 chumsky.workspace   = true
 sophia_turtle = "0.9.0"
 
-lsp-types.workspace    = true
 lang-turtle = { path = "../lang-turtle/" }
+lsp-core = { path = "../core/" }
 
 [build-dependencies]
 sophia_api.workspace   = true

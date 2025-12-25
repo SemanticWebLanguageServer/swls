@@ -9,6 +9,8 @@ version = "0.1.0"
 [features]
 default = []
 shapes = ["rudof_lib"]
+tokio = ["tower-lsp/runtime-tokio"]
+agnostic = ["tower-lsp/runtime-agnostic"]
 
 
 [dependencies]
@@ -21,6 +23,7 @@ serde.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 tracing.workspace      = true
+tower-lsp.workspace = true
 
 dirs = "6"
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }
@@ -29,12 +32,3 @@ lov = { path = "../lov/" }
 
 rudof_lib = { git = "https://github.com/ajuvercr/rudof/", optional = true }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tower-lsp = { version = "0.20.0", default-features = false, features = [
-  "runtime-tokio",
-] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-tower-lsp = { version = "0.20.0", default-features = false, features = [
-  "runtime-agnostic",
-] }

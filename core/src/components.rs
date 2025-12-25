@@ -234,7 +234,11 @@ impl LocalConfig {
         self.shapes.extend(other.shapes);
         self.disabled.extend(other.disabled);
     }
-
+    #[cfg(target_arch = "wasm32")]
+    pub async fn global(_: &Fs) -> Option<Self> {
+        None
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn global(fs: &Fs) -> Option<Self> {
         let global_path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))

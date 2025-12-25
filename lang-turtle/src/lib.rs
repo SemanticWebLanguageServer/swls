@@ -132,7 +132,7 @@ async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(Stri
                 files
                     .into_iter()
                     .flat_map(|File { content, name }| {
-                        if let Ok(url) = lsp_core::lsp_types::Url::from_file_path(name) {
+                        if let Some(url) = file_name_to_url(&name) {
                             Some((content, url))
                         } else {
                             None
@@ -142,6 +142,15 @@ async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(Stri
             )
         }
     }
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn file_name_to_url(name: &str) -> Option<Url> {
+    lsp_core::lsp_types::Url::from_file_path(name).ok()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn file_name_to_url(name: &str) -> Option<Url> {
+    None
 }
 
 fn prefix_from_url(url: &Url) -> Option<(Cow<'static, str>, Cow<'static, str>)> {

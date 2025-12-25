@@ -488,6 +488,7 @@ impl LanguageServer for Backend {
             self.entities.lock().await.insert(url, entity);
         }
 
+        info!("Requesting tokens refresh");
         let _ = self.client.send_request::<SemanticTokensRefresh>(()).await;
         info!("Semantic tokens refresh");
     }

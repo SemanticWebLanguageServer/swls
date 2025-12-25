@@ -645,7 +645,7 @@ version = "0.1.0"
 dependencies = [
  "chumsky",
  "lang-turtle",
- "lsp-types 0.97.0",
+ "lsp-core",
  "sophia_api",
  "sophia_inmem",
  "sophia_iri",
@@ -930,15 +930,6 @@ name = "fixedbitset"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
-
-[[package]]
-name = "fluent-uri"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17c704e9dbe1ddd863da1e6ff3567795087b1eb201ce80d8fa81162e1516500d"
-dependencies = [
- "bitflags 1.3.2",
-]
 
 [[package]]
 name = "fnv"
@@ -1769,19 +1760,6 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
-]
-
-[[package]]
-name = "lsp-types"
-version = "0.97.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53353550a17c04ac46c585feb189c2db82154fc84b79c7a66c96c2c644f66071"
-dependencies = [
- "bitflags 1.3.2",
- "fluent-uri",
- "serde",
- "serde_json",
- "serde_repr",
 ]
 
 [[package]]
@@ -3523,7 +3501,6 @@ dependencies = [
  "futures",
  "glob",
  "lsp-core",
- "lsp-types 0.97.0",
  "ropey",
  "serde_json",
  "sophia_api",
@@ -3769,9 +3746,9 @@ checksum = "121c2a6cda46980bb0fcd1647ffaf6cd3fc79a013de288782836f6df9c48780e"
 
 [[package]]
 name = "tower-lsp"
-version = "0.20.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4ba052b54a6627628d9b3c34c176e7eda8359b7da9acd497b9f20998d118508"
+checksum = "9b38fb0e6ce037835174256518aace3ca621c4f96383c56bb846cfc11b341910"
 dependencies = [
  "async-codec-lite",
  "async-trait",
@@ -3780,7 +3757,7 @@ dependencies = [
  "dashmap 5.5.3",
  "futures",
  "httparse",
- "lsp-types 0.94.1",
+ "lsp-types",
  "memchr",
  "serde",
  "serde_json",
@@ -3793,13 +3770,13 @@ dependencies = [
 
 [[package]]
 name = "tower-lsp-macros"
-version = "0.9.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84fd902d4e0b9a4b27f2f440108dc034e1758628a9b702f8ec61ad66355422fa"
+checksum = "34723c06344244474fdde365b76aebef8050bf6be61a935b91ee9ff7c4e91157"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 1.0.109",
 ]
 
 [[package]]

@@ -22,7 +22,7 @@ fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
 }
 
 pub fn test_syntax(location: &str, is_positive: bool) {
-    let url = lsp_types::Url::from_str(location).unwrap();
+    let url = lsp_core::lsp_types::Url::from_str(location).unwrap();
     let path = url.to_file_path().expect("file path");
     let turtle_source = std::fs::read_to_string(&path).expect("Failed to turtle");
     let (turtle, errors) = parse_source(&url, &turtle_source);

@@ -28,6 +28,7 @@ use futures::{
 use lsp_core::{
     client::{Client, ClientSync, Resp},
     components::*,
+    lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url},
     prelude::{
         diagnostics::{DiagnosticItem, DiagnosticPublisher},
         File, Fs, FsTrait,
@@ -36,12 +37,11 @@ use lsp_core::{
     systems::{handle_tasks, spawn_or_insert},
     Startup,
 };
-use lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url};
 
 #[derive(Resource, Debug, Clone)]
 pub struct TestClient {
     logs: Arc<Mutex<Vec<(MessageType, String)>>>,
-    diagnostics: Arc<Mutex<Vec<(Url, Vec<lsp_types::Diagnostic>)>>>,
+    diagnostics: Arc<Mutex<Vec<(Url, Vec<lsp_core::lsp_types::Diagnostic>)>>>,
     locations: HashMap<String, String>,
     tasks_running: Arc<std::sync::atomic::AtomicU32>,
     executor: Arc<async_executor::Executor<'static>>,
@@ -169,17 +169,17 @@ impl TestFs {
 
 #[tower_lsp::async_trait]
 impl FsTrait for TestFs {
-    fn virtual_url(&self, url: &str) -> Option<lsp_types::Url> {
+    fn virtual_url(&self, url: &str) -> Option<lsp_core::lsp_types::Url> {
         let mut pb = self.0.clone();
-        if let Ok(url) = lsp_types::Url::parse(url) {
+        if let Ok(url) = lsp_core::lsp_types::Url::parse(url) {
             pb.push(url.path());
         } else {
             pb.push(url);
         }
-        lsp_types::Url::from_file_path(pb).ok()
+        lsp_core::lsp_types::Url::from_file_path(pb).ok()
     }
 
-    async fn read_file(&self, url: &lsp_types::Url) -> Option<String> {
+    async fn read_file(&self, url: &lsp_core::lsp_types::Url) -> Option<String> {
         let fp = url.to_file_path().ok()?;
         let content = read_to_string(fp).await.ok()?;
         Some(content)
@@ -200,7 +200,7 @@ impl FsTrait for TestFs {
         Some(files)
     }
 
-    async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {
+    async fn write_file(&self, url: &lsp_core::lsp_types::Url, content: &str) -> Option<()> {
         let fp = url.to_file_path().ok()?;
         if let Some(parent) = fp.parent() {
             fs::create_dir_all(parent).await.ok()?;
@@ -274,7 +274,7 @@ pub fn debug_world(world: &mut World) {
         } else {
             println!("-- Nameless entity --");
         }
-        for c in world.components().iter() {
+        for c in world.components().iter_registered() {
             if e.contains_id(c.id()) {
                 println!("c {}", c.name(),);
             }

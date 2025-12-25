@@ -9,7 +9,6 @@ derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut", "is_v
 futures = { version = "0.3.31", features = ["alloc", "executor"], default-features = false }
 lazy_static = "1.5"
 logos = "0.15.1"
-lsp-types = "0.97.0"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 ropey = "1.6.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -19,7 +18,7 @@ sophia_api = "0.9.0"
 sophia_iri = "0.9.0"
 sophia_turtle = "0.9.0"
 tracing = "0.1"
-tower-lsp = { version = "0.20.0", default-features = false, features = [
+tower-lsp = { version = "0.19.0", default-features = false, features = [
 ] }
 
 [workspace]
