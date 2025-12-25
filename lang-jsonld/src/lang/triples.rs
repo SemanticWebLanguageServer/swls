@@ -229,7 +229,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -249,7 +249,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -270,7 +270,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -296,7 +296,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -316,7 +316,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -345,7 +345,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "@type": "http://example.com/ns#my_type"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -376,7 +376,7 @@ mod tests {
             "@context": {"foaf": "http://xmlns.com/foaf/0.1/"} ,
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -406,7 +406,7 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -436,7 +436,7 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -469,7 +469,7 @@ mod tests {
                 }
             }
         } "#;
-        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);

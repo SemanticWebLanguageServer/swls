@@ -414,7 +414,7 @@ SELECT  ?title ?price
 
         let (q, tok) = parse_it(
             inp,
-            query(lsp_types::Url::parse("memory://myFile.sq").unwrap(), ctx),
+            query(lsp_core::lsp_types::Url::parse("memory://myFile.sq").unwrap(), ctx),
         );
 
         assert_eq!(tok, vec![]);

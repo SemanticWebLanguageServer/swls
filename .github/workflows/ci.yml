@@ -29,30 +29,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build workspace
-        run: cargo build --all-targets --workspace --exclude lsp-web
+        run: cargo build --all-targets --workspace
 
       - name: Run tests
-        run: cargo test --workspace --exclude lsp-web
-
-  build-web:
-    name: Build (WASM)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Set up Rust with wasm32 target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Build WASM
-        run: RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build -p lsp-web --target wasm32-unknown-unknown 
+        run: cargo test --workspace
 
   doc:
     name: Generate Docs
@@ -78,4 +58,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           destination_dir: docs
           publish_dir: target/doc
+          force_orphan: true
 

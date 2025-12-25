@@ -63,9 +63,9 @@
 //!       for my_completion in &completions.subjects {
 //!         request.push(
 //!           SimpleCompletion::new(
-//!             crate::lsp_types::CompletionItemKind::FIELD,
+//!             lsp_core::lsp_types::CompletionItemKind::FIELD,
 //!             my_completion.clone(),
-//!             crate::lsp_types::TextEdit {
+//!             lsp_core::lsp_types::TextEdit {
 //!               range: token.range.clone(),
 //!               new_text: my_completion.clone(),
 //!             }
@@ -97,7 +97,7 @@ pub mod backend;
 pub mod client;
 /// Common utils
 ///
-/// Includes range transformations between [`std::ops::Range`] and [`lsp_types::Range`].
+/// Includes range transformations between [`std::ops::Range`] and [`lsp_core::lsp_types::Range`].
 /// And commonly used [`Spanned`].
 pub mod util;
 
@@ -155,7 +155,8 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 /// # use lsp_core::components::DynLang;
 /// # use lsp_core::CreateEvent;
 /// # use lsp_core::lang::LangHelper;
-/// # use bevy_ecs::prelude::{Commands, Trigger, World, Component};
+/// # use bevy_ecs::event::EntityEvent;
+/// # use bevy_ecs::prelude::{Commands, On, World, Component};
 ///
 /// #[derive(Component)]
 /// pub struct TurtleLang;
@@ -175,11 +176,11 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 /// let mut world = World::new();
 /// // This example tells the ECS system that the document is Turtle,
 /// // adding Turtle specific components
-/// world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
+/// world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
 ///     match &trigger.event().language_id {
 ///         Some(x) if x == "turtle" => {
 ///             commands
-///                 .entity(trigger.entity())
+///                 .entity(trigger.event_target())
 ///                 .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
 ///             return;
 ///         }
@@ -187,7 +188,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 ///     }
 ///     if trigger.event().url.as_str().ends_with(".ttl") {
 ///         commands
-///             .entity(trigger.entity())
+///             .entity(trigger.event_target())
 ///             .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
 ///         return;
 ///     }

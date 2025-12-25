@@ -74,7 +74,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 3,
                 character: 6,
             }),
@@ -94,7 +94,7 @@ mod tests {
 
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 3,
                 character: 22,
             }),
@@ -131,7 +131,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 6,
                 character: 6,
             }),
@@ -153,7 +153,7 @@ mod tests {
     #[test_log::test]
     fn current_triple_works_corrupt() {
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        lang_turtle::setup_world(&mut world);
+        lang_turtle::setup_world::<TestClient>(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
@@ -178,7 +178,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 3,
                 character: 6,
             }),
@@ -218,7 +218,7 @@ mod tests {
     #[test_log::test]
     fn current_triple_works_corrupt_bn() {
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        lang_turtle::setup_world(&mut world);
+        lang_turtle::setup_world::<TestClient>(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" }
@@ -241,7 +241,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 2,
                 character: 6,
             }),

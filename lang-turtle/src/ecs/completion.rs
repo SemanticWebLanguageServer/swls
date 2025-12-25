@@ -122,7 +122,7 @@ foa
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 2,
                 character: 0,
             }),
@@ -181,7 +181,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 2,
                 character: 0,
             }),
@@ -222,7 +222,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 1,
                 character: 6,
             }),
@@ -268,7 +268,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 1,
                 character: 4,
             }),
@@ -312,7 +312,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_types::Position {
+            PositionComponent(lsp_core::lsp_types::Position {
                 line: 2,
                 character: 5,
             }),
