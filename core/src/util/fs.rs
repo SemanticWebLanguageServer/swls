@@ -18,7 +18,10 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
         if !url.starts_with("http") {
             return None;
         }
-        let url = self.virtual_url(&format!("{}.ttl", prefix))?;
+
+        let prefix_url = crate::lsp_types::Url::parse(url).ok();
+        let prefix_origin = prefix_url.as_ref().map(|x| x.path()).unwrap_or("none");
+        let url = self.virtual_url(&format!("{}-{}.ttl", prefix_origin, prefix))?;
         tracing::info!("lov url {} {} -> {}", url, prefix, url);
         Some(url)
     }

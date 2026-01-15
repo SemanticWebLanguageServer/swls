@@ -26,7 +26,7 @@ pub fn parse_source(
     }
 }
 
-#[instrument(skip(query, commands, old), name = "parse_turtle")]
+#[instrument(skip(query, commands, old, config), name = "parse_turtle")]
 pub fn parse_turtle_system(
     query: Query<
         (Entity, &Source, &Tokens, &Label, Option<&Open>),
@@ -40,6 +40,9 @@ pub fn parse_turtle_system(
         return;
     }
     for (entity, source, tokens, label, open) in &query {
+        let span = tracing::info_span!("parse_turtle", label = label.to_string());
+        let _enter = span.enter();
+
         let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
         context.setup_current_to_prev(
             TokenIdx { tokens: &tokens },
@@ -58,7 +61,7 @@ pub fn parse_turtle_system(
             parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx())
         });
 
-        let es: Vec<_> = es.into_iter().map(|e| (e.map(|PToken(t, _)| t))).collect();
+        let es: Vec<_> = es.into_iter().map(|e| e.map(|PToken(t, _)| t)).collect();
 
         info!(
             "{} triples ({} errors)",

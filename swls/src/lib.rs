@@ -4,8 +4,8 @@
 )]
 use std::ops::Range;
 
-pub mod timings;
 pub mod client;
+pub mod timings;
 pub use client::TowerClient;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]

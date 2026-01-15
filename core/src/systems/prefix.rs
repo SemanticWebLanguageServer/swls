@@ -1,8 +1,10 @@
 use std::{collections::HashSet, ops::Deref};
 
+use crate::lsp_types::{
+    CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit,
+};
 use bevy_ecs::prelude::*;
 use lov::LocalPrefix;
-use crate::lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
 use tracing::{debug, instrument};
 
 use crate::prelude::*;

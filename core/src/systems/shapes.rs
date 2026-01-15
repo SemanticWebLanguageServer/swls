@@ -1,7 +1,7 @@
 use std::{cell::OnceCell, collections::HashMap};
 
-use bevy_ecs::prelude::*;
 use crate::lsp_types::{DiagnosticSeverity, TextDocumentItem};
+use bevy_ecs::prelude::*;
 use ropey::Rope;
 use rudof_lib::{
     shacl_ast::{compiled::shape::CompiledShape, ShaclParser},

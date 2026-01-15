@@ -297,10 +297,7 @@ mod tests {
     use lang_turtle::lang::context::Context;
 
     use super::*;
-    use crate::lang::{
-        parsing::select_clause,
-        tokenizer::{parse_tokens_str},
-    };
+    use crate::lang::{parsing::select_clause, tokenizer::parse_tokens_str};
     pub fn parse_it<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,
         parser: P,
@@ -414,7 +411,10 @@ SELECT  ?title ?price
 
         let (q, tok) = parse_it(
             inp,
-            query(lsp_core::lsp_types::Url::parse("memory://myFile.sq").unwrap(), ctx),
+            query(
+                lsp_core::lsp_types::Url::parse("memory://myFile.sq").unwrap(),
+                ctx,
+            ),
         );
 
         assert_eq!(tok, vec![]);

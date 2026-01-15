@@ -15,8 +15,8 @@ pub mod prefix;
 use crate::lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{
-    complete_class, complete_properties, derive_classes, derive_properties, hover_class,
-    hover_property, DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
+    complete_class, complete_properties, derive_ontologies, hover_class, hover_property,
+    DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
 };
 mod lov;
 pub use lov::{

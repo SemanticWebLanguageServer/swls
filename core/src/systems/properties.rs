@@ -1,148 +1,201 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use hover::HoverRequest;
-use sophia_api::{
-    ns::rdfs,
-    prelude::{Any, Dataset},
-    quad::Quad,
-    term::Term,
-};
-use systems::OntologyExtractor;
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::{
     lsp_types::{CompletionItemKind, TextEdit},
     prelude::*,
-    util::{ns::*, triple::MyTerm},
+    store::Store,
+    util::triple::MyTerm,
 };
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct DefinedClass {
-    pub term: MyTerm<'static>,
-    pub label: String,
-    pub comment: String,
-    pub reason: &'static str,
-    pub location: std::ops::Range<usize>,
+    term: MyTerm<'static>,
+    locations: HashSet<MyTerm<'static>>,
+    titles: HashSet<String>,
+    descriptions: HashSet<String>,
 }
+impl DefinedClass {
+    pub fn full_title(&self) -> String {
+        let mut title = String::new();
 
-pub type DefinedClasses = HashSet<DefinedClass>;
+        for t in &self.titles {
+            if !title.is_empty() {
+                title += ", "
+            }
+            title += t;
+        }
+        title
+    }
 
-fn derive_class(
-    subject: <MyTerm<'_> as Term>::BorrowTerm<'_>,
-    triples: &Triples,
-    source: &'static str,
-) -> Option<DefinedClass> {
-    let label = triples
-        .object([subject], [rdfs::label, dc::title])?
-        .to_owned()
-        .as_str()
-        .to_string();
-    let comment = triples
-        .object([subject], [rdfs::comment, dc::description])?
-        .to_owned()
-        .as_str()
-        .to_string();
-    Some(DefinedClass {
-        label,
-        comment,
-        term: subject.to_owned(),
-        reason: source,
-        location: subject.span.clone(),
-    })
-}
+    pub fn full_docs(&self) -> String {
+        let mut docs = String::new();
+        for d in &self.descriptions {
+            if !docs.is_empty() {
+                docs += "\n"
+            }
+            docs += d;
+        }
 
-pub fn derive_classes(
-    query: Query<(Entity, &Triples, &Label), (Changed<Triples>, Without<Dirty>)>,
-    mut commands: Commands,
-    extractor: Res<OntologyExtractor>,
-) {
-    for (e, triples, label) in &query {
-        let classes: HashSet<_> = triples
-            .0
-            .quads_matching(Any, [rdf::type_], extractor.classes(), Any)
-            .flatten()
-            .flat_map(|x| derive_class(x.s(), &triples, "owl_class"))
-            .collect();
-
-        info!(
-            "({} classes) Found {} classes for {} ({} triples)",
-            extractor.classes().len(),
-            classes.len(),
-            label.0,
-            triples.0.len()
-        );
-        commands.entity(e).insert(Wrapped(classes));
+        for l in &self.locations {
+            if !docs.is_empty() {
+                docs += "\n"
+            }
+            docs += "from: ";
+            docs += l.as_str();
+        }
+        docs
     }
 }
 
-#[instrument(skip(query, other))]
+pub type DefinedClasses = HashMap<oxigraph::model::NamedNode, DefinedClass>;
+
+fn find_classes(
+    store: &oxigraph::store::Store,
+) -> Option<HashMap<oxigraph::model::NamedNode, DefinedClass>> {
+    use oxigraph::model::{Literal, NamedNode};
+    use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+
+    let mut definitions = HashMap::new();
+    // SPARQL query
+    if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
+        .parse_query(include_str!("../queries/class_definitions.sparql"))
+        .ok()?
+        .on_store(&store)
+        .execute()
+        .ok()?
+    {
+        // ?location ?title ?description ?class
+        for solution in solutions {
+            if let Ok(solution) = solution {
+                let class = solution.get("class").unwrap();
+                // let location = solution.get("location").unwrap();
+                let title = solution.get("title");
+                let description = solution.get("description");
+
+                match (
+                    NamedNode::try_from(class.clone()),
+                    // NamedNode::try_from(location.clone()),
+                ) {
+                    (
+                        Ok(class),
+                        // Ok(location)
+                    ) => {
+                        let v = definitions
+                            .entry(class.clone())
+                            .or_insert_with(|| DefinedClass {
+                                term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
+                                locations: HashSet::new(),
+                                titles: HashSet::new(),
+                                descriptions: HashSet::new(),
+                            });
+
+                        // v.locations
+                        //     .insert(MyTerm::named_node(location.as_str(), 0..0).to_owned());
+                        if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
+                            v.titles.insert(title.value().to_string());
+                        }
+
+                        if let Some(description) =
+                            description.and_then(|x| Literal::try_from(x.clone()).ok())
+                        {
+                            v.descriptions.insert(description.value().to_string());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    Some(definitions)
+}
+
+pub fn derive_ontologies(
+    query: Query<(), Added<Triples>>,
+    store: Res<Store>,
+    mut resource: ResMut<Ontologies>,
+) {
+    if !query.is_empty() {
+        if let Some(classes) = find_classes(&store.0) {
+            resource.classes = classes;
+        }
+
+        if let Some(properties) = find_properties(&store.0) {
+            resource.properties = properties;
+        }
+
+        // if let Some(properties) = find_properties(&store.0) {
+        //     for p in properties.into_values() {
+        //         let title = p.full_title();
+        //         let docs = p.full_docs();
+        //         let domain = p.domains.into_iter().fold(String::new(), |mut acc, b| {
+        //             if !acc.is_empty() {
+        //                 acc += ", ";
+        //             }
+        //             acc += b.as_str();
+        //             acc
+        //         });
+        //         let range = p.ranges.into_iter().fold(String::new(), |mut acc, b| {
+        //             if !acc.is_empty() {
+        //                 acc += ", ";
+        //             }
+        //             acc += b.as_str();
+        //             acc
+        //         });
+        //         tracing::info!(
+        //             "Found property {} ({} -> {}) {}\n{}",
+        //             p.term,
+        //             domain,
+        //             range,
+        //             title,
+        //             docs
+        //         )
+        //     }
+        // }
+    }
+}
+
+#[instrument(skip(query, resource))]
 pub fn complete_class(
     mut query: Query<(
         &TokenComponent,
         &TripleComponent,
         &Prefixes,
-        &DocumentLinks,
-        &Label,
         &mut CompletionRequest,
     )>,
-    other: Query<(&Label, &Wrapped<DefinedClasses>)>,
+    resource: Res<Ontologies>,
 ) {
-    for (token, triple, prefixes, links, this_label, mut request) in &mut query {
+    for (token, triple, prefixes, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
         {
-            for (label, classes) in &other {
-                // Check if this thing is actually linked
-                if links
-                    .iter()
-                    .find(|link| link.0.as_str().starts_with(label.0.as_str()))
-                    .is_none()
-                    && label.0 != this_label.0
-                {
-                    debug!(
-                        "Not looking for defined classes in {} (not linked)",
-                        label.0
+            for class in resource.classes.values() {
+                let to_beat = prefixes
+                    .shorten(&class.term.value)
+                    .map(|x| Cow::Owned(x))
+                    .unwrap_or(class.term.value.clone());
+
+                if to_beat.starts_with(&token.text) {
+                    request.push(
+                        SimpleCompletion::new(
+                            CompletionItemKind::CLASS,
+                            format!("{}", to_beat),
+                            TextEdit {
+                                range: token.range.clone(),
+                                new_text: to_beat.to_string(),
+                            },
+                        )
+                        .label_description(class.full_title())
+                        .documentation(class.full_docs()),
                     );
-                    continue;
-                }
-
-                let st = classes.0.iter().take(5).fold(String::new(), |mut st, b| {
-                    if let Some(short) = prefixes.shorten(&b.term.value) {
-                        st += &short;
-                    } else {
-                        st += &b.term.value;
-                    }
-                    st += ", ";
-                    st
-                });
-                debug!(
-                    "Looking for defined classes in {} (found {} {})",
-                    label.0,
-                    classes.0.len(),
-                    st
-                );
-
-                for class in classes.0.iter() {
-                    let to_beat = prefixes
-                        .shorten(&class.term.value)
-                        .map(|x| Cow::Owned(x))
-                        .unwrap_or(class.term.value.clone());
-
-                    if to_beat.starts_with(&token.text) {
-                        request.push(
-                            SimpleCompletion::new(
-                                CompletionItemKind::CLASS,
-                                format!("{}", to_beat),
-                                TextEdit {
-                                    range: token.range.clone(),
-                                    new_text: to_beat.to_string(),
-                                },
-                            )
-                            .documentation(&class.comment),
-                        );
-                    }
                 }
             }
         }
@@ -150,101 +203,152 @@ pub fn complete_class(
 }
 
 pub fn hover_class(
-    mut query: Query<(
-        &TokenComponent,
-        &Prefixes,
-        &DocumentLinks,
-        &mut HoverRequest,
-    )>,
-    other: Query<(&Label, &Wrapped<DefinedClasses>)>,
+    mut query: Query<(&TokenComponent, &Prefixes, &mut HoverRequest)>,
+    resource: Res<Ontologies>,
 ) {
-    for (token, prefixes, links, mut request) in &mut query {
+    for (token, prefixes, mut request) in &mut query {
         if let Some(target) = prefixes.expand(token.token.value()) {
-            for (label, classes) in &other {
-                // Check if this thing is actually linked
-                if links.iter().find(|link| link.0 == label.0).is_none() {
-                    continue;
-                }
+            // if let Some(class) = resource.classes.get(&target) {
+            //
+            // }
 
-                for c in classes.iter().filter(|c| c.term.value == target) {
-                    request.0.push(format!("{}: {}", c.label, c.comment));
+            for class in resource.classes.values() {
+                if class.term.value == target {
+                    request
+                        .0
+                        .push(format!("{}: {}", class.full_title(), class.full_docs()));
                 }
             }
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq)]
 pub struct DefinedProperty {
-    pub predicate: MyTerm<'static>,
-    pub comment: String,
-    pub label: String,
-    pub range: Vec<String>,
-    pub domain: Vec<String>,
-    pub reason: &'static str,
-}
-pub type DefinedProperties = HashSet<DefinedProperty>;
-
-fn derive_property(
-    subject: <MyTerm<'_> as Term>::BorrowTerm<'_>,
-    triples: &Triples,
-    source: &'static str,
-) -> Option<DefinedProperty> {
-    let label = triples
-        .object([subject], [rdfs::label, dc::title])?
-        .to_owned()
-        .as_str()
-        .to_string();
-    let comment = triples
-        .object([subject], [rdfs::comment, dc::description])?
-        .to_owned()
-        .as_str()
-        .to_string();
-    let domain: Vec<_> = triples
-        .objects([subject], [rdfs::domain])
-        .map(|x| x.as_str().to_string())
-        .collect();
-
-    let range: Vec<_> = triples
-        .objects([subject], [rdfs::range])
-        .map(|x| x.as_str().to_string())
-        .collect();
-
-    Some(DefinedProperty {
-        predicate: subject.to_owned(),
-        range,
-        domain,
-        label,
-        comment,
-        reason: source,
-    })
+    term: MyTerm<'static>,
+    locations: HashSet<MyTerm<'static>>,
+    titles: HashSet<String>,
+    descriptions: HashSet<String>,
+    domains: HashSet<MyTerm<'static>>,
+    ranges: HashSet<MyTerm<'static>>,
 }
 
-pub fn derive_properties(
-    query: Query<(Entity, &Triples, &Label), (Changed<Triples>, Without<Dirty>)>,
-    mut commands: Commands,
-    extractor: Res<OntologyExtractor>,
-) {
-    for (e, triples, label) in &query {
-        let classes: HashSet<_> = triples
-            .0
-            .quads_matching(Any, [rdf::type_], extractor.properties(), Any)
-            .flatten()
-            .flat_map(|x| derive_property(x.s(), &triples, "owl_property"))
-            .collect();
+impl DefinedProperty {
+    pub fn full_title(&self) -> String {
+        let mut title = String::new();
 
-        info!(
-            "({} properties) Found {} properties for {} ({} triples)",
-            extractor.properties().len(),
-            classes.len(),
-            label.0.as_str(),
-            triples.0.len()
-        );
-        commands.entity(e).insert(Wrapped(classes));
+        for t in &self.titles {
+            if !title.is_empty() {
+                title += ", "
+            }
+            title += t;
+        }
+        title
+    }
+
+    pub fn full_docs(&self) -> String {
+        let mut docs = String::new();
+        for d in &self.descriptions {
+            if !docs.is_empty() {
+                docs += "\n"
+            }
+            docs += d;
+        }
+
+        for l in &self.locations {
+            if !docs.is_empty() {
+                docs += "\n"
+            }
+            docs += "from: ";
+            docs += l.as_str();
+        }
+        docs
     }
 }
 
-#[instrument(skip(query, other, hierarchy))]
+fn find_properties(
+    store: &oxigraph::store::Store,
+) -> Option<HashMap<oxigraph::model::NamedNode, DefinedProperty>> {
+    use oxigraph::model::{Literal, NamedNode};
+    use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+
+    let mut definitions = HashMap::new();
+    // SPARQL query
+    if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
+        .parse_query(include_str!("../queries/property_definitions.sparql"))
+        .ok()?
+        .on_store(&store)
+        .execute()
+        .ok()?
+    {
+        // ?location ?title ?description ?class
+        for solution in solutions {
+            if let Ok(solution) = solution {
+                let class = solution.get("property").unwrap();
+                // let location = solution.get("location").unwrap();
+                let title = solution.get("title");
+                let description = solution.get("description");
+
+                let range = solution
+                    .get("range")
+                    .and_then(|r| NamedNode::try_from(r.clone()).ok())
+                    .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
+                let domain = solution
+                    .get("domain")
+                    .and_then(|r| NamedNode::try_from(r.clone()).ok())
+                    .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
+
+                match (
+                    NamedNode::try_from(class.clone()),
+                    // NamedNode::try_from(location.clone()),
+                ) {
+                    (
+                        Ok(class),
+                        // Ok(location)
+                    ) => {
+                        let v =
+                            definitions
+                                .entry(class.clone())
+                                .or_insert_with(|| DefinedProperty {
+                                    term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
+                                    locations: HashSet::new(),
+                                    titles: HashSet::new(),
+                                    descriptions: HashSet::new(),
+                                    ranges: HashSet::new(),
+                                    domains: HashSet::new(),
+                                });
+
+                        // v.locations
+                        //     .insert(MyTerm::named_node(location.as_str(), 0..0).to_owned());
+                        if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
+                            v.titles.insert(title.value().to_string());
+                        }
+
+                        if let Some(description) =
+                            description.and_then(|x| Literal::try_from(x.clone()).ok())
+                        {
+                            v.descriptions.insert(description.value().to_string());
+                        }
+                        if let Some(domain) = domain {
+                            v.domains.insert(domain);
+                        }
+
+                        if let Some(range) = range {
+                            v.domains.insert(range);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    Some(definitions)
+}
+
+pub type DefinedProperties = HashMap<oxigraph::model::NamedNode, DefinedProperty>;
+
+#[instrument(skip(query, hierarchy, resource))]
 pub fn complete_properties(
     mut query: Query<(
         &TokenComponent,
@@ -255,70 +359,59 @@ pub fn complete_properties(
         &Types,
         &mut CompletionRequest,
     )>,
-    other: Query<(&Label, &Wrapped<DefinedProperties>)>,
     hierarchy: Res<TypeHierarchy<'static>>,
+    resource: Res<Ontologies>,
 ) {
     debug!("Complete properties");
-    for (token, triple, prefixes, links, this_label, types, mut request) in &mut query {
+    for (token, triple, prefixes, links, _this_label, types, mut request) in &mut query {
         debug!("target {:?} text {}", triple.target, token.text);
         debug!("links {:?}", links);
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
-            for (label, properties) in &other {
-                // Check if this thing is actually linked
-                if links
-                    .iter()
-                    .find(|link| link.0.as_str().starts_with(label.0.as_str()))
-                    .is_none()
-                    && label.0 != this_label.0
-                {
-                    debug!("This link is ignored {}", label.as_str());
-                    continue;
-                }
 
-                for class in properties.0.iter() {
-                    let to_beat = prefixes
-                        .shorten(&class.predicate.value)
-                        .map(|x| Cow::Owned(x))
-                        .unwrap_or(class.predicate.value.clone());
+            for property in resource.properties.values() {
+                let to_beat = prefixes
+                    .shorten(&property.term.value)
+                    .map(|x| Cow::Owned(x))
+                    .unwrap_or(property.term.value.clone());
 
-                    debug!(
-                        "{} starts with {} = {}",
-                        to_beat,
-                        token.text,
-                        to_beat.starts_with(&token.text)
-                    );
+                debug!(
+                    "{} starts with {} = {}",
+                    to_beat,
+                    token.text,
+                    to_beat.starts_with(&token.text)
+                );
 
-                    if to_beat.starts_with(&token.text) {
-                        let correct_domain = class.domain.iter().any(|domain| {
-                            if let Some(domain_id) = hierarchy.get_id_ref(&domain) {
-                                if let Some(tts) = tts {
-                                    tts.iter().any(|tt| *tt == domain_id)
-                                } else {
-                                    false
-                                }
+                if to_beat.starts_with(&token.text) {
+                    let correct_domain = property.domains.iter().any(|domain| {
+                        if let Some(domain_id) = hierarchy.get_id_ref(domain.as_str()) {
+                            if let Some(tts) = tts {
+                                tts.iter().any(|tt| *tt == domain_id)
                             } else {
                                 false
                             }
-                        });
-
-                        let mut completion = SimpleCompletion::new(
-                            CompletionItemKind::PROPERTY,
-                            format!("{}", to_beat),
-                            TextEdit {
-                                range: token.range.clone(),
-                                new_text: to_beat.to_string(),
-                            },
-                        )
-                        .label_description(&class.comment);
-
-                        if correct_domain {
-                            completion.kind = CompletionItemKind::FIELD;
-                            debug!("Property has correct domain {}", to_beat);
-                            request.push(completion.sort_text("1"));
                         } else {
-                            request.push(completion);
+                            false
                         }
+                    });
+
+                    let mut completion = SimpleCompletion::new(
+                        CompletionItemKind::PROPERTY,
+                        format!("{}", to_beat),
+                        TextEdit {
+                            range: token.range.clone(),
+                            new_text: to_beat.to_string(),
+                        },
+                    )
+                    .label_description(&property.full_title())
+                    .documentation(&property.full_docs());
+
+                    if correct_domain {
+                        completion.kind = CompletionItemKind::FIELD;
+                        debug!("Property has correct domain {}", to_beat);
+                        request.push(completion.sort_text("1"));
+                    } else {
+                        request.push(completion);
                     }
                 }
             }
@@ -326,7 +419,7 @@ pub fn complete_properties(
     }
 }
 
-#[instrument(skip(query, other))]
+#[instrument(skip(query, resource))]
 pub fn hover_property(
     mut query: Query<(
         &TokenComponent,
@@ -334,45 +427,32 @@ pub fn hover_property(
         &DocumentLinks,
         &mut HoverRequest,
     )>,
-    other: Query<(&Label, Option<&Prefixes>, &Wrapped<DefinedProperties>)>,
+    resource: Res<Ontologies>,
 ) {
-    for (token, prefixes, links, mut request) in &mut query {
+    for (token, prefixes, _links, mut request) in &mut query {
         if let Some(target) = prefixes.expand(token.token.value()) {
-            for (label, p2, classes) in &other {
-                // Check if this thing is actually linked
-                if links.iter().find(|link| link.0 == label.0).is_none() {
-                    continue;
+            for c in resource
+                .properties
+                .values()
+                .filter(|c| c.term.value == target)
+            {
+                request
+                    .0
+                    .push(format!("{}\n{}", c.full_title(), c.full_docs()));
+                for r in &c.ranges {
+                    let range = prefixes.shorten(r.as_str());
+                    request.0.push(format!(
+                        "Range {}",
+                        range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str())
+                    ));
                 }
 
-                let shorten = |from: &str| {
-                    if let Some(x) = prefixes.shorten(from) {
-                        return Some(x);
-                    }
-
-                    if let Some(p) = p2 {
-                        return p.shorten(from);
-                    }
-
-                    None
-                };
-
-                for c in classes.iter().filter(|c| c.predicate.value == target) {
-                    request.0.push(format!("{}: {}", c.label, c.comment));
-                    for r in &c.range {
-                        let range = shorten(&r);
-                        request.0.push(format!(
-                            "Range {}",
-                            range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str())
-                        ));
-                    }
-
-                    for d in &c.domain {
-                        let domain = shorten(&d);
-                        request.0.push(format!(
-                            "Domain {}",
-                            domain.as_ref().map(|x| x.as_str()).unwrap_or(d.as_str())
-                        ));
-                    }
+                for d in &c.domains {
+                    let domain = prefixes.shorten(d.as_str());
+                    request.0.push(format!(
+                        "Domain {}",
+                        domain.as_ref().map(|x| x.as_str()).unwrap_or(d.as_str())
+                    ));
                 }
             }
         }

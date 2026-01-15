@@ -14,7 +14,7 @@ use crate::{
     lang::{Lang, LangHelper},
     lsp_types::{Position, Url, WorkspaceFolder},
     prelude::*,
-    systems::TypeId,
+    systems::{DefinedClass, DefinedProperty, TypeId},
 };
 
 #[derive(Component, Default, Debug, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -117,6 +117,12 @@ pub struct TypeHierarchy<'a> {
     nodes: Vec<Cow<'a, str>>,
     subclass: Vec<HashSet<TypeId>>,
     superclass: Vec<HashSet<TypeId>>,
+}
+
+#[derive(Resource, Default)]
+pub struct Ontologies {
+    pub classes: HashMap<oxigraph::model::NamedNode, DefinedClass>,
+    pub properties: HashMap<oxigraph::model::NamedNode, DefinedProperty>,
 }
 
 impl<'a> TypeHierarchy<'a> {

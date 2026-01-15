@@ -868,9 +868,10 @@ pub mod turtle_tests {
 [
             "#;
 
-        let url =
-            lsp_core::lsp_types::Url::from_str("file:///home/silvius/Projects/jsonld-lsp/examples/test.ttl")
-                .unwrap();
+        let url = lsp_core::lsp_types::Url::from_str(
+            "file:///home/silvius/Projects/jsonld-lsp/examples/test.ttl",
+        )
+        .unwrap();
 
         let output = parse_it_recovery(txt, turtle(&url, ctx));
         println!("output {:?}", output.1);

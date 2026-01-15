@@ -139,7 +139,7 @@ pub fn open_imports<C: Client + Resource>(
     }
 }
 
-/// First of al, fetch the lov dataset information at url https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}
+/// First of al, fetch the lov dataset information at url <https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}>
 /// Next, extract that json object into an object and find the latest dataset
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
@@ -160,27 +160,32 @@ pub fn fetch_lov_properties<C: Client + Resource>(
             if !prefixes.contains(prefix.url.as_str()) {
                 prefixes.insert(prefix.url.to_string());
                 if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                    info!("Other virtual url {}", url);
-                    if let Some((e, local)) = ontologies
+                    if let Some((_e, local)) = ontologies
                         .iter()
                         .find(|(_, x)| x.location == prefix.url.as_str())
                     {
-                        debug!("Local lov");
+                        debug!(
+                            "Local lov for Prefix {} {} is entry {} {}",
+                            prefix.prefix,
+                            prefix.url.as_str(),
+                            local.name,
+                            local.title
+                        );
 
                         let c = client.as_ref().clone();
                         let sender = sender.0.clone();
                         client.spawn(local_lov::<C>(local.clone(), url, sender, fs.clone(), c));
                     } else {
-                        debug!("Remove lov");
+                        debug!(
+                            "Remote lov for prefix {} {}",
+                            prefix.prefix,
+                            prefix.url.as_str()
+                        );
                         let sender = sender.0.clone();
                         let c = client.as_ref().clone();
                         client.spawn(fetch_lov(prefix.clone(), url, c, sender, fs.clone()));
                     }
-                } else {
-                    debug!("Failed to find url");
                 }
-            } else {
-                debug!("Prefixes is already present {}", prefix.url);
             }
         }
     }
@@ -431,122 +436,6 @@ impl OntologyExtractor {
         }
     }
 }
-
-// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-// pub enum EntryState {
-//     Ready,
-//     Transit,
-// }
-//
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct LovEntry {
-//     prefix: String,
-//     url: String,
-//     num: usize,
-//     state: EntryState,
-// }
-//
-// impl LovEntry {
-//     fn name(&self) -> String {
-//         format!("{}-{}.ttl", self.num, self.prefix)
-//     }
-//     pub fn url(&self, cache: &Cache) -> Option<Url> {
-//         self.file_url(cache).or_else(|| self.remote_url())
-//     }
-//
-//     #[cfg(not(target_arch = "wasm32"))]
-//     fn file_url(&self, cache: &Cache) -> Option<Url> {
-//         let p = cache.path()?;
-//         let url = p.join(self.name());
-//         Url::from_file_path(url).ok()
-//     }
-//
-//     #[cfg(target_arch = "wasm32")]
-//     fn file_url(&self, cache: &Cache) -> Option<Url> {
-//         None
-//     }
-//
-//     fn remote_url(&self) -> Option<Url> {
-//         Url::from_str(&self.url).ok()
-//     }
-//
-//     pub fn save(&mut self, cache: &Cache, content: &str) -> Option<()> {
-//         self.state = EntryState::Ready;
-//         cache.write_file(&self.name(), content)
-//     }
-// }
-//
-// #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
-// pub struct LovHelper {
-//     entries: Vec<LovEntry>,
-// }
-//
-// impl LovHelper {
-//     fn try_from_cache(cache: &Cache) -> Option<Self> {
-//         let c = cache.get_file("index.json")?;
-//         info!("Found index file! {}", c);
-//         serde_json::from_str(&c).ok()
-//     }
-//
-//     pub fn from_cache(cache: &Cache) -> Self {
-//         Self::try_from_cache(cache).unwrap_or_else(|| Self {
-//             entries: Vec::new(),
-//         })
-//     }
-//
-//     pub fn save(mut self, cache: &Cache) -> Option<()> {
-//         self.entries = self
-//             .entries
-//             .into_iter()
-//             .filter(|x| x.state == EntryState::Ready)
-//             .collect();
-//         let st = serde_json::to_string(&self).ok()?;
-//         info!("Save index file! {}", st);
-//         cache.write_file("index.json", &st)
-//     }
-//
-//     pub fn has_entry_mut(&mut self, prefix: &Prefix) -> Option<&mut LovEntry> {
-//         self.entries
-//             .iter_mut()
-//             .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
-//     }
-//
-//     pub fn has_entry(&self, prefix: &Prefix) -> Option<&LovEntry> {
-//         self.entries
-//             .iter()
-//             .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
-//     }
-//
-//     pub fn create_entry(&mut self, prefix: &Prefix) -> &LovEntry {
-//         debug!("Create entry for {:?}", prefix);
-//         if let Some(e) = self.entries.iter().enumerate().find_map(|(i, e)| {
-//             (e.prefix == prefix.prefix && e.url == prefix.url.as_str()).then_some(i)
-//         }) {
-//             return &self.entries[e];
-//         }
-//         let c = self
-//             .entries
-//             .iter()
-//             .filter(|x| x.prefix == prefix.prefix)
-//             .count();
-//         let entry = LovEntry {
-//             prefix: prefix.prefix.to_string(),
-//             url: prefix.url.to_string(),
-//             num: c,
-//             state: EntryState::Transit,
-//         };
-//         self.entries.push(entry);
-//         self.entries.last().unwrap()
-//     }
-//
-//     pub fn save_prefix(&mut self, cache: &Cache, prefix: &Prefix, content: &str) -> Option<()> {
-//         let e = self
-//             .entries
-//             .iter_mut()
-//             .find(|e| (e.prefix == prefix.prefix && e.url == prefix.url.as_str()))?;
-//         e.save(cache, content)
-//     }
-// }
 
 #[derive(Debug, Clone, Component)]
 pub struct FromPrefix(pub Prefix);

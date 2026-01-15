@@ -1,9 +1,9 @@
+use crate::lsp_types::Location;
 use bevy_ecs::{
     component::Component,
     schedule::{IntoScheduleConfigs, Schedule, ScheduleLabel},
     world::World,
 };
-use crate::lsp_types::Location;
 
 pub use crate::{
     systems::{hover_class, hover_property, hover_types, infer_types},

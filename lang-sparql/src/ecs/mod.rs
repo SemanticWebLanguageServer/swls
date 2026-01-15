@@ -7,8 +7,8 @@ use lang_turtle::lang::{
     model::TriplesBuilder,
 };
 use lov::LocalPrefix;
-use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_core::lsp_types::CompletionItemKind;
+use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use sophia_iri::resolve::BaseIri;
 
 use crate::{

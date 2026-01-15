@@ -31,4 +31,5 @@ lazy_static = "1.5.0"
 lov = { path = "../lov/" }
 
 rudof_lib = { git = "https://github.com/ajuvercr/rudof/", optional = true }
+oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=false }
 

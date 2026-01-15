@@ -95,6 +95,7 @@ pub mod backend;
 
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
+pub mod store;
 /// Common utils
 ///
 /// Includes range transformations between [`std::ops::Range`] and [`lsp_core::lsp_types::Range`].
@@ -121,6 +122,7 @@ pub mod systems;
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<SemanticTokensDict>();
     world.init_resource::<TypeHierarchy<'static>>();
+    world.init_resource::<Ontologies>();
     world.insert_resource(OntologyExtractor::new());
 
     parse::setup_schedule::<C>(world);

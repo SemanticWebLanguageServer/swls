@@ -120,7 +120,14 @@ impl Lang for TurtleLang {
 async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(String, Url)>> {
     if location.starts_with("http") {
         let url = Url::parse(location).ok()?;
-        let content = client.fetch(&location, &HashMap::new()).await.ok()?.body;
+        let content = client
+            .fetch(
+                &location,
+                &HashMap::from([(String::from("Accept"), String::from("text/turtle"))]),
+            )
+            .await
+            .ok()?
+            .body;
         Some(vec![(content, url)])
     } else {
         if let Ok(url) = Url::parse(&location) {
@@ -265,6 +272,12 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                 else {
                     continue;
                 };
+
+                tracing::info!(
+                    "Adding local prefix from ontologies config location {} prefix {}",
+                    url,
+                    prefix
+                );
 
                 let lov = LocalPrefix {
                     location: Cow::Owned(url.to_string()),

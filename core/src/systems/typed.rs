@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 use bevy_ecs::prelude::*;
 use sophia_api::{
@@ -18,14 +18,27 @@ pub fn extract_type_hierarchy(
     mut hierarchy: ResMut<TypeHierarchy<'static>>,
 ) {
     for triples in &query {
-        for q in triples
+        let class_terms = triples
             .quads_matching(Any, [rdf::type_], [rdfs::Class], Any)
             .flatten()
-        {
-            let id = hierarchy.get_id(q.s().as_str());
+            .map(|x| x.s());
+
+        let subclass = triples
+            .quads_matching(Any, [rdfs::subClassOf], Any, Any)
+            .flatten()
+            .map(|x| x.s())
+            .map(|x| {
+                tracing::info!("Found subClass subject {}", x);
+                x
+            });
+
+        let set: HashSet<_> = class_terms.chain(subclass).collect();
+
+        for s in set {
+            let id = hierarchy.get_id(s.as_str());
 
             for sub_class_of in triples
-                .quads_matching([q.s()], [rdfs::subClassOf], Any, Any)
+                .quads_matching([s], [rdfs::subClassOf], Any, Any)
                 .flatten()
             {
                 let object = hierarchy.get_id(sub_class_of.o().as_str());
@@ -33,7 +46,7 @@ pub fn extract_type_hierarchy(
             }
 
             for is_sub_class_of in triples
-                .quads_matching(Any, [rdfs::subClassOf], [q.s()], Any)
+                .quads_matching(Any, [rdfs::subClassOf], [s], Any)
                 .flatten()
             {
                 let subject = hierarchy.get_id(is_sub_class_of.o().as_str());

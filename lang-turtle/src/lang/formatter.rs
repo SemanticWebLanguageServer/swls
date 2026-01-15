@@ -3,8 +3,8 @@ use std::{
     ops::Range,
 };
 
-use lsp_core::prelude::*;
 use lsp_core::lsp_types::FormattingOptions;
+use lsp_core::prelude::*;
 use ropey::Rope;
 use tracing::info;
 

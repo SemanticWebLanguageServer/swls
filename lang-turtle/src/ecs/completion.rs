@@ -1,8 +1,8 @@
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use lov::LocalPrefix;
-use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_core::lsp_types::CompletionItemKind;
+use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use tracing::debug;
 
 use crate::{lang::model::NamedNode, TurtleLang};

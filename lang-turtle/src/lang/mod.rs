@@ -1,7 +1,7 @@
 use chumsky::{Parser as _, Stream};
 use context::Context;
-use lsp_core::{prelude::PToken, util::Spanned};
 use lsp_core::lsp_types::Url;
+use lsp_core::{prelude::PToken, util::Spanned};
 use model::Turtle;
 use tokenizer::parse_tokens_str_safe;
 

@@ -149,6 +149,56 @@ pub struct MyQuad<'a> {
     pub object: MyTerm<'a>,
     pub span: std::ops::Range<usize>,
 }
+impl<'b, 'a> TryFrom<&'b MyQuad<'a>> for oxigraph::model::Quad {
+    type Error = ();
+
+    fn try_from(value: &'b MyQuad<'a>) -> std::result::Result<Self, Self::Error> {
+        let subject = oxigraph::model::Term::try_from(&value.subject)?;
+        let predicate = oxigraph::model::Term::try_from(&value.predicate)?;
+        let object = oxigraph::model::Term::try_from(&value.object)?;
+
+        let subject = oxigraph::model::NamedOrBlankNode::try_from(subject).map_err(|_| ())?;
+        let predicate = oxigraph::model::NamedNode::try_from(predicate).map_err(|_| ())?;
+
+        Ok(oxigraph::model::Quad::new(
+            subject,
+            predicate,
+            object,
+            oxigraph::model::GraphName::default(),
+        ))
+    }
+}
+
+impl<'a> MyQuad<'a> {
+    pub fn into_oxi_graph(
+        &self,
+        graph: impl TryInto<oxigraph::model::Term>,
+    ) -> Result<oxigraph::model::Quad, ()> {
+        let graph = graph.try_into().map_err(|_| ())?;
+        let graph = oxigraph::model::NamedOrBlankNode::try_from(graph).map_err(|_| ())?;
+        let graph = oxigraph::model::GraphName::from(graph);
+
+        self.into_oxi(Some(graph))
+    }
+
+    pub fn into_oxi(
+        &self,
+        graph: Option<oxigraph::model::GraphName>,
+    ) -> Result<oxigraph::model::Quad, ()> {
+        let subject = oxigraph::model::Term::try_from(&self.subject)?;
+        let predicate = oxigraph::model::Term::try_from(&self.predicate)?;
+        let object = oxigraph::model::Term::try_from(&self.object)?;
+        let graph = graph.unwrap_or_default();
+
+        let subject = oxigraph::model::NamedOrBlankNode::try_from(subject).map_err(|_| ())?;
+        let predicate = oxigraph::model::NamedNode::try_from(predicate).map_err(|_| ())?;
+
+        Ok(oxigraph::model::Quad::new(
+            subject, predicate, object, graph,
+        ))
+    }
+}
+
 impl<'a> std::fmt::Display for MyQuad<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -169,23 +219,57 @@ impl<'a> MyQuad<'a> {
         }
     }
 }
+impl<'a, 'b> TryFrom<&'b MyTerm<'a>> for oxigraph::model::Term {
+    type Error = ();
+
+    fn try_from(value: &'b MyTerm<'a>) -> std::result::Result<Self, Self::Error> {
+        use oxigraph::model as M;
+        use oxigraph::model::Term as T;
+        let output = match &value.ty {
+            Some(TermKind::Iri) => T::NamedNode(M::NamedNode::new(value.as_str()).map_err(|_| ())?),
+            Some(TermKind::Literal) => {
+                if let Some(dt) = value.datatype() {
+                    let dt = M::NamedNode::new(dt.as_str()).map_err(|_| ())?;
+                    T::Literal(M::Literal::new_typed_literal(value.value.as_ref(), dt))
+                } else if let Some(lang) = value.language_tag() {
+                    T::Literal(
+                        M::Literal::new_language_tagged_literal(
+                            value.value.as_ref(),
+                            lang.as_str(),
+                        )
+                        .map_err(|_| ())?,
+                    )
+                } else {
+                    T::Literal(M::Literal::new_simple_literal(value.value.as_ref()))
+                }
+            }
+            Some(TermKind::BlankNode) => {
+                T::BlankNode(M::BlankNode::new(value.value.as_ref()).map_err(|_| ())?)
+            }
+            _ => {
+                return Err(());
+            }
+        };
+        return Ok(output);
+    }
+}
 
 impl<'a> Quad for MyQuad<'a> {
     type Term = MyTerm<'a>;
 
-    fn s(&self) -> sophia_api::quad::QBorrowTerm<Self> {
+    fn s(&self) -> sophia_api::quad::QBorrowTerm<'_, Self> {
         self.subject.borrow_term()
     }
 
-    fn p(&self) -> sophia_api::quad::QBorrowTerm<Self> {
+    fn p(&self) -> sophia_api::quad::QBorrowTerm<'_, Self> {
         self.predicate.borrow_term()
     }
 
-    fn o(&self) -> sophia_api::quad::QBorrowTerm<Self> {
+    fn o(&self) -> sophia_api::quad::QBorrowTerm<'_, Self> {
         self.object.borrow_term()
     }
 
-    fn g(&self) -> GraphName<sophia_api::quad::QBorrowTerm<Self>> {
+    fn g(&self) -> GraphName<sophia_api::quad::QBorrowTerm<'_, Self>> {
         None
     }
 
@@ -294,29 +378,29 @@ impl<'a> Term for MyTerm<'a> {
         self
     }
 
-    fn iri(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr>> {
+    fn iri(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr<'_>>> {
         self.is_iri()
             .then(|| IriRef::new_unchecked(MownStr::from_ref(&self.value)))
     }
 
-    fn bnode_id(&self) -> Option<sophia_api::term::BnodeId<sophia_api::MownStr>> {
+    fn bnode_id(&self) -> Option<sophia_api::term::BnodeId<sophia_api::MownStr<'_>>> {
         self.is_blank_node()
             .then(|| BnodeId::new_unchecked(MownStr::from_ref(&self.value)))
     }
 
-    fn lexical_form(&self) -> Option<sophia_api::MownStr> {
+    fn lexical_form(&self) -> Option<sophia_api::MownStr<'_>> {
         self.is_literal().then(|| MownStr::from_ref(&self.value))
     }
 
-    fn datatype(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr>> {
+    fn datatype(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr<'_>>> {
         None
     }
 
-    fn language_tag(&self) -> Option<sophia_api::term::LanguageTag<sophia_api::MownStr>> {
+    fn language_tag(&self) -> Option<sophia_api::term::LanguageTag<sophia_api::MownStr<'_>>> {
         None
     }
 
-    fn variable(&self) -> Option<sophia_api::term::VarName<sophia_api::MownStr>> {
+    fn variable(&self) -> Option<sophia_api::term::VarName<sophia_api::MownStr<'_>>> {
         panic!("MyTerm does not supported variables")
     }
 

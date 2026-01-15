@@ -1,9 +1,9 @@
+use crate::lsp_types::{SemanticToken, SemanticTokenType};
 use bevy_ecs::{
     prelude::*,
     schedule::{IntoScheduleConfigs, ScheduleLabel},
 };
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use crate::lsp_types::{SemanticToken, SemanticTokenType};
 
 use crate::prelude::*;
 

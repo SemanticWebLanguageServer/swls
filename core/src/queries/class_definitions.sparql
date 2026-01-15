@@ -1,0 +1,38 @@
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX dc:   <http://purl.org/dc/elements/1.1/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT * WHERE {
+    # We define easy to find subClasses of rdfs:Class (ie owl:Class)
+    ?subClass rdfs:subClassOf* rdfs:Class .
+
+    {
+        # if a property has as range something that is a class
+        # the thing in the range of that property is a class
+        ?prop rdfs:range ?subClass .
+        ?thing ?prop ?class .
+    }
+    UNION
+    {
+        # if a property has as domain something that is a class
+        # the thing in the domain of that property is a class
+        ?prop rdfs:domain ?subClass .
+        ?class ?prop ?thing .
+    }
+    UNION
+    {
+        # something that is a class is a class
+        ?class rdf:type ?subClass .
+    }
+
+    # Get some useful metadata
+    OPTIONAL {
+        ?class ( rdfs:label | dc:title | dct:title | skos:prefLabel ) ?title .
+    }
+    OPTIONAL {
+        ?class ( rdfs:comment | dc:description | dct:description | skos:definition ) ?description.
+    }
+}
