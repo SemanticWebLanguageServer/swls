@@ -160,10 +160,12 @@ pub fn fetch_lov_properties<C: Client + Resource>(
             if !prefixes.contains(prefix.url.as_str()) {
                 prefixes.insert(prefix.url.to_string());
                 if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                    if let Some((_e, local)) = ontologies
+                    let mut found = false;
+                    for (_e, local) in ontologies
                         .iter()
-                        .find(|(_, x)| x.location == prefix.url.as_str())
+                        .filter(|(_, x)| x.location == prefix.url.as_str())
                     {
+                        found = true;
                         debug!(
                             "Local lov for Prefix {} {} is entry {} {}",
                             prefix.prefix,
@@ -174,8 +176,16 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
                         let c = client.as_ref().clone();
                         let sender = sender.0.clone();
-                        client.spawn(local_lov::<C>(local.clone(), url, sender, fs.clone(), c));
-                    } else {
+                        client.spawn(local_lov::<C>(
+                            local.clone(),
+                            url.clone(),
+                            sender,
+                            fs.clone(),
+                            c,
+                        ));
+                    }
+
+                    if !found {
                         debug!(
                             "Remote lov for prefix {} {}",
                             prefix.prefix,
@@ -183,7 +193,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                         );
                         let sender = sender.0.clone();
                         let c = client.as_ref().clone();
-                        client.spawn(fetch_lov(prefix.clone(), url, c, sender, fs.clone()));
+                        client.spawn(fetch_lov(
+                            prefix.clone(),
+                            url.clone(),
+                            c,
+                            sender,
+                            fs.clone(),
+                        ));
                     }
                 }
             }

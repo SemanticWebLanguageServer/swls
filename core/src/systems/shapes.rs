@@ -170,7 +170,7 @@ fn push_diagnostics(
                     comps += &c;
                 }
 
-                diagnostics.push(lsp_types::Diagnostic {
+                diagnostics.push(crate::lsp_types::Diagnostic {
                     range: range.clone(),
                     severity: Some(DiagnosticSeverity::ERROR),
                     source: Some(String::from("SWLS")),

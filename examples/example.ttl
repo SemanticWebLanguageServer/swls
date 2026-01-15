@@ -1,7 +1,7 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
 @prefix rml: <http://w3id.org/rml/>.
 @prefix rml2: <http://semweb.mmlab.be/ns/rml#>.
 
-[ ] a rml:BaseSource;
-  rml2:iterator [ ];
-  rml:objectMap [ ].
+<> owl:imports <./shapes.ttl>.
+<abc> a rml:Field.
 
