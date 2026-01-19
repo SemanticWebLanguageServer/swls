@@ -117,9 +117,9 @@ pub fn hover_types(
                 .unwrap_or(type_name.clone());
             hover.0.push(format!("Type: {}", type_name));
 
-            let mut subclass_str = String::from("Sub classes: ");
+            let mut subclass_str = String::from("Subclass of: ");
             let mut subclasses = hierarchy
-                .iter_subclass(*id)
+                .iter_superclass(*id)
                 .map(|sub| pref.shorten(&sub).map(Cow::Owned).unwrap_or(sub.clone()))
                 .skip(1);
 
@@ -132,9 +132,9 @@ pub fn hover_types(
                 hover.0.push(subclass_str);
             }
 
-            let mut subclass_str = String::from("Super classes: ");
+            let mut subclass_str = String::from("Superclass of: ");
             let mut subclasses = hierarchy
-                .iter_superclass(*id)
+                .iter_subclass(*id)
                 .map(|sub| pref.shorten(&sub).map(Cow::Owned).unwrap_or(sub.clone()))
                 .skip(1);
 

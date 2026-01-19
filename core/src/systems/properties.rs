@@ -334,7 +334,7 @@ fn find_properties(
                         }
 
                         if let Some(range) = range {
-                            v.domains.insert(range);
+                            v.ranges.insert(range);
                         }
                     }
                     _ => {}
