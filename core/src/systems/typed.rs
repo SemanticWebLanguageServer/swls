@@ -119,6 +119,8 @@ pub fn infer_types(
                 }
             }
         }
+
+        types.clean_up(&hierarchy);
     }
 }
 

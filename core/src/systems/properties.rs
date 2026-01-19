@@ -151,14 +151,24 @@ pub fn complete_class(
         &TokenComponent,
         &TripleComponent,
         &Prefixes,
+        &Types,
         &mut CompletionRequest,
     )>,
+    hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
 ) {
-    for (token, triple, prefixes, mut request) in &mut query {
+    for (token, triple, prefixes, types, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
         {
+            let tts = types.get(&triple.triple.subject.value);
+
+            let superclasses: HashSet<_> = tts
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|t| hierarchy.iter_superclass(*t))
+                .collect();
+
             for class in resource.classes.values() {
                 let to_beat = prefixes
                     .shorten(&class.term.value)
@@ -166,18 +176,23 @@ pub fn complete_class(
                     .unwrap_or(class.term.value.clone());
 
                 if to_beat.starts_with(&token.text) {
-                    request.push(
-                        SimpleCompletion::new(
-                            CompletionItemKind::CLASS,
-                            format!("{}", to_beat),
-                            TextEdit {
-                                range: token.range.clone(),
-                                new_text: to_beat.to_string(),
-                            },
-                        )
-                        .label_description(class.full_title())
-                        .documentation(class.full_docs()),
-                    );
+                    let mut completion = SimpleCompletion::new(
+                        CompletionItemKind::CLASS,
+                        format!("{}", to_beat),
+                        TextEdit {
+                            range: token.range.clone(),
+                            new_text: to_beat.to_string(),
+                        },
+                    )
+                    .label_description(class.full_title())
+                    .documentation(class.full_docs());
+
+                    if superclasses.contains(class.term.as_str()) {
+                        completion.kind = CompletionItemKind::INTERFACE;
+                        request.push(completion.sort_text(format!("0{}", to_beat)));
+                    } else {
+                        request.push(completion.sort_text(format!("1{}", to_beat)));
+                    }
                 }
             }
         }
@@ -376,9 +391,9 @@ pub fn complete_properties(
 
                     if correct_domain {
                         completion.kind = CompletionItemKind::FIELD;
-                        request.push(completion.sort_text("0"));
+                        request.push(completion.sort_text(format!("0{}", to_beat)));
                     } else {
-                        request.push(completion.sort_text("1"));
+                        request.push(completion.sort_text(format!("1{}", to_beat)));
                     }
                 }
             }

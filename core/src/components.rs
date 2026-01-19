@@ -93,6 +93,29 @@ pub struct KeyWords(pub Vec<&'static str>);
 /// maps terms to all known correct types.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Types(pub HashMap<Cow<'static, str>, HashSet<TypeId>>);
+impl Types {
+    pub fn clean_up(&mut self, hierarchy: &TypeHierarchy<'_>) {
+        for sets in self.0.values_mut() {
+            let new_set = sets
+                .iter()
+                .filter(|&trying| {
+                    for maybe_presnt in hierarchy.iter_superclass_ids(*trying) {
+                        if maybe_presnt == *trying {
+                            continue;
+                        }
+                        if sets.contains(&maybe_presnt) {
+                            return false;
+                        }
+                    }
+                    true
+                })
+                .copied()
+                .collect();
+
+            *sets = new_set;
+        }
+    }
+}
 
 /// [`Resource`] used to set and get all super and subtypes starting from a [`TypeId`]
 ///
@@ -150,6 +173,11 @@ impl<'a> TypeHierarchy<'a> {
     }
 
     pub fn iter_subclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+        self.iter_subclass_ids(id)
+            .map(|id| self.nodes[id.0].clone())
+    }
+
+    pub fn iter_subclass_ids<'b>(&'b self, id: TypeId) -> impl Iterator<Item = TypeId> + 'b {
         let mut stack = std::collections::VecDeque::new();
         stack.push_back(id);
         let mut done = HashSet::new();
@@ -161,7 +189,7 @@ impl<'a> TypeHierarchy<'a> {
                 done.insert(id);
 
                 self.subclass[id.0].iter().for_each(|i| stack.push_back(*i));
-                return Some(self.nodes[id.0].clone());
+                return Some(id);
             }
 
             None
@@ -173,6 +201,11 @@ impl<'a> TypeHierarchy<'a> {
     }
 
     pub fn iter_superclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+        self.iter_superclass_ids(id)
+            .map(|id| self.nodes[id.0].clone())
+    }
+
+    pub fn iter_superclass_ids<'b>(&'b self, id: TypeId) -> impl Iterator<Item = TypeId> + 'b {
         let mut stack = std::collections::VecDeque::new();
         stack.push_back(id);
         let mut done = HashSet::new();
@@ -186,7 +219,7 @@ impl<'a> TypeHierarchy<'a> {
                 self.superclass[id.0]
                     .iter()
                     .for_each(|i| stack.push_back(*i));
-                return Some(self.nodes[id.0].clone());
+                return Some(id);
             }
 
             None

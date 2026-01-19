@@ -427,7 +427,7 @@ impl LanguageServer for Backend {
             .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest::default())
             .await;
 
-        Ok(request.and_then(|x| (!x.0.is_empty()).then_some(x.0)))
+        Ok(request.and_then(|x| Some(x.0)))
     }
 
     #[tracing::instrument(skip(self))]
@@ -649,7 +649,7 @@ impl LanguageServer for Backend {
             .map(|x| x.0.into_iter().map(|x| x.into()).collect());
 
         Ok(completions.map(|mut c| {
-            c.sort_by(|a, b| a.sort_text.cmp(&b.sort_text).then(a.label.cmp(&b.label)));
+            c.sort_by(|a, b| a.sort_text.cmp(&b.sort_text));
 
             CompletionResponse::Array(c)
         }))
