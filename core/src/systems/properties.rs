@@ -122,6 +122,7 @@ pub fn derive_ontologies(
     query: Query<(), Added<Triples>>,
     store: Res<Store>,
     mut resource: ResMut<Ontologies>,
+    mut hierarchy: ResMut<TypeHierarchy<'static>>,
 ) {
     if !query.is_empty() {
         if let Some(classes) = find_classes(&store.0) {
@@ -129,37 +130,18 @@ pub fn derive_ontologies(
         }
 
         if let Some(properties) = find_properties(&store.0) {
+            for p in properties.values() {
+                for domain in &p.domains {
+                    let _ = hierarchy.get_id(domain.as_str());
+                }
+
+                for range in &p.ranges {
+                    let _ = hierarchy.get_id(range.as_str());
+                }
+            }
+
             resource.properties = properties;
         }
-
-        // if let Some(properties) = find_properties(&store.0) {
-        //     for p in properties.into_values() {
-        //         let title = p.full_title();
-        //         let docs = p.full_docs();
-        //         let domain = p.domains.into_iter().fold(String::new(), |mut acc, b| {
-        //             if !acc.is_empty() {
-        //                 acc += ", ";
-        //             }
-        //             acc += b.as_str();
-        //             acc
-        //         });
-        //         let range = p.ranges.into_iter().fold(String::new(), |mut acc, b| {
-        //             if !acc.is_empty() {
-        //                 acc += ", ";
-        //             }
-        //             acc += b.as_str();
-        //             acc
-        //         });
-        //         tracing::info!(
-        //             "Found property {} ({} -> {}) {}\n{}",
-        //             p.term,
-        //             domain,
-        //             range,
-        //             title,
-        //             docs
-        //         )
-        //     }
-        // }
     }
 }
 
@@ -229,8 +211,8 @@ pub struct DefinedProperty {
     locations: HashSet<MyTerm<'static>>,
     titles: HashSet<String>,
     descriptions: HashSet<String>,
-    domains: HashSet<MyTerm<'static>>,
-    ranges: HashSet<MyTerm<'static>>,
+    pub domains: HashSet<MyTerm<'static>>,
+    pub ranges: HashSet<MyTerm<'static>>,
 }
 
 impl DefinedProperty {
@@ -266,9 +248,7 @@ impl DefinedProperty {
     }
 }
 
-fn find_properties(
-    store: &oxigraph::store::Store,
-) -> Option<HashMap<oxigraph::model::NamedNode, DefinedProperty>> {
+fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String, DefinedProperty>> {
     use oxigraph::model::{Literal, NamedNode};
     use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 
@@ -306,17 +286,17 @@ fn find_properties(
                         Ok(class),
                         // Ok(location)
                     ) => {
-                        let v =
-                            definitions
-                                .entry(class.clone())
-                                .or_insert_with(|| DefinedProperty {
-                                    term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
-                                    locations: HashSet::new(),
-                                    titles: HashSet::new(),
-                                    descriptions: HashSet::new(),
-                                    ranges: HashSet::new(),
-                                    domains: HashSet::new(),
-                                });
+                        let v = definitions
+                            // class.to_string() adds < > to the property
+                            .entry(class.as_str().to_string())
+                            .or_insert_with(|| DefinedProperty {
+                                term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
+                                locations: HashSet::new(),
+                                titles: HashSet::new(),
+                                descriptions: HashSet::new(),
+                                ranges: HashSet::new(),
+                                domains: HashSet::new(),
+                            });
 
                         // v.locations
                         //     .insert(MyTerm::named_node(location.as_str(), 0..0).to_owned());
@@ -354,7 +334,6 @@ pub fn complete_properties(
         &TokenComponent,
         &TripleComponent,
         &Prefixes,
-        &DocumentLinks,
         &Label,
         &Types,
         &mut CompletionRequest,
@@ -362,12 +341,15 @@ pub fn complete_properties(
     hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
 ) {
-    debug!("Complete properties");
-    for (token, triple, prefixes, links, _this_label, types, mut request) in &mut query {
-        debug!("target {:?} text {}", triple.target, token.text);
-        debug!("links {:?}", links);
+    for (token, triple, prefixes, _this_label, types, mut request) in &mut query {
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
+
+            let subclasses: HashSet<_> = tts
+                .iter()
+                .flat_map(|x| x.iter())
+                .flat_map(|t| hierarchy.iter_subclass(*t))
+                .collect();
 
             for property in resource.properties.values() {
                 let to_beat = prefixes
@@ -375,28 +357,14 @@ pub fn complete_properties(
                     .map(|x| Cow::Owned(x))
                     .unwrap_or(property.term.value.clone());
 
-                debug!(
-                    "{} starts with {} = {}",
-                    to_beat,
-                    token.text,
-                    to_beat.starts_with(&token.text)
-                );
-
                 if to_beat.starts_with(&token.text) {
-                    let correct_domain = property.domains.iter().any(|domain| {
-                        if let Some(domain_id) = hierarchy.get_id_ref(domain.as_str()) {
-                            if let Some(tts) = tts {
-                                tts.iter().any(|tt| *tt == domain_id)
-                            } else {
-                                false
-                            }
-                        } else {
-                            false
-                        }
-                    });
+                    let correct_domain = property
+                        .domains
+                        .iter()
+                        .any(|domain| subclasses.contains(domain.as_str()));
 
                     let mut completion = SimpleCompletion::new(
-                        CompletionItemKind::PROPERTY,
+                        CompletionItemKind::ENUM_MEMBER,
                         format!("{}", to_beat),
                         TextEdit {
                             range: token.range.clone(),
@@ -408,10 +376,9 @@ pub fn complete_properties(
 
                     if correct_domain {
                         completion.kind = CompletionItemKind::FIELD;
-                        debug!("Property has correct domain {}", to_beat);
-                        request.push(completion.sort_text("1"));
+                        request.push(completion.sort_text("0"));
                     } else {
-                        request.push(completion);
+                        request.push(completion.sort_text("1"));
                     }
                 }
             }

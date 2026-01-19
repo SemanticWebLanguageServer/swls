@@ -424,10 +424,10 @@ impl LanguageServer for Backend {
         };
 
         let request = self
-            .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest(None))
+            .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest::default())
             .await;
 
-        Ok(request.and_then(|x| x.0))
+        Ok(request.and_then(|x| (!x.0.is_empty()).then_some(x.0)))
     }
 
     #[tracing::instrument(skip(self))]
@@ -648,6 +648,10 @@ impl LanguageServer for Backend {
             .await
             .map(|x| x.0.into_iter().map(|x| x.into()).collect());
 
-        Ok(completions.map(|c| CompletionResponse::Array(c)))
+        Ok(completions.map(|mut c| {
+            c.sort_by(|a, b| a.sort_text.cmp(&b.sort_text).then(a.label.cmp(&b.label)));
+
+            CompletionResponse::Array(c)
+        }))
     }
 }

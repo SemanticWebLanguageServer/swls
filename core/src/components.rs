@@ -17,8 +17,8 @@ use crate::{
     systems::{DefinedClass, DefinedProperty, TypeId},
 };
 
-#[derive(Component, Default, Debug, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct CurrentType(pub Vec<TypeId>);
+#[derive(Component, Default, Debug, Clone, Eq, PartialEq)]
+pub struct CurrentType(pub HashSet<TypeId>);
 
 /// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -92,7 +92,7 @@ pub struct KeyWords(pub Vec<&'static str>);
 
 /// maps terms to all known correct types.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Types(pub HashMap<Cow<'static, str>, Vec<TypeId>>);
+pub struct Types(pub HashMap<Cow<'static, str>, HashSet<TypeId>>);
 
 /// [`Resource`] used to set and get all super and subtypes starting from a [`TypeId`]
 ///
@@ -122,7 +122,7 @@ pub struct TypeHierarchy<'a> {
 #[derive(Resource, Default)]
 pub struct Ontologies {
     pub classes: HashMap<oxigraph::model::NamedNode, DefinedClass>,
-    pub properties: HashMap<oxigraph::model::NamedNode, DefinedProperty>,
+    pub properties: HashMap<String, DefinedProperty>,
 }
 
 impl<'a> TypeHierarchy<'a> {

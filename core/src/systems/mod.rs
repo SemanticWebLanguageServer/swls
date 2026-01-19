@@ -95,26 +95,3 @@ pub fn keyword_complete(
         }
     }
 }
-
-#[instrument(skip(query))]
-pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
-    for (triples, rope, mut req) in &mut query {
-        let mut out = Vec::new();
-        for t in triples.iter() {
-            let Some(position) = offset_to_position(t.span.end, &rope) else {
-                continue;
-            };
-            out.push(crate::lsp_types::InlayHint {
-                position,
-                label: crate::lsp_types::InlayHintLabel::String(format!("{}", t)),
-                kind: None,
-                text_edits: None,
-                tooltip: None,
-                padding_left: None,
-                padding_right: None,
-                data: None,
-            });
-        }
-        req.0 = Some(out);
-    }
-}

@@ -1,4 +1,8 @@
-use std::{borrow::Cow, hash::Hash, usize};
+use std::{
+    borrow::{Borrow, Cow},
+    hash::Hash,
+    usize,
+};
 
 use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
@@ -354,7 +358,7 @@ impl<'a> MyTerm<'a> {
     pub fn invalid(span: std::ops::Range<usize>) -> Self {
         Self {
             value: Cow::default(),
-            ty: None,
+            ty: TermKind::Iri.into(),
             span,
         }
     }
@@ -413,6 +417,12 @@ impl<'a> Term for MyTerm<'a> {
         Self: Sized,
     {
         panic!("MyTerm does not supported triples")
+    }
+}
+
+impl<'a> Borrow<str> for &MyTerm<'a> {
+    fn borrow(&self) -> &str {
+        &self.value
     }
 }
 

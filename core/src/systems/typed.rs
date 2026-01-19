@@ -57,8 +57,9 @@ pub fn extract_type_hierarchy(
 }
 
 pub fn infer_types(
-    mut query: Query<(&Triples, &mut Types), Changed<Triples>>,
+    mut query: Query<(&Triples, &mut Types), (Changed<Triples>, With<Open>)>,
     hierarchy: Res<TypeHierarchy<'static>>,
+    ontologies: Res<Ontologies>,
 ) {
     for (triples, mut types) in &mut query {
         types.clear();
@@ -69,7 +70,53 @@ pub fn infer_types(
         {
             if let Some(id) = hierarchy.get_id_ref(t.o().as_str()) {
                 let vec = types.0.entry(t.s().value.clone()).or_default();
-                vec.push(id);
+                vec.insert(id);
+            }
+        }
+
+        let mut done: HashSet<(&MyTerm<'_>, &MyTerm<'_>)> = HashSet::new();
+
+        for t in &triples.0 {
+            let s = t.s();
+            let p = t.p();
+            let o = t.o();
+            if p.as_str() == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" {
+                continue;
+            }
+
+            if !done.contains(&(s, p)) {
+                done.insert((s, p));
+
+                if let Some(found_predicate) = ontologies.properties.get(p.as_str()) {
+                    for d in &found_predicate.domains {
+                        if let Some(id) = hierarchy.get_id_ref(d.as_str()) {
+                            let vec = types.0.entry(s.value.clone()).or_default();
+                            vec.insert(id);
+                        } else {
+                            tracing::error!(
+                                "Tried to assign type (domain) {} but failed, not present in hierarchy",
+                                d.as_str()
+                            );
+                        }
+                    }
+                }
+            }
+
+            if !done.contains(&(p, o)) {
+                done.insert((p, o));
+                if let Some(found_predicate) = ontologies.properties.get(p.as_str()) {
+                    for d in &found_predicate.ranges {
+                        if let Some(id) = hierarchy.get_id_ref(d.as_str()) {
+                            let vec = types.0.entry(o.value.clone()).or_default();
+                            vec.insert(id);
+                        } else {
+                            tracing::error!(
+                                "Tried to assign type (range) {} but failed, not present in hierarchy",
+                                d.as_str()
+                            );
+                        }
+                    }
+                }
             }
         }
     }
