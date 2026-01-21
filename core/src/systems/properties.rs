@@ -35,13 +35,32 @@ impl DefinedClass {
         title
     }
 
-    pub fn full_docs(&self) -> String {
+    pub fn full_docs(&self, hierarchy: &TypeHierarchy<'_>, pref: &Prefixes) -> String {
         let mut docs = String::new();
         for d in &self.descriptions {
             if !docs.is_empty() {
                 docs += "\n"
             }
             docs += d;
+        }
+
+        if let Some(id) = hierarchy.get_id_ref(self.term.as_str()) {
+            let superclasses = group_per_prefix(hierarchy.iter_superclass(id), pref);
+            if !superclasses.is_empty() {
+                if !docs.is_empty() {
+                    docs += "\n\n"
+                }
+                docs += "Superclass of:";
+                docs += superclasses.as_str();
+            }
+            let subclasses = group_per_prefix(hierarchy.iter_subclass(id), pref);
+            if !subclasses.is_empty() {
+                if !docs.is_empty() {
+                    docs += "\n\n"
+                }
+                docs += "Subclass of:";
+                docs += subclasses.as_str();
+            }
         }
 
         for l in &self.locations {
@@ -53,6 +72,38 @@ impl DefinedClass {
         }
         docs
     }
+}
+
+fn group_per_prefix<'a>(subclasses: impl Iterator<Item = Cow<'a, str>>, pref: &Prefixes) -> String {
+    let mut subclass_str = String::new();
+    let subclasses: Vec<_> = subclasses
+        .skip(1)
+        .flat_map(|sub| pref.shorten(&sub))
+        .collect();
+
+    let mut per_prefix: HashMap<&'_ str, String> = HashMap::new();
+
+    for sub in &subclasses {
+        if let Some((first, snd)) = sub.split_once(':') {
+            let value = per_prefix.entry(first).or_default();
+            if !value.is_empty() {
+                value.push_str(", ");
+            }
+            value.push_str(snd);
+        }
+    }
+
+    let mut ordered: Vec<_> = per_prefix.into_iter().collect();
+    ordered.sort();
+
+    for (k, v) in ordered {
+        subclass_str += "\n  ";
+        subclass_str += k;
+        subclass_str += ":{";
+        subclass_str += &v;
+        subclass_str += "}";
+    }
+    subclass_str
 }
 
 pub type DefinedClasses = HashMap<oxigraph::model::NamedNode, DefinedClass>;
@@ -185,7 +236,7 @@ pub fn complete_class(
                         },
                     )
                     .label_description(class.full_title())
-                    .documentation(class.full_docs());
+                    .documentation(class.full_docs(&hierarchy, &prefixes));
 
                     if superclasses.contains(class.term.as_str()) {
                         completion.kind = CompletionItemKind::INTERFACE;
@@ -201,6 +252,7 @@ pub fn complete_class(
 
 pub fn hover_class(
     mut query: Query<(&TokenComponent, &Prefixes, &mut HoverRequest)>,
+    hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
 ) {
     for (token, prefixes, mut request) in &mut query {
@@ -211,9 +263,11 @@ pub fn hover_class(
 
             for class in resource.classes.values() {
                 if class.term.value == target {
-                    request
-                        .0
-                        .push(format!("{}: {}", class.full_title(), class.full_docs()));
+                    request.0.push(format!(
+                        "{}: {}",
+                        class.full_title(),
+                        class.full_docs(&hierarchy, &prefixes)
+                    ));
                 }
             }
         }

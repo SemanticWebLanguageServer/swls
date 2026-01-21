@@ -1,4 +1,7 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use bevy_ecs::prelude::*;
 use sophia_api::{
@@ -158,43 +161,20 @@ pub fn hover_types(
             continue;
         };
 
+        let mut type_string = String::new();
         for id in types {
             let type_name = hierarchy.type_name(*id);
             let type_name = pref
                 .shorten(&type_name)
                 .map(Cow::Owned)
                 .unwrap_or(type_name.clone());
-            hover.0.push(format!("Type: {}", type_name));
-
-            let mut subclass_str = String::from("Subclass of: ");
-            let mut subclasses = hierarchy
-                .iter_superclass(*id)
-                .map(|sub| pref.shorten(&sub).map(Cow::Owned).unwrap_or(sub.clone()))
-                .skip(1);
-
-            if let Some(first) = subclasses.next() {
-                subclass_str += &first;
-                for sub in subclasses {
-                    subclass_str += ", ";
-                    subclass_str += &sub;
-                }
-                hover.0.push(subclass_str);
+            if !type_string.is_empty() {
+                type_string += ", ";
             }
-
-            let mut subclass_str = String::from("Superclass of: ");
-            let mut subclasses = hierarchy
-                .iter_subclass(*id)
-                .map(|sub| pref.shorten(&sub).map(Cow::Owned).unwrap_or(sub.clone()))
-                .skip(1);
-
-            if let Some(first) = subclasses.next() {
-                subclass_str += &first;
-                for sub in subclasses {
-                    subclass_str += ", ";
-                    subclass_str += &sub;
-                }
-                hover.0.push(subclass_str);
-            }
+            type_string += type_name.as_ref();
+        }
+        if !type_string.is_empty() {
+            hover.0.push(format!("Type: {}", type_string));
         }
     }
 }
