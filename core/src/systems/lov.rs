@@ -36,7 +36,9 @@ struct Vocab {
 }
 
 pub fn populate_known_ontologies(mut commands: Commands) {
+    let mut actual_local = HashSet::new();
     for lov in LOCAL_PREFIXES.iter() {
+        actual_local.insert(lov.name.clone());
         commands.spawn(lov.clone());
     }
 
@@ -51,6 +53,9 @@ pub fn populate_known_ontologies(mut commands: Commands) {
         .enumerate()
     {
         let pref: Cow<'static, str> = prefix.into();
+        if actual_local.contains(&pref) {
+            continue;
+        }
         let lov = LocalPrefix {
             location: url.into(),
             content: Cow::Borrowed(""),

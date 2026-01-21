@@ -91,6 +91,7 @@ pub fn prefix_completion_helper<'a>(
     completions: &mut Vec<SimpleCompletion>,
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
     lovs: impl Iterator<Item = &'a LocalPrefix>,
+    config: &LocalConfig,
     // known: &KnownPrefixes,
 ) {
     match word.token.value() {
@@ -106,9 +107,15 @@ pub fn prefix_completion_helper<'a>(
     completions.extend(
         lovs.filter(|lov| lov.name.starts_with(&word.text))
             .filter(|lov| !defined.contains(lov.location.as_ref()))
+            .filter(|lov| {
+                !config
+                    .prefix_disabled
+                    .iter()
+                    .any(|x| lov.name.starts_with(x.as_str()))
+            })
             .flat_map(|lov| {
                 let new_text = format!("{}:", lov.name);
-                let sort_text = format!("{}", lov.rank);
+                // let sort_text = format!("{}", lov.rank);
                 let filter_text = new_text.clone();
                 if new_text != word.text {
                     let extra_edit = extra_edits(&lov.name, &lov.location)?;
@@ -121,7 +128,8 @@ pub fn prefix_completion_helper<'a>(
                         },
                     )
                     .label_description(lov.title.as_ref())
-                    .sort_text(sort_text)
+                    .documentation(lov.location.as_ref())
+                    // .sort_text(sort_text)
                     .filter_text(filter_text);
 
                     let completion = extra_edit

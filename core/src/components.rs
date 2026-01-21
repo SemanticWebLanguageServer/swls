@@ -264,6 +264,7 @@ pub struct LocalConfig {
     pub shapes: HashSet<String>,
     /// Features to disable
     pub disabled: HashSet<Disabled>,
+    pub prefix_disabled: HashSet<String>,
 }
 
 impl LocalConfig {
@@ -272,6 +273,7 @@ impl LocalConfig {
         self.ontologies.extend(other.ontologies);
         self.shapes.extend(other.shapes);
         self.disabled.extend(other.disabled);
+        self.prefix_disabled.extend(other.prefix_disabled);
     }
     #[cfg(target_arch = "wasm32")]
     pub async fn global(_: &Fs) -> Option<Self> {

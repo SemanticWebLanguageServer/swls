@@ -29,11 +29,7 @@ pub fn extract_type_hierarchy(
         let subclass = triples
             .quads_matching(Any, [rdfs::subClassOf], Any, Any)
             .flatten()
-            .map(|x| x.s())
-            .map(|x| {
-                tracing::info!("Found subClass subject {}", x);
-                x
-            });
+            .map(|x| x.s());
 
         let set: HashSet<_> = class_terms.chain(subclass).collect();
 

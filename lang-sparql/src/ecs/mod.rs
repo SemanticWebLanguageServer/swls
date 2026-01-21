@@ -170,6 +170,7 @@ pub fn sparql_lov_undefined_prefix_completion(
         &mut CompletionRequest,
     )>,
     lovs: Query<&LocalPrefix>,
+    config: Res<ServerConfig>,
 ) {
     for (word, turtle, prefixes, mut req) in &mut query {
         let mut start = Position::new(0, 0);
@@ -190,6 +191,7 @@ pub fn sparql_lov_undefined_prefix_completion(
                 }])
             },
             lovs.iter(),
+            &config.config.local,
         );
     }
 }
