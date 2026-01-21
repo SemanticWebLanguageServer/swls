@@ -35,4 +35,6 @@ SELECT DISTINCT * WHERE {
     OPTIONAL {
         ?class ( rdfs:comment | dc:description | dct:description | skos:definition ) ?description.
     }
+
+    FILTER(isIRI(?class))
 }

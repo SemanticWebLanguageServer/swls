@@ -32,9 +32,32 @@ SELECT DISTINCT ?property ?title ?description ?domain ?range WHERE {
         ?property ( rdfs:comment | dc:description | dct:description | skos:definition ) ?description.
     }
     OPTIONAL {
-        ?property ( rdfs:domain ) ?domain.
+        ?property ( rdfs:domain ) ?d.
+        {
+            # Case 1: direct domain IRI
+            FILTER(isIRI(?d))
+            BIND(?d AS ?domain)
+        }
+        UNION
+        {
+            # Case 2: owl:unionOf list
+            ?d owl:unionOf ?list .
+            ?list rdf:rest*/rdf:first ?domain .
+        }
     }
     OPTIONAL {
-        ?property ( rdfs:range ) ?range.
+        ?property ( rdfs:range ) ?r.
+
+        {
+            # Case 1: direct domain IRI
+            FILTER(isIRI(?r))
+            BIND(?d AS ?range)
+        }
+        UNION
+        {
+            # Case 2: owl:unionOf list
+            ?r owl:unionOf ?list .
+            ?list rdf:rest*/rdf:first ?range .
+        }
     }
 }

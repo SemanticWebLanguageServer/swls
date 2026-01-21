@@ -6,7 +6,7 @@ use std::{
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use hover::HoverRequest;
-use tracing::{debug, instrument};
+use tracing::instrument;
 
 use crate::{
     lsp_types::{CompletionItemKind, TextEdit},
@@ -257,10 +257,6 @@ pub fn hover_class(
 ) {
     for (token, prefixes, mut request) in &mut query {
         if let Some(target) = prefixes.expand(token.token.value()) {
-            // if let Some(class) = resource.classes.get(&target) {
-            //
-            // }
-
             for class in resource.classes.values() {
                 if class.term.value == target {
                     request.0.push(format!(
@@ -297,7 +293,7 @@ impl DefinedProperty {
         title
     }
 
-    pub fn full_docs(&self) -> String {
+    pub fn full_docs(&self, prefixes: &Prefixes) -> String {
         let mut docs = String::new();
         for d in &self.descriptions {
             if !docs.is_empty() {
@@ -306,9 +302,41 @@ impl DefinedProperty {
             docs += d;
         }
 
+        if !self.domains.is_empty() {
+            if !docs.is_empty() {
+                docs += "\n\n"
+            }
+            docs += "Domain: ";
+            let mut first = true;
+            for r in &self.domains {
+                let range = prefixes.shorten(r.as_str());
+                if !first {
+                    docs += ", "
+                }
+                first = false;
+                docs += range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str());
+            }
+        }
+
+        if !self.ranges.is_empty() {
+            if !docs.is_empty() {
+                docs += "\n\n"
+            }
+            docs += "Range: ";
+            let mut first = true;
+            for r in &self.ranges {
+                let range = prefixes.shorten(r.as_str());
+                if !first {
+                    docs += ", "
+                }
+                first = false;
+                docs += range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str());
+            }
+        }
+
         for l in &self.locations {
             if !docs.is_empty() {
-                docs += "\n"
+                docs += "\n\n"
             }
             docs += "from: ";
             docs += l.as_str();
@@ -441,7 +469,7 @@ pub fn complete_properties(
                         },
                     )
                     .label_description(&property.full_title())
-                    .documentation(&property.full_docs());
+                    .documentation(&property.full_docs(&prefixes));
 
                     if correct_domain {
                         completion.kind = CompletionItemKind::FIELD;
@@ -474,22 +502,7 @@ pub fn hover_property(
             {
                 request
                     .0
-                    .push(format!("{}\n{}", c.full_title(), c.full_docs()));
-                for r in &c.ranges {
-                    let range = prefixes.shorten(r.as_str());
-                    request.0.push(format!(
-                        "Range {}",
-                        range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str())
-                    ));
-                }
-
-                for d in &c.domains {
-                    let domain = prefixes.shorten(d.as_str());
-                    request.0.push(format!(
-                        "Domain {}",
-                        domain.as_ref().map(|x| x.as_str()).unwrap_or(d.as_str())
-                    ));
-                }
+                    .push(format!("{}\n{}", c.full_title(), c.full_docs(&prefixes)));
             }
         }
     }
