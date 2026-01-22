@@ -427,6 +427,11 @@ impl LanguageServer for Backend {
             .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest::default())
             .await;
 
+        info!(
+            "Inlay hints resolved {} hints",
+            request.as_ref().map(|x| x.0.len()).unwrap_or(0)
+        );
+
         Ok(request.and_then(|x| Some(x.0)))
     }
 

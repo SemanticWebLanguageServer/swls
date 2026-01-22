@@ -94,6 +94,7 @@ pub struct KeyWords(pub Vec<&'static str>);
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Types(pub HashMap<Cow<'static, str>, HashSet<TypeId>>);
 impl Types {
+    #[tracing::instrument(skip(self, hierarchy))]
     pub fn clean_up(&mut self, hierarchy: &TypeHierarchy<'_>) {
         for sets in self.0.values_mut() {
             let new_set = sets
@@ -113,6 +114,17 @@ impl Types {
                 .collect();
 
             *sets = new_set;
+        }
+
+        tracing::info!(
+            "found {} typed entities",
+            self.iter().filter(|x| !x.1.is_empty()).count()
+        );
+
+        for (k, v) in self.iter() {
+            for id in v {
+                tracing::debug!("{} a {}", k, hierarchy.type_name(*id));
+            }
         }
     }
 }
