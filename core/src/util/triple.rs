@@ -1,6 +1,7 @@
 use std::{
     borrow::{Borrow, Cow},
     hash::Hash,
+    sync::Arc,
     usize,
 };
 
@@ -38,6 +39,7 @@ pub struct TripleComponent {
     pub triple: MyQuad<'static>,
     pub target: TripleTarget,
 }
+
 impl TripleComponent {
     pub fn kind(&self) -> TermKind {
         let target = match self.target {
@@ -68,7 +70,7 @@ impl TripleComponent {
 ///
 /// These triples are used to derive properties and classes and other things.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Triples(pub Vec<MyQuad<'static>>);
+pub struct Triples(pub Arc<Vec<MyQuad<'static>>>);
 
 impl Triples {
     pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&'s MyTerm<'s>>
@@ -283,11 +285,46 @@ impl<'a> Quad for MyQuad<'a> {
 }
 // pub type MyQuad<'a> = ([MyTerm<'a>; 3], GraphName<MyTerm<'a>>);
 
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+pub enum TermContext<'a> {
+    None,
+    DataType(Cow<'a, str>),
+    LangTag(Cow<'a, str>),
+}
+impl<'a> TermContext<'a> {
+    pub fn to_owned(&self) -> TermContext<'static> {
+        match self {
+            TermContext::None => TermContext::None,
+            TermContext::DataType(cow) => TermContext::DataType(Cow::Owned(cow.to_string())),
+            TermContext::LangTag(cow) => TermContext::LangTag(Cow::Owned(cow.to_string())),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq)]
 pub struct MyTerm<'a> {
     pub value: Cow<'a, str>,
-    ty: Option<TermKind>,
+    pub ty: Option<TermKind>,
     pub span: std::ops::Range<usize>,
+    pub context: TermContext<'a>,
+}
+impl<'a> PartialOrd for MyTerm<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.value.partial_cmp(&other.value) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.ty.partial_cmp(&other.ty)
+    }
+}
+impl<'a> Ord for MyTerm<'a> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.value.cmp(&other.value) {
+            core::cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+        self.ty.cmp(&other.ty)
+    }
 }
 
 impl Hash for MyTerm<'_> {
@@ -324,6 +361,7 @@ impl<'a> MyTerm<'a> {
             value,
             ty: self.ty.clone(),
             span: self.span.clone(),
+            context: self.context.to_owned(),
         }
     }
     pub fn variable<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
@@ -331,6 +369,7 @@ impl<'a> MyTerm<'a> {
             value: value.into(),
             ty: TermKind::Variable.into(),
             span,
+            context: TermContext::None,
         }
     }
     pub fn named_node<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
@@ -338,6 +377,7 @@ impl<'a> MyTerm<'a> {
             value: value.into(),
             ty: TermKind::Iri.into(),
             span,
+            context: TermContext::None,
         }
     }
     pub fn blank_node<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
@@ -345,13 +385,19 @@ impl<'a> MyTerm<'a> {
             value: value.into(),
             ty: TermKind::BlankNode.into(),
             span,
+            context: TermContext::None,
         }
     }
-    pub fn literal<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
+    pub fn literal<T: Into<Cow<'a, str>>>(
+        value: T,
+        span: std::ops::Range<usize>,
+        context: TermContext<'a>,
+    ) -> Self {
         Self {
             value: value.into(),
             ty: TermKind::Literal.into(),
             span,
+            context,
         }
     }
 
@@ -360,6 +406,8 @@ impl<'a> MyTerm<'a> {
             value: Cow::default(),
             ty: TermKind::Iri.into(),
             span,
+
+            context: TermContext::None,
         }
     }
 

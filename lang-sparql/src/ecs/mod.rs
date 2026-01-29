@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
@@ -126,7 +129,7 @@ fn derive_triples(
             let _ = query.ingest_triples(&mut builder);
             let triples: Vec<_> = builder.triples.into_iter().map(|x| x.to_owned()).collect();
 
-            commands.entity(e).insert(Triples(triples));
+            commands.entity(e).insert(Triples(Arc::new(triples)));
         }
     }
 }

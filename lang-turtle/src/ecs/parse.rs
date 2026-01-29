@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bevy_ecs::prelude::*;
 use lsp_core::prelude::*;
@@ -99,7 +99,7 @@ pub fn derive_triples(
     for (entity, turtle) in &query {
         if let Ok(tripl) = turtle.0.get_simple_triples() {
             let triples: Vec<_> = tripl.iter().map(|x| x.to_owned()).collect();
-            commands.entity(entity).insert(Triples(triples));
+            commands.entity(entity).insert(Triples(Arc::new(triples)));
         }
     }
 }

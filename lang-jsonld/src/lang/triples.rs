@@ -166,7 +166,7 @@ fn derive_triples_sub(
                 None => MyTerm::invalid(0..0),
                 // TODO: this might not be a literal, should look it up in the context
                 Some(Spanned(Json::Token(tok), span)) => match tok {
-                    Token::Str(x, _) => MyTerm::literal(x.clone(), span.clone()),
+                    Token::Str(x, _) => MyTerm::literal(x.clone(), span.clone(), TermContext::None), // TODO
                     _ => MyTerm::invalid(span.clone()),
                 },
                 Some(json) => derive_triples_sub(json, prefixes, out, bn_f)

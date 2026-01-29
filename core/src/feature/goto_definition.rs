@@ -51,11 +51,13 @@ mod system {
             let Some(term) = triple.term() else {
                 continue;
             };
+            let _span = tracing::debug_span!("goto_definition", term=%term.value).entered();
 
-            tracing::debug!("Found {} with kind {:?}", term.value, target);
+            tracing::debug!("kind {:?}", target);
             if target == TermKind::Iri {
                 // This is a named node, we should look project wide
                 for (triples, rope, label) in &project {
+                    tracing::info!("Looking into buffer {}", label.as_str());
                     let subs: HashSet<_> = triples
                         .iter()
                         .map(|x| x.s())

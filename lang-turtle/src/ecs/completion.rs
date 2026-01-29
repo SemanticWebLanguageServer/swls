@@ -62,7 +62,7 @@ pub fn subject_completion(
         let Some(expanded) = m_expaned else { continue };
 
         for (triples, label) in &triples {
-            for triple in &triples.0 {
+            for triple in triples.0.iter() {
                 debug!("Triple {} start with {}", triple.subject.as_str(), expanded);
                 let subj = triple.subject.as_str();
                 if subj.starts_with(&expanded) {

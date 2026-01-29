@@ -1,8 +1,14 @@
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
-@prefix owl: <http://www.w3.org/2002/07/owl#>.
-@prefix rml: <http://w3id.org/rml/>.
-@prefix rml2: <http://semweb.mmlab.be/ns/rml#>.
+@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix ex: <http://example.org/>.
+@prefix : <http://example.org/>.
 
-<abc> a rml:TriplesMap;
-  rml:subjectMap [ rml:class [ ] ].
+:MinInclusive a sh:NodeShape;
+  sh:targetClass :Node;
+  sh:property [
+    sh:path :p;
+    sh:minCount 2;
+  ].
+
+<abc> a :Node.
 

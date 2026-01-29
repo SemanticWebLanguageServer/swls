@@ -72,7 +72,7 @@ pub fn infer_types(
 
         let mut done: HashSet<(&MyTerm<'_>, &MyTerm<'_>)> = HashSet::new();
 
-        for t in &triples.0 {
+        for t in triples.0.iter() {
             let s = t.s();
             let p = t.p();
             let o = t.o();

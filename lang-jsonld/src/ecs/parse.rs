@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bevy_ecs::prelude::*;
 use lsp_core::{
     components::*,
@@ -55,6 +57,8 @@ pub fn derive_triples(
     for (e, l, el) in &query {
         let prefix = triples::derive_prefixes(&el, &l.0);
         let triples = triples::derive_triples(&el, &prefix);
-        commands.entity(e).insert((Triples(triples), prefix));
+        commands
+            .entity(e)
+            .insert((Triples(Arc::new(triples)), prefix));
     }
 }

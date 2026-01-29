@@ -1,6 +1,6 @@
-use std::{collections::HashSet, fmt::Display, ops::Range};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, ops::Range};
 
-use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples2};
+use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, TermContext, Triples2};
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::info;
 
@@ -616,8 +616,29 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
                     .map(|x| x.unwrap())?,
                 span,
             ),
-            Ok(Spanned(Term::Literal(literal), span)) => {
-                MyTerm::literal(literal.plain_string(), span)
+            Ok(Spanned(Term::Literal(Literal::RDF(lit)), span)) => {
+                let term_context = match (&lit.lang, &lit.ty) {
+                    (Some(l), _) => TermContext::LangTag(Cow::Owned(l.to_string())),
+                    (_, Some(dt)) => {
+                        if let Some(dt) = dt.expand_step(self.based, HashSet::new()) {
+                            TermContext::DataType(dt.into())
+                        } else {
+                            TermContext::None
+                        }
+                    }
+                    _ => TermContext::None,
+                };
+                MyTerm::literal(lit.value.to_string(), span, term_context)
+            }
+            Ok(Spanned(Term::Literal(Literal::Boolean(bool)), span)) => {
+                let term_context =
+                    TermContext::DataType("http://www.w3.org/2001/XMLSchema#boolean".into());
+                MyTerm::literal(bool.to_string(), span, term_context)
+            }
+            Ok(Spanned(Term::Literal(Literal::Numeric(num)), span)) => {
+                let term_context =
+                    TermContext::DataType("http://www.w3.org/2001/XMLSchema#integer".into());
+                MyTerm::literal(num.to_string(), span, term_context)
             }
             Ok(Spanned(Term::BlankNode(bn), span)) => match bn {
                 BlankNode::Named(v, _) => MyTerm::blank_node(v, span),

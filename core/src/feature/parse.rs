@@ -36,7 +36,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         derive_ontologies.after(crate::store::load_store),
     ));
 
-    #[cfg(feature = "shapes")]
+    // #[cfg(feature = "shapes")]
     parse_schedule.add_systems((crate::systems::derive_shapes.after(triples),));
     world.add_schedule(parse_schedule);
     world.insert_resource(Store(oxigraph::store::Store::new().unwrap()));
