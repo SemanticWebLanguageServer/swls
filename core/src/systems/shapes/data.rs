@@ -67,41 +67,6 @@ impl NeighsRDF for Rdf {
         P: srdf::matcher::Matcher<Self::IRI> + Clone,
         O: srdf::matcher::Matcher<Self::Term> + Clone,
     {
-        if let Some(p) = predicate.value() {
-            if p == MyTerm::named_node("http://www.w3.org/ns/shacl#minCount", 0..0) {
-                tracing::debug!(
-                    "matching mincount {:?} {:?} {:?}",
-                    subject.value().map(|x| x.value),
-                    predicate.value().map(|x| x.value),
-                    object.value().map(|x| x.value)
-                );
-                let subject = subject.clone();
-                let predicate = predicate.clone();
-                let object = object.clone();
-                for t in self.triples()?.filter_map(move |t| {
-                    match subject == t.subject && predicate == t.predicate && object == t.object {
-                        true => Some(t),
-                        false => {
-                            tracing::debug!(
-                                "  NOT FOUND {:?} {:?} {:?}",
-                                t.subject.value,
-                                t.predicate.value,
-                                t.object.value
-                            );
-                            None
-                        }
-                    }
-                }) {
-                    tracing::debug!(
-                        "  FOUND {:?} {:?} {:?}",
-                        t.subject.value,
-                        t.predicate.value,
-                        t.object.value
-                    );
-                }
-            }
-        }
-
         let triples = self.triples()?.filter_map(move |triple| {
             match subject == triple.subject
                 && predicate == triple.predicate

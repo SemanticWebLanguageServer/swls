@@ -3,12 +3,5 @@
 @prefix ex: <http://example.org/>.
 @prefix : <http://example.org/>.
 
-:MinInclusive a sh:NodeShape;
-  sh:targetClass :Node;
-  sh:property [
-    sh:path :p;
-    sh:minCount 2;
-  ].
-
 <abc> a :Node.
 

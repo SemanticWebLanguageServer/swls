@@ -59,6 +59,10 @@ pub struct Open;
 #[derive(Component, Debug)]
 pub struct Dirty;
 
+/// Indicates that this should be a global entity, linked to all other documents
+#[derive(Component, Debug)]
+pub struct Global;
+
 /// [`Component`] containing the [`lsp_types::Url`] of the current document.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Label(pub crate::lsp_types::Url);

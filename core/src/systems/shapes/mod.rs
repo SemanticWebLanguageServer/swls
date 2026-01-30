@@ -128,7 +128,7 @@ pub fn validate_shapes(
         ),
         (Changed<Triples>, Without<Dirty>, With<Open>),
     >,
-    other: Query<(&Label, &ShaclShapes, &Prefixes)>,
+    other: Query<(&Label, &ShaclShapes, &Prefixes, Option<&Global>)>,
     mut client: ResMut<DiagnosticPublisher>,
     res: Res<ServerConfig>,
 ) {
@@ -138,15 +138,16 @@ pub fn validate_shapes(
 
     for (rope, label, links, item, triples) in &query {
         info!("Validate shapes {}", label.as_str());
-        let other: &Query<(&Label, &ShaclShapes, &Prefixes)> = &other;
+        let other: &Query<(&Label, &ShaclShapes, &Prefixes, Option<&Global>)> = &other;
         let client: &mut DiagnosticPublisher = &mut client;
         let mut diagnostics: Vec<crate::lsp_types::Diagnostic> = Vec::new();
 
-        for (other_label, schema, prefixes) in other {
-            if links
-                .iter()
-                .find(|link| link.0.as_str().starts_with(other_label.0.as_str()))
-                .is_none()
+        for (other_label, schema, prefixes, global) in other {
+            if global.is_none()
+                && links
+                    .iter()
+                    .find(|link| link.0.as_str().starts_with(other_label.0.as_str()))
+                    .is_none()
                 && label.0 != other_label.0
             {
                 continue;
@@ -165,12 +166,8 @@ pub fn validate_shapes(
             let rdf = Rdf::new(triples);
             let ir = schema.ir();
             for (_, shape) in ir.iter_with_targets() {
-                tracing::debug!("shape {}", shape.id());
                 let results = match shape.validate(&rdf, &mut runner, None, Some(shape), ir) {
-                    Ok(r) => {
-                        tracing::debug!("results {}", r.len());
-                        r
-                    }
+                    Ok(r) => r,
                     Err(e) => {
                         tracing::debug!("errors {}", e);
                         continue;

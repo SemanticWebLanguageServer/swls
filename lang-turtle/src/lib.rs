@@ -18,7 +18,7 @@ use lov::LocalPrefix;
 use lsp_core::{
     feature::diagnostics::publish_diagnostics,
     lang::{Lang, LangHelper},
-    lsp_types::{SemanticTokenType, Url},
+    lsp_types::{SemanticTokenType, TextDocumentItem, Url},
     prelude::*,
     CreateEvent,
 };
@@ -73,7 +73,10 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     });
 
     world.schedule_scope(lsp_core::Startup, |_, schedule| {
-        schedule.add_systems(extract_known_prefixes_from_config::<C>);
+        schedule.add_systems((
+            extract_known_prefixes_from_config::<C>,
+            extract_known_shapes_from_config::<C>,
+        ));
     });
 
     setup_parsing(world);
@@ -246,6 +249,71 @@ fn prefix_from_source(url: &Url, source: &str) -> Option<(Cow<'static, str>, Cow
     let triples = turtle.get_simple_triples().ok()?;
 
     prefix_from_declaration(&triples).or_else(|| prefix_from_prefixes(&turtle, &triples))
+}
+
+pub fn extract_known_shapes_from_config<C: Client + ClientSync + Resource + Clone>(
+    config: Res<ServerConfig>,
+    client: Res<C>,
+    fs: Res<Fs>,
+    sender: Res<CommandSender>,
+) {
+    for on in config.config.local.shapes.iter().cloned() {
+        let c = client.clone();
+        let fs = fs.clone();
+
+        let sender = sender.0.clone();
+
+        let fut = async move {
+            let Some(files) = find(&on, &fs, &c).await else {
+                return;
+            };
+
+            for (content, url) in files {
+                let mut command_queue = CommandQueue::default();
+                let item = TextDocumentItem {
+                    version: 1,
+                    uri: url.clone(),
+                    language_id: String::from("turtle"),
+                    text: String::new(),
+                };
+
+                let spawn = spawn_or_insert(
+                    url.clone(),
+                    (
+                        RopeC(ropey::Rope::from_str(&content)),
+                        Source(content.clone()),
+                        Label(url.clone()), // this might crash
+                        Wrapped(item),
+                        Types(HashMap::new()),
+                    ),
+                    Some("turtle".into()),
+                    (Global,),
+                );
+
+                command_queue.push(move |world: &mut World| {
+                    let span = tracing::span!(tracing::Level::INFO, "span shapes");
+                    let _enter = span.enter();
+                    spawn(world);
+                    world.run_schedule(ParseLabel);
+                });
+
+                let _ = sender.unbounded_send(command_queue);
+            }
+
+            // This is the plan of approach: - add these ontologies to the predefined LOV things - need prefered prefix:
+            //          - filename.ttl -> filename
+            //          - parse and look for things?
+            //   - let the lov things also add prefixes to the prefix thing
+            //   - Profit
+
+            // spawn_or_insert(url, bundle, language_id, extra)
+            // we have the turtle files!
+            // we have 2 choices now:
+            //  add it to the ecs without links
+        };
+
+        client.spawn(fut);
+    }
 }
 
 pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Clone>(

@@ -213,7 +213,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 }
 
 type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
-fn spawn_document(
+pub fn spawn_document(
     url: Url,
     content: String,
     sender: &Sender,
@@ -248,7 +248,6 @@ fn spawn_document(
         extra(e, world);
 
         world.run_schedule(ParseLabel);
-        drop(_enter);
     });
 
     let _ = sender.unbounded_send(command_queue);
