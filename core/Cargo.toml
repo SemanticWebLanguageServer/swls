@@ -32,12 +32,12 @@ lov = { path = "../lov/" }
 
 oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=false }
 
-shacl_rdf = "0.1.135"
-shacl_ir = "0.1.141"
-srdf = "0.1.146"
-shacl_ast = "0.1.135"
-prefixmap = "0.1.145"
-iri_s = "0.1.137"
+shacl_rdf = {path = "../../rudof/shacl_rdf/"}
+shacl_ir = {path = "../../rudof/shacl_ir/"}
+srdf = {path = "../../rudof/srdf/"}
+shacl_ast = {path = "../../rudof/shacl_ast/"}
+prefixmap = {path = "../../rudof/prefixmap/"}
+iri_s = {path = "../../rudof/iri_s/"}
+shacl_validation = {path = "../../rudof/shacl_validation/"}
 oxrdf = "0.3.2"
-rudof_lib = "0.1.146"
 

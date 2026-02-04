@@ -7,7 +7,9 @@ pub use crate::systems::{
 use crate::{
     client::Client,
     store::Store,
-    systems::{check_added_ontology_extract, derive_owl_imports_links, open_imports},
+    systems::{
+        check_added_ontology_extract, derive_owl_imports_links, open_imports, validate_shapes,
+    },
 };
 
 /// Parse schedule barrier, after this system, triples should be derived
@@ -31,6 +33,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         infer_types.after(triples),
         check_added_ontology_extract.after(triples),
         open_imports::<C>.after(triples),
+        validate_shapes.after(triples),
         // store things
         crate::store::load_store.after(triples),
         derive_ontologies.after(crate::store::load_store),

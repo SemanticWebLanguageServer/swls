@@ -1,16 +1,12 @@
-use std::collections::HashMap;
-
-use crate::lsp_types::{DiagnosticSeverity, TextDocumentItem};
+use crate::{lsp_types::TextDocumentItem, util};
 use bevy_ecs::prelude::*;
-use ropey::Rope;
-use rudof_lib::{
-    shacl_validation::{
-        shacl_engine::native::NativeEngine, shape_validation::Validate as _,
-        validation_report::result::ValidationResult,
-    },
-    ShaclSchemaIR,
+use shacl_validation::{
+    shacl_engine::native::NativeEngine, shape_validation::Validate as _,
+    validation_report::result::ValidationResult,
 };
+use std::{collections::HashMap, fmt::Write as _};
 
+use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
 use shacl_rdf::ShaclParser;
 use sophia_api::quad::Quad as _;
 use srdf::FocusRDF;
@@ -55,66 +51,6 @@ pub fn derive_shapes(
     }
 }
 
-fn group_per_fn_per_path(
-    res: &Vec<ValidationResult>,
-    triples: &Triples,
-    prefixes: &Prefixes,
-) -> HashMap<std::ops::Range<usize>, HashMap<String, Vec<String>>> {
-    let mut per_fn_per_path = HashMap::new();
-    for r in res {
-        let foc = r.focus_node().to_string();
-
-        let mut done = std::collections::HashSet::new();
-        for t in triples.0.iter() {
-            if t.s().as_str() == &foc && !done.contains(t.s()) {
-                done.insert(t.s().to_owned());
-
-                let entry: &mut HashMap<String, Vec<String>> =
-                    per_fn_per_path.entry(t.s().span.clone()).or_default();
-
-                let path = r.path().map(|x| x.to_string()).unwrap_or(String::new());
-                let entry = entry.entry(path).or_default();
-
-                let component = r.component().to_string();
-                let component = prefixes.shorten(&component).unwrap_or(component);
-
-                entry.push(component);
-            }
-        }
-    }
-
-    per_fn_per_path
-}
-
-fn push_diagnostics(
-    rope: &Rope,
-    res: &Vec<ValidationResult>,
-    triples: &Triples,
-    prefixes: &Prefixes,
-    diagnostics: &mut Vec<crate::lsp_types::Diagnostic>,
-) {
-    for (range, per_path) in group_per_fn_per_path(&res, triples, prefixes) {
-        if let Some(range) = range_to_range(&range, &rope) {
-            for (path, components) in per_path {
-                let mut comps = components[0].clone();
-                for c in components.into_iter().skip(1) {
-                    comps += ", ";
-                    comps += &c;
-                }
-
-                diagnostics.push(crate::lsp_types::Diagnostic {
-                    range: range.clone(),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    source: Some(String::from("SWLS")),
-                    message: format!("Path {} violates {}", path, comps),
-                    related_information: None,
-                    ..Default::default()
-                });
-            }
-        }
-    }
-}
-
 /// System evaluates linked shapes
 #[instrument(skip(query, other, client, res))]
 pub fn validate_shapes(
@@ -124,11 +60,12 @@ pub fn validate_shapes(
             &Label,
             &DocumentLinks,
             &Wrapped<TextDocumentItem>,
+            &Prefixes,
             &Triples,
         ),
-        (Changed<Triples>, Without<Dirty>, With<Open>),
+        (Changed<Triples>, With<Open>),
     >,
-    other: Query<(&Label, &ShaclShapes, &Prefixes, Option<&Global>)>,
+    other: Query<(&Label, &ShaclShapes, Option<&Global>, &Triples)>,
     mut client: ResMut<DiagnosticPublisher>,
     res: Res<ServerConfig>,
 ) {
@@ -136,13 +73,16 @@ pub fn validate_shapes(
         return;
     }
 
-    for (rope, label, links, item, triples) in &query {
+    for (rope, label, links, item, prefixes, triples) in &query {
         info!("Validate shapes {}", label.as_str());
-        let other: &Query<(&Label, &ShaclShapes, &Prefixes, Option<&Global>)> = &other;
         let client: &mut DiagnosticPublisher = &mut client;
         let mut diagnostics: Vec<crate::lsp_types::Diagnostic> = Vec::new();
 
-        for (other_label, schema, prefixes, global) in other {
+        let rdf = Rdf::new(triples);
+        let mut validation_results = Vec::new();
+        let mut runner = NativeEngine::new();
+
+        for (other_label, schema, global, shape_triples) in &other {
             if global.is_none()
                 && links
                     .iter()
@@ -160,10 +100,6 @@ pub fn validate_shapes(
             )
             .entered();
 
-            let mut validation_results = Vec::new();
-            let mut runner = NativeEngine::new();
-
-            let rdf = Rdf::new(triples);
             let ir = schema.ir();
             for (_, shape) in ir.iter_with_targets() {
                 let results = match shape.validate(&rdf, &mut runner, None, Some(shape), ir) {
@@ -173,16 +109,112 @@ pub fn validate_shapes(
                         continue;
                     }
                 };
+
+                if !results.is_empty() {
+                    tracing::info!("{}: {:?}", shape.id().to_string(), results);
+                }
+
+                let mut map = HashMap::new();
+
+                for res in &results {
+                    let key = (res.source(), res.path());
+                    let entry: &mut Vec<&ValidationResult> = map.entry(key).or_default();
+                    entry.push(res);
+                }
+
+                for (_, all) in map {
+                    let res = all[0];
+                    let severity = match res.severity() {
+                        shacl_ir::severity::CompiledSeverity::Info => {
+                            Some(crate::lsp_types::DiagnosticSeverity::INFORMATION)
+                        }
+                        shacl_ir::severity::CompiledSeverity::Warning => {
+                            Some(crate::lsp_types::DiagnosticSeverity::WARNING)
+                        }
+                        shacl_ir::severity::CompiledSeverity::Violation => {
+                            Some(crate::lsp_types::DiagnosticSeverity::ERROR)
+                        }
+                        _ => None,
+                    };
+
+                    let term: MyTerm = MyTerm::from(res.focus_node().clone());
+                    let related_subjects = triples.iter().map(|x| x.s()).filter(|&x| x == &term);
+                    let related_objects = triples.iter().map(|x| x.o()).filter(|&x| x == &term);
+                    let Some(span) = related_subjects
+                        .chain(related_objects)
+                        .min_by_key(|x| x.span.start)
+                        .map(|x| x.span.clone())
+                    else {
+                        continue;
+                    };
+                    let Some(range) = util::range_to_range(&span, rope) else {
+                        continue;
+                    };
+
+                    let mut writer = String::new();
+
+                    for res in all {
+                        if let Some(m) = res.message() {
+                            write!(&mut writer, "{}\n", m).unwrap();
+                        } else {
+                            write!(&mut writer, "Component {} ", res.component().to_string())
+                                .unwrap();
+                        }
+                    }
+
+                    if let Some(path) = res.path() {
+                        write!(
+                            &mut writer,
+                            "on path {} ",
+                            PrefixedPath::new(path, prefixes)
+                        )
+                        .unwrap();
+                    }
+
+                    let id = MyTerm::from(shape.id().clone());
+                    if id.ty == Some(sophia_api::term::TermKind::Iri) {
+                        write!(&mut writer, "({})\n", id.value).unwrap();
+                    } else {
+                        write!(&mut writer, "\n",).unwrap();
+                    }
+
+                    if let Some(source) = res.source().cloned() {
+                        let source = MyTerm::from(source);
+
+                        if let Some(message) = shape_triples.object(
+                            [&source],
+                            [
+                                &MyTerm::named_node(
+                                    "http://www.w3.org/2000/01/rdf-schema#comment",
+                                    0..0,
+                                ),
+                                &MyTerm::named_node("http://www.w3.org/ns/shacl#message", 0..0),
+                            ],
+                        ) {
+                            write!(
+                                &mut writer,
+                                "\n{}\n",
+                                message
+                                    .value
+                                    .split_whitespace()
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            )
+                            .unwrap();
+                        }
+                    }
+
+                    diagnostics.push(crate::lsp_types::Diagnostic {
+                        range,
+                        severity,
+                        source: Some(String::from("SWLS")),
+                        message: writer,
+                        ..Default::default()
+                    });
+                }
+
                 validation_results.extend(results);
             }
-
-            push_diagnostics(
-                rope,
-                &validation_results,
-                triples,
-                prefixes,
-                &mut diagnostics,
-            );
         }
 
         let _ = client.publish(&item.0, diagnostics, "shacl_validation");

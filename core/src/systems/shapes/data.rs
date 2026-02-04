@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, cmp::Ordering, fmt::Display, sync::Arc};
 
 use bevy_ecs::prelude::*;
 use iri_s::IriS;
@@ -6,11 +6,12 @@ use prefixmap::{PrefixMap, PrefixMapError};
 
 use sophia_api::term::Term;
 use srdf::{
-    matcher::Matcher, FocusRDF, IriOrBlankNode, NeighsRDF, Object, SLiteral, Subject, TermKind,
+    matcher::Matcher, FocusRDF, IriOrBlankNode, NeighsRDF, Object, RDFError, SHACLPath, SLiteral,
+    Subject, TermKind,
 };
 
 use crate::prelude::*;
-use rudof_lib::ShaclSchemaIR;
+use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
 
 #[derive(Component)]
 pub struct ShaclShapes {
@@ -177,7 +178,7 @@ impl srdf::Term for MyTerm<'static> {
         if let Some(ty) = self.ty {
             map(ty)
         } else {
-            TermKind::Iri
+            TermKind::BlankNode
         }
     }
 
@@ -271,7 +272,7 @@ fn dt_to_slit(value: &str, dt: &str) -> SLiteral {
 impl From<MyTerm<'static>> for srdf::Object {
     fn from(term: MyTerm<'static>) -> Self {
         let MyTerm { ty, value, .. } = &term;
-        match ty.unwrap_or(sophia_api::prelude::TermKind::Iri) {
+        match ty.unwrap_or(sophia_api::prelude::TermKind::BlankNode) {
             sophia_api::term::TermKind::Iri => {
                 srdf::Object::Iri(IriS::new_unchecked(value.as_ref()))
             }
@@ -440,6 +441,99 @@ impl srdf::Rdf for Rdf {
             prefixmap: PrefixMap::new(),
         })
     }
+
+    fn term_as_literal(term: &Self::Term) -> Result<Self::Literal, RDFError> {
+        if term.ty == Some(sophia_api::term::TermKind::Literal) {
+            <Self::Term as TryInto<Self::Literal>>::try_into(term.clone()).map_err(|_| {
+                RDFError::TermAsLiteral {
+                    term: term.to_string(),
+                }
+            })
+        } else {
+            Err(RDFError::TermAsLiteral {
+                term: term.to_string(),
+            })
+        }
+    }
+
+    fn term_as_sliteral(term: &Self::Term) -> Result<SLiteral, RDFError> {
+        let lit = Self::term_as_literal(term)?;
+        let slit = <Self::Literal as TryInto<SLiteral>>::try_into(lit.clone()).map_err(|_| {
+            RDFError::LiteralAsSLiteral {
+                literal: lit.to_string(),
+            }
+        })?;
+        Ok(slit)
+    }
+
+    fn term_as_subject(term: &Self::Term) -> Result<Self::Subject, RDFError> {
+        if !(term.ty == Some(sophia_api::term::TermKind::BlankNode)
+            || term.ty == Some(sophia_api::term::TermKind::Iri))
+        {
+            return Err(RDFError::TermAsSubject {
+                term: term.to_string(),
+            });
+        }
+        <Self::Term as TryInto<Self::Subject>>::try_into(term.clone()).map_err(|_e| {
+            RDFError::TermAsSubject {
+                term: term.to_string(),
+            }
+        })
+    }
+
+    // Cannot use the default implementation because the types are the same between term and iri
+    // Which makes mapping impossible to fail
+    fn term_as_iri(term: &Self::Term) -> Result<Self::IRI, RDFError> {
+        if term.ty == Some(sophia_api::term::TermKind::Iri) {
+            <Self::Term as TryInto<Self::IRI>>::try_into(term.clone()).map_err(|_| {
+                RDFError::TermAsIri {
+                    term: term.to_string(),
+                }
+            })
+        } else {
+            Err(RDFError::TermAsIri {
+                term: term.to_string(),
+            })
+        }
+    }
+
+    fn term_as_iris(term: &Self::Term) -> Result<IriS, RDFError> {
+        if term.ty != Some(sophia_api::term::TermKind::Iri) {
+            return Err(RDFError::TermAsIriS {
+                term: term.to_string(),
+            });
+        }
+
+        let iri = <Self::Term as TryInto<Self::IRI>>::try_into(term.clone()).map_err(|_| {
+            RDFError::TermAsIriS {
+                term: term.to_string(),
+            }
+        })?;
+        let iri_s: IriS = iri.into();
+        Ok(iri_s)
+    }
+
+    fn term_as_bnode(term: &Self::Term) -> Result<Self::BNode, RDFError> {
+        if term.ty != Some(sophia_api::term::TermKind::BlankNode) {
+            return Err(RDFError::TermAsBNode {
+                term: term.to_string(),
+            });
+        }
+        <Self::Term as TryInto<Self::BNode>>::try_into(term.clone()).map_err(|_| {
+            RDFError::TermAsBNode {
+                term: term.to_string(),
+            }
+        })
+    }
+
+    fn compare(&self, term1: &Self::Term, term2: &Self::Term) -> Result<Ordering, RDFError> {
+        term1
+            .partial_cmp(&term2)
+            .ok_or_else(|| RDFError::ComparisonError {
+                term1: term1.to_string(),
+                term2: term2.to_string(),
+            })
+    }
 }
 
 fn map(term: sophia_api::term::TermKind) -> srdf::TermKind {
@@ -448,7 +542,7 @@ fn map(term: sophia_api::term::TermKind) -> srdf::TermKind {
         sophia_api::term::TermKind::Literal => TermKind::Literal,
         sophia_api::term::TermKind::BlankNode => TermKind::BlankNode,
         sophia_api::term::TermKind::Triple => TermKind::Triple,
-        sophia_api::term::TermKind::Variable => TermKind::Iri,
+        sophia_api::term::TermKind::Variable => TermKind::BlankNode,
     }
 }
 
@@ -457,12 +551,72 @@ impl Subject for MyTerm<'_> {
         if let Some(ty) = self.ty {
             map(ty)
         } else {
-            TermKind::Iri
+            TermKind::BlankNode
         }
     }
 }
 impl Matcher<MyTerm<'static>> for MyTerm<'static> {
     fn value(&self) -> Option<MyTerm<'static>> {
         Some(self.clone())
+    }
+}
+
+pub struct PrefixedPath<'a> {
+    pub path: &'a SHACLPath,
+    pub prefixes: &'a Prefixes,
+}
+impl<'a> PrefixedPath<'a> {
+    pub fn new(path: &'a SHACLPath, prefixes: &'a Prefixes) -> Self {
+        Self { path, prefixes }
+    }
+}
+
+impl<'a> Display for PrefixedPath<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.path {
+            SHACLPath::Predicate { pred } => {
+                if let Some(shorten) = self.prefixes.shorten(pred.as_str()) {
+                    write!(f, "{shorten}")
+                } else {
+                    write!(f, "{pred}")
+                }
+            }
+            SHACLPath::Alternative { paths } => {
+                write!(f, "(")?;
+                let mut first = true;
+                for p in paths {
+                    if !first {
+                        write!(f, " | ")?;
+                    }
+                    write!(f, "{}", Self::new(p, self.prefixes))?;
+                    first = false;
+                }
+                write!(f, ")")
+            }
+            SHACLPath::Sequence { paths } => {
+                write!(f, "(")?;
+                let mut first = true;
+                for p in paths {
+                    if !first {
+                        write!(f, " / ")?;
+                    }
+                    write!(f, "{}", Self::new(p, self.prefixes))?;
+                    first = false;
+                }
+                write!(f, ")")
+            }
+            SHACLPath::Inverse { path } => {
+                write!(f, "^({})", Self::new(path, self.prefixes))
+            }
+            SHACLPath::ZeroOrMore { path } => {
+                write!(f, "({})*", Self::new(path, self.prefixes))
+            }
+            SHACLPath::OneOrMore { path } => {
+                write!(f, "({})+", Self::new(path, self.prefixes))
+            }
+            SHACLPath::ZeroOrOne { path } => {
+                write!(f, "({})?", Self::new(path, self.prefixes))
+            }
+        }
     }
 }

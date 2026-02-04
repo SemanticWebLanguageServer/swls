@@ -522,3 +522,11 @@ impl<'a> std::ops::Deref for Triples2<'a> {
         &self.triples
     }
 }
+
+impl<'a> PartialEq for MyQuad<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.subject == other.subject
+            && self.predicate == other.predicate
+            && self.object == other.object
+    }
+}
