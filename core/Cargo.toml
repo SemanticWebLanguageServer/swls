@@ -32,12 +32,13 @@ lov = { path = "../lov/" }
 
 oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=false }
 
-shacl_rdf = {path = "../../rudof/shacl_rdf/"}
-shacl_ir = {path = "../../rudof/shacl_ir/"}
-srdf = {path = "../../rudof/srdf/"}
-shacl_ast = {path = "../../rudof/shacl_ast/"}
-prefixmap = {path = "../../rudof/prefixmap/"}
-iri_s = {path = "../../rudof/iri_s/"}
-shacl_validation = {path = "../../rudof/shacl_validation/"}
+shacl_rdf = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+shacl_ir = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+srdf = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+shacl_ast = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+prefixmap = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+iri_s = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+shacl_validation = { git = "https://github.com/ajuvercr/rudof", branch = "feat/wasm-2" }
+
 oxrdf = "0.3.2"
 
