@@ -42,11 +42,3 @@ members = [
 ]
 resolver = "2"
 
-[patch."https://github.com/ajuvercr/rudof"]
-shacl_rdf = { path = "../../rudof/shacl_rdf" }
-shacl_ir = { path = "../../rudof/shacl_ir" }
-srdf = { path = "../../rudof/srdf" }
-shacl_ast = { path = "../../rudof/shacl_ast" }
-prefixmap = { path = "../../rudof/prefixmap" }
-iri_s = { path = "../../rudof/iri_s" }
-shacl_validation = { path = "../../rudof/shacl_validation" }
