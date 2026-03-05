@@ -1,7 +1,8 @@
 use std::{collections::HashSet, ops::Deref};
 
-use crate::lsp_types::{
-    CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit,
+use crate::{
+    lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit},
+    systems::PrefixEntry,
 };
 use bevy_ecs::prelude::*;
 use lov::LocalPrefix;
@@ -91,6 +92,7 @@ pub fn prefix_completion_helper<'a>(
     completions: &mut Vec<SimpleCompletion>,
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
     lovs: impl Iterator<Item = &'a LocalPrefix>,
+    prefix_cc: impl Iterator<Item = &'a PrefixEntry>,
     config: &LocalConfig,
     // known: &KnownPrefixes,
 ) {
@@ -104,21 +106,19 @@ pub fn prefix_completion_helper<'a>(
         defined.insert(p.url.as_str());
     }
 
+    let mut suggested = HashSet::new();
     completions.extend(
         lovs.filter(|lov| lov.name.starts_with(&word.text))
-            .filter(|lov| !defined.contains(lov.location.as_ref()))
-            .filter(|lov| {
-                !config
-                    .prefix_disabled
-                    .iter()
-                    .any(|x| lov.name.starts_with(x.as_str()))
-            })
+            .filter(|lov| !defined.contains(lov.namespace.as_ref()))
             .flat_map(|lov| {
+                if suggested.contains(&lov.namespace) {
+                    return None;
+                }
                 let new_text = format!("{}:", lov.name);
                 // let sort_text = format!("{}", lov.rank);
                 let filter_text = new_text.clone();
                 if new_text != word.text {
-                    let extra_edit = extra_edits(&lov.name, &lov.location)?;
+                    let extra_edit = extra_edits(&lov.name, &lov.namespace)?;
                     let completion = SimpleCompletion::new(
                         CompletionItemKind::MODULE,
                         format!("{}", lov.name),
@@ -128,7 +128,7 @@ pub fn prefix_completion_helper<'a>(
                         },
                     )
                     .label_description(lov.title.as_ref())
-                    .documentation(lov.location.as_ref())
+                    .documentation(lov.namespace.as_ref())
                     // .sort_text(sort_text)
                     .filter_text(filter_text);
 
@@ -137,6 +137,50 @@ pub fn prefix_completion_helper<'a>(
                         .fold(completion, |completion: SimpleCompletion, edit| {
                             completion.text_edit(edit)
                         });
+                    suggested.insert(&lov.namespace);
+                    Some(completion)
+                } else {
+                    None
+                }
+            }),
+    );
+    completions.extend(
+        prefix_cc
+            .filter(|pref| pref.name.starts_with(&word.text))
+            .filter(|pref| !defined.contains(pref.namespace.as_ref()))
+            .filter(|lov| {
+                !config
+                    .prefix_disabled
+                    .iter()
+                    .any(|x| lov.name.starts_with(x.as_str()))
+            })
+            .flat_map(|lov| {
+                if suggested.contains(&lov.namespace) {
+                    return None;
+                }
+                let new_text = format!("{}:", lov.name);
+                // let sort_text = format!("{}", lov.rank);
+                let filter_text = new_text.clone();
+                if new_text != word.text {
+                    let extra_edit = extra_edits(&lov.name, &lov.namespace)?;
+                    let completion = SimpleCompletion::new(
+                        CompletionItemKind::MODULE,
+                        format!("{}", lov.name),
+                        crate::lsp_types::TextEdit {
+                            new_text,
+                            range: word.range.clone(),
+                        },
+                    )
+                    .documentation(lov.namespace.as_ref())
+                    // .sort_text(sort_text)
+                    .filter_text(filter_text);
+
+                    let completion = extra_edit
+                        .into_iter()
+                        .fold(completion, |completion: SimpleCompletion, edit| {
+                            completion.text_edit(edit)
+                        });
+                    suggested.insert(&lov.namespace);
                     Some(completion)
                 } else {
                     None

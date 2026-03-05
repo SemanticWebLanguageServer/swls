@@ -2,6 +2,7 @@ use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use lov::LocalPrefix;
 use lsp_core::lsp_types::CompletionItemKind;
+use lsp_core::systems::PrefixEntry;
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use tracing::debug;
 
@@ -15,6 +16,7 @@ pub fn turtle_lov_undefined_prefix_completion(
         &mut CompletionRequest,
     )>,
     lovs: Query<&LocalPrefix>,
+    prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
     for (word, turtle, prefixes, mut req) in &mut query {
@@ -36,6 +38,7 @@ pub fn turtle_lov_undefined_prefix_completion(
                 }])
             },
             lovs.iter(),
+            prefix_cc.iter(),
             &config.config.local,
         );
     }

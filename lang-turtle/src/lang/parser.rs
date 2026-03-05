@@ -232,15 +232,20 @@ fn term<'a, const C: usize, T: 'a + Clone + Parser<PToken, BlankNode, Error = Si
 ) -> impl Parser<PToken, Term, Error = Simple<PToken>> + Clone + use<'a, C, T> {
     let ctx = ctx;
     select! {
-        PToken(_, idx) => idx
+        PToken(t, idx) => (t, idx)
     }
-    .try_map(move |idx, span: S| {
+    .try_map(move |(t, idx), span: S| {
         let mut err: Option<Simple<PToken>> = None;
         for kind in not {
             if ctx.was(idx, kind) {
                 let new_error = Simple::custom(
                     span.clone(),
-                    format!("Didn't expect {} here, found {:?}", kind, ctx.find_was(idx)),
+                    format!(
+                        "Didn't expect {} here, found {:?} (token {:?})",
+                        kind,
+                        ctx.find_was(idx),
+                        t
+                    ),
                 );
                 info!("No term emitted {:?}", new_error);
                 if let Some(old) = err.take() {
@@ -258,7 +263,7 @@ fn term<'a, const C: usize, T: 'a + Clone + Parser<PToken, BlankNode, Error = Si
         }
     })
     .rewind()
-    // .recover_with(skip_parser(empty().map(|_| Term::Invalid)))
+    // .recover_with(skip_parser(any().map(|_| ())))
     .ignore_then(recursive(|term| {
         let collection = term
             .map_with_span(spanned)
@@ -614,7 +619,7 @@ pub mod turtle_tests {
         turtle: &str,
         parser: P,
     ) -> (Option<T>, Vec<Simple<PToken>>) {
-        let tokens = parse_tokens_str_safe(turtle).unwrap();
+        let tokens = parse_tokens_str(turtle).0;
         let end = turtle.len()..turtle.len();
         let stream = Stream::from_iter(
             end,
@@ -1070,5 +1075,89 @@ foaf: foaf:name "Arthur".
                 &txt[t.span().clone()]
             )
         }
+    }
+
+    #[test]
+    fn context_works_in_blanknodes_2() {
+        let mut context = Context::new();
+        let ctx = context.ctx();
+        // I don't see what this test does :(
+        let txt = r#"
+@prefix rml: <http://w3id.org/rml/>.
+[ ] a rml:Field;
+    rml.
+"#;
+        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+
+        let tokens = parse_tokens_str(txt).0;
+
+        let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
+        output.set_context(&mut context);
+
+        let simple_tokens = output.get_simple_triples();
+        match &simple_tokens {
+            Ok(x) => {
+                for t in &x.triples {
+                    println!(
+                        "  {} {} {} . {:?}",
+                        t.subject.as_str(),
+                        t.predicate.as_str(),
+                        t.object.as_str(),
+                        t.span
+                    );
+                }
+            }
+            Err(e) => {
+                println!("e {:?}", e);
+            }
+        }
+        // assert!(simple_tokens.is_ok());
+        // assert_eq!(simple_tokens.unwrap().triples.len(), 2);
+
+        context.setup_current_to_prev(
+            TokenIdx { tokens: &tokens },
+            tokens.len(),
+            TokenIdx { tokens: &tokens },
+            tokens.len(),
+        );
+
+        let txt = r#"
+@prefix rml: <http://w3id.org/rml/>.
+[ ] a rml:Field;
+    rml:
+    "#;
+        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+
+        let tokens_2 = parse_tokens_str(txt).0;
+        context.setup_current_to_prev(
+            TokenIdx { tokens: &tokens_2 },
+            tokens_2.len(),
+            TokenIdx { tokens: &tokens },
+            tokens.len(),
+        );
+
+        let output = parse_it(txt, turtle(&url, context.ctx()))
+            .0
+            .expect("simple");
+
+        let simple_tokens = output.get_simple_triples();
+        match &simple_tokens {
+            Ok(x) => {
+                for t in &x.triples {
+                    println!(
+                        "  {} {} {} . {:?}",
+                        t.subject.as_str(),
+                        t.predicate.as_str(),
+                        t.object.as_str(),
+                        t.span
+                    );
+                }
+            }
+            Err(e) => {
+                println!("e {:?}", e);
+            }
+        }
+        assert!(simple_tokens.is_ok());
+        // assert_eq!(simple_tokens.unwrap().triples.len(), 3);
     }
 }

@@ -35,6 +35,12 @@ struct Vocab {
     versions: Vec<Version>,
 }
 
+#[derive(Component, Debug)]
+pub struct PrefixEntry {
+    pub namespace: Cow<'static, str>,
+    pub name: Cow<'static, str>,
+    pub rank: usize,
+}
 pub fn populate_known_ontologies(mut commands: Commands) {
     let mut actual_local = HashSet::new();
     for lov in LOCAL_PREFIXES.iter() {
@@ -42,7 +48,7 @@ pub fn populate_known_ontologies(mut commands: Commands) {
         commands.spawn(lov.clone());
     }
 
-    for (i, (prefix, url)) in PREFIX_CC
+    for (i, (name, url)) in PREFIX_CC
         .split('\n')
         .flat_map(|x| {
             let mut s = x.split(' ');
@@ -52,19 +58,18 @@ pub fn populate_known_ontologies(mut commands: Commands) {
         })
         .enumerate()
     {
-        let pref: Cow<'static, str> = prefix.into();
-        if actual_local.contains(&pref) {
+        let name: Cow<'static, str> = name.into();
+        if actual_local.contains(&name) {
             continue;
         }
-        let lov = LocalPrefix {
-            location: url.into(),
-            content: Cow::Borrowed(""),
-            name: pref.clone(),
-            title: pref,
-            rank: i + 2,
+        let namespace: Cow<'static, str> = url.into();
+        let lov = PrefixEntry {
+            namespace,
+            name: name.clone(),
+            rank: i,
         };
 
-        commands.spawn(lov.clone());
+        commands.spawn(lov);
     }
 }
 
@@ -164,33 +169,41 @@ pub fn fetch_lov_properties<C: Client + Resource>(
         for prefix in prefs.0.iter() {
             if !prefixes.contains(prefix.url.as_str()) {
                 prefixes.insert(prefix.url.to_string());
-                if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                    let mut found = false;
-                    for (_e, local) in ontologies
-                        .iter()
-                        .filter(|(_, x)| x.location == prefix.url.as_str())
-                    {
-                        found = true;
-                        debug!(
-                            "Local lov for Prefix {} {} is entry {} {}",
-                            prefix.prefix,
-                            prefix.url.as_str(),
-                            local.name,
-                            local.title
-                        );
+                let mut found = false;
+                for (_e, local) in ontologies
+                    .iter()
+                    .filter(|(_, x)| x.namespace == prefix.url.as_str())
+                {
+                    debug!(
+                        "Local lov for Prefix {} {} is entry {} {} {} {}",
+                        prefix.prefix,
+                        prefix.url.as_str(),
+                        local.name,
+                        local.namespace,
+                        local.location,
+                        local.content.is_empty()
+                    );
 
-                        let c = client.as_ref().clone();
-                        let sender = sender.0.clone();
-                        client.spawn(local_lov::<C>(
-                            local.clone(),
-                            url.clone(),
-                            sender,
-                            fs.clone(),
-                            c,
-                        ));
-                    }
+                    let label = match crate::lsp_types::Url::parse(&local.location) {
+                        Ok(label) => label,
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to parse defined prefix location {} {:?}",
+                                local.location,
+                                e
+                            );
+                            continue;
+                        }
+                    };
 
-                    if !found {
+                    found = true;
+                    let c = client.as_ref().clone();
+                    let sender = sender.0.clone();
+                    client.spawn(local_lov::<C>(local.clone(), label, sender, fs.clone(), c));
+                }
+
+                if !found {
+                    if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
                         debug!(
                             "Remote lov for prefix {} {}",
                             prefix.prefix,
@@ -298,9 +311,14 @@ async fn local_lov<C: Client + Resource>(
     fs: Fs,
     c: C,
 ) {
-    info!("Using local {}", local.name);
+    info!(
+        "Using local {} {} Label {}",
+        local.name,
+        local.namespace,
+        label.as_str()
+    );
     let content = if local.content.is_empty() {
-        info!("Fetching from LOV");
+        info!("Fetching from LOV {}", local.name);
         // This local is added by prefix, not by an actual local lov,
         if let Some(body) = fetch_lov_body(&local.name, c).await {
             Cow::Owned(body)
@@ -313,7 +331,7 @@ async fn local_lov<C: Client + Resource>(
 
     let from = FromPrefix(Prefix {
         prefix: local.name.to_string(),
-        url: Url::parse(&local.location).unwrap(),
+        url: Url::parse(&local.namespace).unwrap(),
     });
 
     let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), fs);

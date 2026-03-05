@@ -43,6 +43,7 @@ pub fn parse_turtle_system(
         let span = tracing::info_span!("parse_turtle", label = label.to_string());
         let _enter = span.enter();
 
+        let tokens = tokens.iter().filter(|x| !x.is_invalid()).cloned().collect();
         let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
         context.setup_current_to_prev(
             TokenIdx { tokens: &tokens },
@@ -55,10 +56,10 @@ pub fn parse_turtle_system(
         // First parse it without context
         // This assures that if the model is correct, the parser will parse it correctly
         let empty = Context::new();
-        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), empty.ctx());
+        let (turtle, es) = parse_turtle(&label.0, tokens.clone(), source.0.len(), empty.ctx());
         // If that didn't work, retry with the context
         let (turtle, es) = es.is_empty().then_some((turtle, es)).unwrap_or_else(|| {
-            parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx())
+            parse_turtle(&label.0, tokens.clone(), source.0.len(), context.ctx())
         });
 
         let es: Vec<_> = es.into_iter().map(|e| e.map(|PToken(t, _)| t)).collect();
@@ -74,7 +75,7 @@ pub fn parse_turtle_system(
             }
         }
 
-        *old_tokens = tokens.0.clone();
+        *old_tokens = tokens;
         context.clear();
         turtle.set_context(context);
 

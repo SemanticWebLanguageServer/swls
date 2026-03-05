@@ -425,7 +425,7 @@ fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String, Def
 
 pub type DefinedProperties = HashMap<oxigraph::model::NamedNode, DefinedProperty>;
 
-#[instrument(skip(query, hierarchy, resource))]
+#[instrument(skip(query, hierarchy, resource, config))]
 pub fn complete_properties(
     mut query: Query<(
         &TokenComponent,
@@ -437,10 +437,24 @@ pub fn complete_properties(
     )>,
     hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
+    config: Res<ServerConfig>,
 ) {
     for (token, triple, prefixes, _this_label, types, mut request) in &mut query {
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
+
+            if let Some(tts) = tts.as_ref() {
+                tracing::info!("Types for {}", triple.triple.subject.value);
+                for t in *tts {
+                    tracing::info!(
+                        "{} {}",
+                        triple.triple.subject.value,
+                        hierarchy.type_name(*t)
+                    );
+                }
+            } else {
+                tracing::info!("No types for {}", triple.triple.subject.value);
+            }
 
             let subclasses: HashSet<_> = tts
                 .iter()
@@ -449,17 +463,30 @@ pub fn complete_properties(
                 .collect();
 
             for property in resource.properties.values() {
+                let correct_domain = property
+                    .domains
+                    .iter()
+                    .any(|domain| subclasses.contains(domain.as_str()));
+
+                if !subclasses.is_empty()
+                    && config
+                        .config
+                        .local
+                        .completion
+                        .correct_domain_required(&property.term.value)
+                    && !correct_domain
+                {
+                    continue;
+                }
+
+                // Check if correct_domain is required according to my config
+
                 let to_beat = prefixes
                     .shorten(&property.term.value)
                     .map(|x| Cow::Owned(x))
                     .unwrap_or(property.term.value.clone());
 
                 if to_beat.starts_with(&token.text) {
-                    let correct_domain = property
-                        .domains
-                        .iter()
-                        .any(|domain| subclasses.contains(domain.as_str()));
-
                     let mut completion = SimpleCompletion::new(
                         CompletionItemKind::ENUM_MEMBER,
                         format!("{}", to_beat),

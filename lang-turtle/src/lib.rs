@@ -334,9 +334,9 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
             };
 
             let mut queue = CommandQueue::default();
-            for (content, url) in files {
+            for (content, location) in files {
                 let Some((prefix, url)) =
-                    prefix_from_source(&url, &content).or_else(|| prefix_from_url(&url))
+                    prefix_from_source(&location, &content).or_else(|| prefix_from_url(&location))
                 else {
                     continue;
                 };
@@ -348,7 +348,8 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                 );
 
                 let lov = LocalPrefix {
-                    location: Cow::Owned(url.to_string()),
+                    location: Cow::Owned(location.to_string()),
+                    namespace: Cow::Owned(url.to_string()),
                     content: Cow::Owned(content),
                     name: prefix.clone(),
                     title: prefix,

@@ -110,10 +110,6 @@ pub fn validate_shapes(
                     }
                 };
 
-                if !results.is_empty() {
-                    tracing::info!("{}: {:?}", shape.id().to_string(), results);
-                }
-
                 let mut map = HashMap::new();
 
                 for res in &results {

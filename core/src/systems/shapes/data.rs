@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Display, sync::Arc};
 
 use bevy_ecs::prelude::*;
 use iri_s::IriS;
-use prefixmap::{PrefixMap, PrefixMapError};
+use prefixmap::{error::PrefixMapError, PrefixMap};
 
 use sophia_api::term::Term;
 use srdf::{

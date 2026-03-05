@@ -10,8 +10,8 @@ use lang_turtle::lang::{
     model::TriplesBuilder,
 };
 use lov::LocalPrefix;
-use lsp_core::lsp_types::CompletionItemKind;
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use lsp_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
 use sophia_iri::resolve::BaseIri;
 
 use crate::{
@@ -173,6 +173,7 @@ pub fn sparql_lov_undefined_prefix_completion(
         &mut CompletionRequest,
     )>,
     lovs: Query<&LocalPrefix>,
+    prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
     for (word, turtle, prefixes, mut req) in &mut query {
@@ -194,6 +195,7 @@ pub fn sparql_lov_undefined_prefix_completion(
                 }])
             },
             lovs.iter(),
+            prefix_cc.iter(),
             &config.config.local,
         );
     }

@@ -60,10 +60,15 @@ pub fn infer_types(
     for (triples, mut types) in &mut query {
         types.clear();
 
+        for t in triples.0.iter() {
+            tracing::info!("Triple {} {} {} .", t.s(), t.p(), t.o());
+        }
+
         for t in triples
             .quads_matching(Any, [rdf::type_], Any, Any)
             .flatten()
         {
+            tracing::info!("Type tryple {} {} {} .", t.s(), t.p(), t.o());
             if let Some(id) = hierarchy.get_id_ref(t.o().as_str()) {
                 let vec = types.0.entry(t.s().value.clone()).or_default();
                 vec.insert(id);
@@ -113,6 +118,13 @@ pub fn infer_types(
                         }
                     }
                 }
+            }
+        }
+
+        for (subject, types) in types.0.iter() {
+            for ty in types {
+                let ty_str = hierarchy.type_name(*ty);
+                tracing::debug!("{} a {}", subject, ty_str);
             }
         }
 
