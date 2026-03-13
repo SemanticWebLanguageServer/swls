@@ -26,7 +26,7 @@ use lsp_core::{
 pub mod ecs;
 pub mod lang;
 
-use crate::ecs::{setup_completion, setup_formatting, setup_parsing};
+use crate::ecs::{setup_code_action, setup_completion, setup_formatting, setup_parsing};
 
 #[derive(Component)]
 pub struct TurtleLang;
@@ -82,6 +82,7 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     setup_parsing(world);
     setup_completion(world);
     setup_formatting(world);
+    setup_code_action(world);
 }
 
 impl Lang for TurtleLang {

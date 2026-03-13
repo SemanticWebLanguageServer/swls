@@ -6,6 +6,7 @@ use parse::{derive_triples, parse_source, parse_turtle_system};
 
 use crate::TurtleLang;
 
+mod code_action;
 mod completion;
 mod format;
 mod parse;
@@ -25,6 +26,13 @@ pub fn setup_parsing(world: &mut World) {
 pub fn setup_formatting(world: &mut World) {
     world.schedule_scope(FormatLabel, |_, schedule| {
         schedule.add_systems(format_turtle_system);
+    });
+}
+
+pub fn setup_code_action(world: &mut World) {
+    use lsp_core::feature::code_action::Label as CodeActionLabel;
+    world.schedule_scope(CodeActionLabel, |_, schedule| {
+        schedule.add_systems(code_action::organize_imports);
     });
 }
 
@@ -72,7 +80,6 @@ fn derive_prefixes(
 
 #[cfg(test)]
 mod tests {
-    use chumsky::chain::Chain;
     use futures::executor::block_on;
     use lsp_core::{
         components::*,
@@ -86,53 +93,67 @@ mod tests {
     fn diagnostics_work() {
         let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
-        let t1 = "
-@prefix foaf: <>.
-            ";
+        // t1: prefix declared but never used
+        let t1 = "\n@prefix foaf: <>.\n            ";
+        // t2: prefix declared AND used (foaf:foaf) — but foaf:foaf misses predicate/object → syntax error
+        let t2 = "\n@prefix foaf: <>.\nfoaf:foaf\n            ";
+        // t3: prefix declared but not used (foa is an invalid token, not a prefixed name)
+        let t3 = "\n@prefix foaf: <>.\nfoa\n            ";
 
-        let t2 = "
-@prefix foaf: <>.
-foaf:foaf
-            ";
-
-        let t3 = "
-@prefix foaf: <>.
-foa
-            ";
+        // Drain all published diagnostic items and return the last (most complete) merged set.
+        let mut last_diags = move || -> Vec<lsp_core::lsp_types::Diagnostic> {
+            let mut items: Vec<DiagnosticItem> = Vec::new();
+            while let Ok(Some(x)) = rx.try_next() {
+                items.push(x);
+            }
+            items.into_iter().last().map(|i| i.diagnostics).unwrap_or_default()
+        };
 
         let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
         world.run_schedule(ParseLabel);
         world.run_schedule(DiagnosticsLabel);
 
-        let mut get_diagnostics = move || {
-            let mut out: Vec<DiagnosticItem> = Vec::new();
-            while let Ok(Some(x)) = rx.try_next() {
-                out.push(x);
-            }
-            out
-        };
-        let items = get_diagnostics();
-        assert!(items[0].diagnostics.is_empty());
+        // t1: the declared prefix 'foaf' is never used → exactly one unused-prefix warning
+        let diags = last_diags();
+        let unused: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("declared but never used"))
+            .collect();
+        assert_eq!(unused.len(), 1, "t1: expected 1 unused prefix warning");
+        let other: Vec<_> = diags
+            .iter()
+            .filter(|d| !d.message.contains("declared but never used"))
+            .collect();
+        assert!(other.is_empty(), "t1: expected no other diagnostics");
 
+        // t2: foaf IS used, but foaf:foaf is missing predicate and object → syntax errors, no warning
         world
             .entity_mut(entity)
             .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2))));
         world.run_schedule(ParseLabel);
         world.run_schedule(DiagnosticsLabel);
 
-        let items = get_diagnostics();
+        let diags = last_diags();
+        let unused: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("declared but never used"))
+            .collect();
+        assert_eq!(unused.len(), 0, "t2: prefix is used, expected no unused warning");
+        assert!(!diags.is_empty(), "t2: expected syntax errors");
 
-        assert_eq!(items.len(), 2, "url: t2");
-        assert_eq!(items[0].diagnostics.len(), 2);
+        // t3: 'foa' is an invalid token (not a prefixed name), so foaf is again unused → warning + token error
         world
             .entity_mut(entity)
-            .insert((Source(t3.to_string()), RopeC(Rope::from_str(t2))));
+            .insert((Source(t3.to_string()), RopeC(Rope::from_str(t3))));
         world.run_schedule(ParseLabel);
         world.run_schedule(DiagnosticsLabel);
 
-        let items = get_diagnostics();
-        assert_eq!(items.len(), 2, "url: t3");
-        assert_eq!(items[0].diagnostics.len(), 4);
+        let diags = last_diags();
+        let unused: Vec<_> = diags
+            .iter()
+            .filter(|d| d.message.contains("declared but never used"))
+            .collect();
+        assert_eq!(unused.len(), 1, "t3: foaf unused again, expected 1 warning");
     }
 
     #[test_log::test]

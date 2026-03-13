@@ -1,4 +1,7 @@
-use std::{collections::HashSet, ops::Deref};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Deref,
+};
 
 use crate::{
     lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit},
@@ -6,6 +9,7 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 use lov::LocalPrefix;
+use tower_lsp::lsp_types::{CodeDescription, DiagnosticTag};
 use tracing::{debug, instrument};
 
 use crate::prelude::*;
@@ -192,7 +196,7 @@ pub fn prefix_completion_helper<'a>(
 pub fn undefined_prefix(
     query: Query<
         (&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC),
-        Or<(Changed<Prefixes>, Changed<Tokens>)>,
+        (Or<(Changed<Prefixes>, Changed<Tokens>)>, With<Open>),
     >,
     mut client: ResMut<DiagnosticPublisher>,
 ) {
@@ -220,6 +224,70 @@ pub fn undefined_prefix(
             }
         }
         let _ = client.publish(&item.0, diagnostics, "undefined_prefix");
+    }
+}
+
+/// Diagnostic system that warns about prefix declarations that are never used.
+///
+/// For example, `@prefix foaf: <http://xmlns.com/foaf/0.1/> .` without any `foaf:` usage
+/// in the document produces a `Warning` diagnostic.
+pub fn unused_prefix(
+    query: Query<
+        (&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC),
+        (Or<(Changed<Prefixes>, Changed<Tokens>)>, With<Open>),
+    >,
+    mut client: ResMut<DiagnosticPublisher>,
+) {
+    for (tokens, prefixes, item, rope) in &query {
+        let mut diagnostics: Vec<Diagnostic> = Vec::new();
+
+        // Collect which prefixes are used (non-declaration PNameLN tokens)
+        // and where each prefix is declared (the PNameLN span right after @prefix/PREFIX).
+        let mut used_prefixes: HashSet<&str> = HashSet::new();
+        let mut declaration_spans: HashMap<&str, std::ops::Range<usize>> = HashMap::new();
+
+        for (i, t) in tokens.0.iter().enumerate() {
+            if let Token::PNameLN(Some(pref), _) = t.value() {
+                // A prefix name token that is immediately preceded (ignoring comments)
+                // by a PrefixTag or SparqlPrefix is a declaration, not a use.
+                let is_declaration = tokens.0[..i]
+                    .iter()
+                    .rev()
+                    .find(|tok| !matches!(tok.value(), Token::Comment(_)))
+                    .map(|tok| matches!(tok.value(), Token::PrefixTag | Token::SparqlPrefix))
+                    .unwrap_or(false);
+
+                if is_declaration {
+                    declaration_spans.insert(pref.as_str(), t.span().clone());
+                } else {
+                    used_prefixes.insert(pref.as_str());
+                }
+            }
+        }
+
+        // Any declared prefix that was not used gets a warning
+        for prefix in prefixes.0.iter() {
+            if !used_prefixes.contains(prefix.prefix.as_str()) {
+                if let Some(span) = declaration_spans.get(prefix.prefix.as_str()) {
+                    if let Some(range) = range_to_range(span, rope) {
+                        diagnostics.push(Diagnostic {
+                            range,
+                            tags: Some(vec![DiagnosticTag::UNNECESSARY]),
+                            severity: Some(DiagnosticSeverity::INFORMATION),
+                            source: Some(String::from("SWLS")),
+                            message: format!(
+                                "Prefix '{}' is declared but never used",
+                                prefix.prefix
+                            ),
+                            related_information: None,
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+
+        let _ = client.publish(&item.0, diagnostics, "unused_prefix");
     }
 }
 

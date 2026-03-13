@@ -17,7 +17,10 @@ use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
 use crate::{
-    feature::goto_definition::GotoDefinitionRequest,
+    feature::{
+        code_action::{CodeActionRequest, Label as CodeActionLabel},
+        goto_definition::GotoDefinitionRequest,
+    },
     lsp_types::{request::SemanticTokensRefresh, *},
     prelude::*,
     Startup,
@@ -146,7 +149,7 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                code_action_provider: None,
+                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
                     trigger_characters: Some(vec![String::from(":")]),
@@ -621,6 +624,36 @@ impl LanguageServer for Backend {
             .map(|x| GotoTypeDefinitionResponse::Array(x.0));
 
         Ok(arr)
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    async fn code_action(
+        &self,
+        params: CodeActionParams,
+    ) -> Result<Option<CodeActionResponse>> {
+        let uri = params.text_document.uri.as_str();
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(uri) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let request = self
+            .run_schedule::<CodeActionRequest>(
+                entity,
+                CodeActionLabel,
+                CodeActionRequest::default(),
+            )
+            .await;
+
+        Ok(request.map(|r| {
+            r.0.into_iter()
+                .map(CodeActionOrCommand::CodeAction)
+                .collect()
+        }))
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]

@@ -25,3 +25,5 @@ pub mod goto_definition;
 pub use goto_definition::Label as GotoDefinitionLabel;
 pub mod goto_type;
 pub use goto_type::Label as GotoTypeLabel;
+pub mod code_action;
+pub use code_action::Label as CodeActionLabel;

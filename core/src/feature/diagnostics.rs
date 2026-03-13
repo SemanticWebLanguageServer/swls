@@ -4,7 +4,7 @@ use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use chumsky::prelude::Simple;
 use futures::channel::mpsc;
 /// [`ScheduleLabel`] related to the PrepareRename schedule
-pub use systems::prefix::undefined_prefix;
+pub use systems::prefix::{undefined_prefix, unused_prefix};
 
 use crate::{
     lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url},
@@ -15,7 +15,7 @@ pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
     let mut diagnostics = Schedule::new(Label);
-    diagnostics.add_systems((undefined_prefix,));
+    diagnostics.add_systems((undefined_prefix, unused_prefix));
     world.add_schedule(diagnostics);
 }
 
