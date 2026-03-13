@@ -244,7 +244,7 @@ foaf:me foaf:friend <#me>.
         }
         assert_eq!(
             completions.len(),
-            4 /* prefix.cc */ + 14 /*completions */ + TurtleHelper.keyword().len()
+            4 /* prefix.cc */ + TurtleHelper.keyword().len()
         );
     }
 
