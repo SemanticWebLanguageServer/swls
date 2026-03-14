@@ -6,7 +6,7 @@ use bevy_ecs::{
 
 use crate::systems::infer_current_type;
 pub use crate::{
-    systems::{hover_class, hover_property, hover_types, infer_types},
+    systems::infer_types,
     util::{token::get_current_token, triple::get_current_triple},
 };
 
@@ -32,35 +32,4 @@ pub fn setup_schedule(world: &mut World) {
     world.add_schedule(references);
 }
 
-// mod system {
-//     use std::{borrow::Cow, collections::HashSet};
-//
-//     use bevy_ecs::prelude::*;
-//     use goto_type::GotoTypeRequest;
-//
-//     use crate::{prelude::*, systems::DefinedClasses, util::token_to_location};
-//
-//     pub fn goto_class_type(
-//         mut query: Query<(&CurrentType, &mut GotoTypeRequest)>,
-//         project: Query<(&Wrapped<DefinedClasses>, &RopeC, &Label)>,
-//         her: Res<TypeHierarchy<'static>>,
-//     ) {
-//         for (ty, mut req) in &mut query {
-//             let mut targets = HashSet::<Cow<'_, str>>::new();
-//             for t in &ty.0 {
-//                 targets.insert(her.type_name(*t).clone());
-//             }
-//             tracing::debug!("Finding types for types {:?}", targets);
-//
-//             for (classes, rope, label) in &project {
-//                 for clazz in &classes.0 {
-//                     if targets.contains(clazz.term.as_str()) {
-//                         if let Some(location) = token_to_location(&clazz.location, &label, &rope) {
-//                             req.0.push(location);
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+// TODO: goto_class_type is not implemented yet

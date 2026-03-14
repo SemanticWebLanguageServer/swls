@@ -4,24 +4,22 @@ use std::{
 };
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
-use lov::{LocalPrefix, LOCAL_PREFIXES};
 use serde::Deserialize;
+use tracing::{debug, error, info, span};
+
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
-    term::{matcher::TermMatcher, Term as _},
+    term::Term as _,
 };
-use tracing::{debug, error, info, instrument, span};
 
-use super::prefix::PREFIX_CC;
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
-    util::{
-        fs::Fs,
-        ns::{owl, rdfs},
-    },
+    util::{fs::Fs, ns::owl},
 };
+
+use super::setup::FromPrefix;
 
 #[derive(Deserialize, Debug)]
 struct Version {
@@ -35,45 +33,6 @@ struct Vocab {
     versions: Vec<Version>,
 }
 
-#[derive(Component, Debug)]
-pub struct PrefixEntry {
-    pub namespace: Cow<'static, str>,
-    pub name: Cow<'static, str>,
-    pub rank: usize,
-}
-pub fn populate_known_ontologies(mut commands: Commands) {
-    let mut actual_local = HashSet::new();
-    for lov in LOCAL_PREFIXES.iter() {
-        actual_local.insert(lov.name.clone());
-        commands.spawn(lov.clone());
-    }
-
-    for (i, (name, url)) in PREFIX_CC
-        .split('\n')
-        .flat_map(|x| {
-            let mut s = x.split(' ');
-            let first = s.next()?;
-            let second = s.next()?;
-            Some((first.to_string(), second.to_string()))
-        })
-        .enumerate()
-    {
-        let name: Cow<'static, str> = name.into();
-        if actual_local.contains(&name) {
-            continue;
-        }
-        let namespace: Cow<'static, str> = url.into();
-        let lov = PrefixEntry {
-            namespace,
-            name: name.clone(),
-            rank: i,
-        };
-
-        commands.spawn(lov);
-    }
-}
-
-// Do we check whether or not the namespace url and the prefix url are the same?
 async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> {
     let url = format!(
         "https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab={}",
@@ -149,7 +108,7 @@ pub fn open_imports<C: Client + Resource>(
     }
 }
 
-/// First of al, fetch the lov dataset information at url <https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}>
+/// First of all, fetch the lov dataset information at url <https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}>
 /// Next, extract that json object into an object and find the latest dataset
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
@@ -157,10 +116,9 @@ pub fn fetch_lov_properties<C: Client + Resource>(
         &Prefixes,
         (
             Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,
-            // Without<Dirty>,
         ),
     >,
-    ontologies: Query<(Entity, &LocalPrefix)>,
+    ontologies: Query<(Entity, &lov::LocalPrefix)>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
@@ -226,6 +184,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 }
 
 type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
+
 pub fn spawn_document(
     url: Url,
     content: String,
@@ -245,7 +204,7 @@ pub fn spawn_document(
         (
             RopeC(ropey::Rope::from_str(&content)),
             Source(content.clone()),
-            Label(url.clone()), // this might crash
+            Label(url.clone()),
             Wrapped(item),
             Types(HashMap::new()),
         ),
@@ -282,7 +241,7 @@ fn extra_from_lov<C: Client + Resource>(
     }
 }
 
-async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<String> {
+pub(super) async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<String> {
     if let Some(url) = extract_file_url(&prefix, &c).await {
         match c.fetch(&url, &std::collections::HashMap::new()).await {
             Ok(resp) if resp.status == 200 => return Some(resp.body),
@@ -296,6 +255,7 @@ async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<Stri
     }
     None
 }
+
 async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
     if let Some(body) = fetch_lov_body(&prefix.prefix, c).await {
         let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
@@ -303,7 +263,6 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     }
 }
 
-// TODO: this should be spawned on the entity of the localprefix
 async fn local_lov<C: Client + Resource>(
     local: lov::LocalPrefix,
     label: Url,
@@ -319,7 +278,6 @@ async fn local_lov<C: Client + Resource>(
     );
     let content = if local.content.is_empty() {
         info!("Fetching from LOV {}", local.name);
-        // This local is added by prefix, not by an actual local lov,
         if let Some(body) = fetch_lov_body(&local.name, c).await {
             Cow::Owned(body)
         } else {
@@ -337,143 +295,3 @@ async fn local_lov<C: Client + Resource>(
     let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), fs);
     spawn_document(label, content.to_string(), &sender, extra);
 }
-
-#[derive(Component)]
-pub struct OntologyExtract;
-
-#[instrument(skip(commands))]
-pub fn init_onology_extractor(mut commands: Commands, fs: Res<Fs>) {
-    for local in lov::LOCAL_PREFIXES
-        .iter()
-        .filter(|x| ["rdf", "rdfs", "owl"].iter().any(|y| *y == x.name))
-    {
-        let url = fs.0.lov_url(&local.location, &local.name).unwrap();
-        info!("Virtual url {}", url.to_string());
-
-        // let url = crate::lsp_types::Url::from_str(local.location).unwrap();
-        let item = TextDocumentItem {
-            version: 1,
-            uri: url.clone(),
-            language_id: String::from("turtle"),
-            text: String::new(),
-        };
-
-        let spawn = spawn_or_insert(
-            url.clone(),
-            (
-                Source(local.content.to_string()),
-                RopeC(ropey::Rope::from_str(&local.content)),
-                Label(url),
-                Wrapped(item),
-                Types(HashMap::new()),
-            ),
-            Some("turtle".into()),
-            OntologyExtract,
-        );
-
-        info!("Init onology {}", local.name);
-        commands.queue(move |world: &mut World| {
-            info!("Spawned");
-            spawn(world);
-        });
-    }
-}
-
-#[instrument(skip(query, extractor))]
-pub fn check_added_ontology_extract(
-    query: Query<(&Triples, &Label), (Added<Triples>, With<OntologyExtract>)>,
-    mut extractor: ResMut<OntologyExtractor>,
-) {
-    let mut changed = false;
-    for (triples, label) in &query {
-        info!("Added triples from {}", label.as_str());
-        extractor.quads.extend(triples.0.iter().cloned());
-        changed = true;
-    }
-    if changed {
-        extractor.extract();
-    }
-}
-
-#[derive(Debug, Resource)]
-pub struct OntologyExtractor {
-    quads: Vec<MyQuad<'static>>,
-    properties: Vec<MyTerm<'static>>,
-    classes: Vec<MyTerm<'static>>,
-}
-
-struct LocalMatcher<'a> {
-    properties: &'a [MyTerm<'static>],
-}
-
-impl TermMatcher for LocalMatcher<'_> {
-    type Term = MyTerm<'static>;
-
-    fn matches<T2: sophia_api::prelude::Term + ?Sized>(&self, term: &T2) -> bool {
-        for p in self.properties {
-            if term.eq(p) {
-                return false;
-            }
-        }
-
-        true
-    }
-}
-
-impl OntologyExtractor {
-    pub fn new() -> Self {
-        Self {
-            quads: vec![],
-            classes: vec![MyTerm::<'static>::named_node(
-                "http://www.w3.org/2000/01/rdf-schema#Class",
-                0..1,
-            )],
-            properties: vec![MyTerm::<'static>::named_node(
-                "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property",
-                0..1,
-            )],
-        }
-    }
-
-    pub fn properties<'a>(&'a self) -> &'a [MyTerm<'static>] {
-        &self.properties[..]
-    }
-
-    pub fn classes<'a>(&'a self) -> &'a [MyTerm<'static>] {
-        &self.classes[..]
-    }
-
-    fn extract_step(quads: &Vec<MyQuad<'static>>, items: &mut Vec<MyTerm<'static>>) -> bool {
-        let new_items: Vec<_> = quads
-            .quads_matching(
-                LocalMatcher { properties: &items },
-                [rdfs::subClassOf],
-                &items[..],
-                Any,
-            )
-            .flatten()
-            .map(|x| x.to_s().to_owned())
-            .collect();
-
-        let added = !new_items.is_empty();
-        items.extend(new_items);
-        added
-    }
-
-    fn extract(&mut self) {
-        loop {
-            if !OntologyExtractor::extract_step(&self.quads, &mut self.properties) {
-                break;
-            }
-        }
-
-        loop {
-            if !OntologyExtractor::extract_step(&self.quads, &mut self.classes) {
-                break;
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Component)]
-pub struct FromPrefix(pub Prefix);

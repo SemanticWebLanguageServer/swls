@@ -25,7 +25,7 @@ pub fn setup_world(world: &mut World) {
         let e = trigger.event();
         match &e.language_id {
             Some(x) if x == "sparql" => {
-                info!("Found sparql documnet!");
+                info!("Found sparql document!");
                 commands
                     .entity(e.event_target())
                     .insert(Sparql)
@@ -36,7 +36,7 @@ pub fn setup_world(world: &mut World) {
         }
 
         if trigger.event().url.as_str().ends_with(".sq") {
-            info!("Found sparql documnet!");
+            info!("Found sparql document!");
             commands
                 .entity(e.event_target())
                 .insert(Sparql)

@@ -10,7 +10,6 @@ use crate::{
     Label,
 };
 
-// pub mod cache;
 pub mod fs;
 /// Commonly used RDF prefixes
 pub mod ns;

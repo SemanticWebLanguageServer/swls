@@ -82,7 +82,7 @@
 
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use prelude::SemanticTokensDict;
-use systems::{init_onology_extractor, populate_known_ontologies, OntologyExtractor};
+use systems::{init_ontology_extractor, populate_known_ontologies, OntologyExtractor};
 pub use tower_lsp::lsp_types;
 
 use crate::prelude::*;
@@ -144,7 +144,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 
     let mut schedule = Schedule::new(Startup);
     schedule.add_systems((
-        init_onology_extractor,
+        init_ontology_extractor,
         populate_known_ontologies,
         // extract_known_prefixes_from_config::<C>,
     ));

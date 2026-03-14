@@ -8,9 +8,7 @@ use tokenizer::parse_tokens_str_safe;
 pub mod context;
 pub mod formatter;
 pub mod model;
-// pub mod model2;
 pub mod parser;
-// pub mod parser2;
 pub mod tokenizer;
 
 pub fn parse_source(url: &Url, string: &str) -> (Option<Turtle>, Vec<String>) {

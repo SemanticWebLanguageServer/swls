@@ -94,6 +94,15 @@ impl Backend {
 
         rx.await.unwrap_or_default()
     }
+
+    async fn get_entity(&self, uri: &str) -> Option<Entity> {
+        let map = self.entities.lock().await;
+        map.get(uri).copied()
+    }
+
+    fn adjust_position(pos: &mut Position) {
+        pos.character = pos.character.saturating_sub(1);
+    }
 }
 
 #[tower_lsp::async_trait]
@@ -218,28 +227,9 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         info!("semantic tokens full");
         let uri = params.text_document.uri.as_str();
-        let entity = {
-            let e = {
-                let map = self.entities.lock().await;
-                if let Some(entity) = map.get(uri) {
-                    Some(entity.clone())
-                } else {
-                    info!("Didn't find entity {} retrying", uri);
-                    None
-                }
-            };
-
-            if let Some(e) = e {
-                e
-            } else {
-                let map = self.entities.lock().await;
-                if let Some(entity) = map.get(uri) {
-                    entity.clone()
-                } else {
-                    info!("Didn't find entty {} stopping", uri);
-                    return Ok(None);
-                }
-            }
+        let Some(entity) = self.get_entity(uri).await else {
+            info!("Didn't find entity {} stopping", uri);
+            return Ok(None);
         };
 
         if let Some(res) = self
@@ -267,22 +257,15 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(params.text_document_position.text_document.uri.as_str())
-            {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+        let Some(entity) = self
+            .get_entity(params.text_document_position.text_document.uri.as_str())
+            .await
+        else {
+            return Ok(None);
         };
 
         let mut pos = params.text_document_position.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let arr = self
             .run_schedule::<ReferencesRequest>(
@@ -301,21 +284,12 @@ impl LanguageServer for Backend {
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(params.text_document.uri.as_str()) {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+        let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
+            return Ok(None);
         };
 
         let mut pos = params.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let resp = self
             .run_schedule::<PrepareRenameRequest>(
@@ -334,22 +308,15 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(params.text_document_position.text_document.uri.as_str())
-            {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+        let Some(entity) = self
+            .get_entity(params.text_document_position.text_document.uri.as_str())
+            .await
+        else {
+            return Ok(None);
         };
 
         let mut pos = params.text_document_position.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let mut change_map: HashMap<crate::lsp_types::Url, Vec<TextEdit>> = HashMap::new();
         if let Some(changes) = self
@@ -374,27 +341,21 @@ impl LanguageServer for Backend {
     async fn hover(&self, params: HoverParams) -> Result<Option<crate::lsp_types::Hover>> {
         let request: HoverRequest = HoverRequest::default();
 
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(
+        let Some(entity) = self
+            .get_entity(
                 params
                     .text_document_position_params
                     .text_document
                     .uri
                     .as_str(),
-            ) {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+            )
+            .await
+        else {
+            return Ok(None);
         };
 
         let mut pos = params.text_document_position_params.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         if let Some(hover) = self
             .run_schedule::<HoverRequest>(entity, HoverLabel, (request, PositionComponent(pos)))
@@ -416,14 +377,9 @@ impl LanguageServer for Backend {
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         info!("Inlay hints called");
         let uri = params.text_document.uri.as_str();
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(uri) {
-                entity.clone()
-            } else {
-                info!("Didn't find entity {}", uri);
-                return Ok(None);
-            }
+        let Some(entity) = self.get_entity(uri).await else {
+            info!("Didn't find entity {}", uri);
+            return Ok(None);
         };
 
         let request = self
@@ -441,14 +397,9 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self))]
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(uri) {
-                entity.clone()
-            } else {
-                info!("Didn't find entity {}", uri);
-                return Ok(None);
-            }
+        let Some(entity) = self.get_entity(uri).await else {
+            info!("Didn't find entity {}", uri);
+            return Ok(None);
         };
 
         let request = self
@@ -503,14 +454,9 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(params.text_document.uri.as_str()) {
-                entity.clone()
-            } else {
-                info!("Didn't find entity {}", params.text_document.uri.as_str());
-                return;
-            }
+        let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
+            info!("Didn't find entity {}", params.text_document.uri.as_str());
+            return;
         };
 
         let change = {
@@ -553,27 +499,21 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(
+        let Some(entity) = self
+            .get_entity(
                 params
                     .text_document_position_params
                     .text_document
                     .uri
                     .as_str(),
-            ) {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+            )
+            .await
+        else {
+            return Ok(None);
         };
 
         let mut pos = params.text_document_position_params.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let arr = self
             .run_schedule::<GotoDefinitionRequest>(
@@ -592,27 +532,21 @@ impl LanguageServer for Backend {
         &self,
         params: GotoTypeDefinitionParams,
     ) -> Result<Option<GotoTypeDefinitionResponse>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(
+        let Some(entity) = self
+            .get_entity(
                 params
                     .text_document_position_params
                     .text_document
                     .uri
                     .as_str(),
-            ) {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+            )
+            .await
+        else {
+            return Ok(None);
         };
 
         let mut pos = params.text_document_position_params.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let arr = self
             .run_schedule::<GotoTypeRequest>(
@@ -632,13 +566,8 @@ impl LanguageServer for Backend {
         params: CodeActionParams,
     ) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri.as_str();
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(uri) {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+        let Some(entity) = self.get_entity(uri).await else {
+            return Ok(None);
         };
 
         let request = self
@@ -658,24 +587,17 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(params.text_document_position.text_document.uri.as_str())
-            {
-                entity.clone()
-            } else {
-                return Ok(None);
-            }
+        let Some(entity) = self
+            .get_entity(params.text_document_position.text_document.uri.as_str())
+            .await
+        else {
+            return Ok(None);
         };
 
-        // Problem: whne the cursor is at the end of en ident, that ident is not in range of the
+        // Problem: when the cursor is at the end of an ident, that ident is not in range of the
         // cursor
         let mut pos = params.text_document_position.position;
-        pos.character = if pos.character > 0 {
-            pos.character - 1
-        } else {
-            pos.character
-        };
+        Self::adjust_position(&mut pos);
 
         let completions: Option<Vec<crate::lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
