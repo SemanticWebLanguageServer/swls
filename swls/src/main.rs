@@ -9,7 +9,7 @@ use futures::{channel::mpsc::unbounded, StreamExt as _};
 use lsp_core::{lsp_types::SemanticTokenType, prelude::*};
 use swls::{client::BinFs, timings, TowerClient};
 use tower_lsp::{LspService, Server};
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{debug, info, level_filters::LevelFilter};
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
@@ -84,7 +84,7 @@ async fn main() {
 
     let _ = setup_global_subscriber();
 
-    info!("Hello world!");
+    debug!("Hello world!");
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 

@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::HashSet};
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use hover::HoverRequest;
-use tracing::instrument;
+use tracing::{instrument, trace};
 
 use crate::{
     lsp_types::{CompletionItemKind, TextEdit},
@@ -74,7 +74,7 @@ pub fn hover_class(
             for class in resource.classes.values() {
                 if class.term.value == target {
                     request.0.push(format!(
-                        "{}: {}",
+                        "## {}\n\n{}",
                         class.full_title(),
                         class.full_docs(&hierarchy, &prefixes)
                     ));
@@ -103,16 +103,16 @@ pub fn complete_properties(
             let tts = types.get(&triple.triple.subject.value);
 
             if let Some(tts) = tts.as_ref() {
-                tracing::info!("Types for {}", triple.triple.subject.value);
+                trace!("Types for {}", triple.triple.subject.value);
                 for t in *tts {
-                    tracing::info!(
+                    trace!(
                         "{} {}",
                         triple.triple.subject.value,
                         hierarchy.type_name(*t)
                     );
                 }
             } else {
-                tracing::info!("No types for {}", triple.triple.subject.value);
+                trace!("No types for {}", triple.triple.subject.value);
             }
 
             let subclasses: HashSet<_> = tts
@@ -186,7 +186,7 @@ pub fn hover_property(
             {
                 request
                     .0
-                    .push(format!("{}\n{}", c.full_title(), c.full_docs(&prefixes)));
+                    .push(format!("## {}\n\n{}", c.full_title(), c.full_docs(&prefixes)));
             }
         }
     }

@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::*;
+use tracing::debug;
 
 use crate::prelude::*;
 
@@ -12,7 +13,7 @@ pub fn load_store(
     let mut loader = store.0.bulk_loader();
     for (t, label) in query {
         let _ = loader.load_quads(t.0.iter().map(|x| x.into_oxi(None)).flatten());
-        tracing::info!("Loading {} triples from {}", t.len(), label.as_str());
+        debug!("Loading {} triples from {}", t.len(), label.as_str());
     }
     let _ = loader.commit();
 }

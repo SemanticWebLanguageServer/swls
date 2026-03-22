@@ -78,7 +78,7 @@ fn inlay_types(
                             data: None,
                         });
                     } else {
-                        tracing::info!("Failed to convert pos to position {}", pos.span.end);
+                        tracing::warn!("Failed to convert pos to position {}", pos.span.end);
                     }
                 } else {
                     let offset = if rope.get_char(s.span.start) == Some('[') {
@@ -102,7 +102,7 @@ fn inlay_types(
                             data: None,
                         });
                     } else {
-                        tracing::info!("Failed to convert pos to position {}", s.span.end);
+                        tracing::warn!("Failed to convert pos to position {}", s.span.end);
                     }
                 }
             }

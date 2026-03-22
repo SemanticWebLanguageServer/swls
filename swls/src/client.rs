@@ -8,7 +8,7 @@ use lsp_core::{
     prelude::{File, FsTrait},
 };
 use tokio::fs::{self, read_to_string, write};
-use tracing::info;
+use tracing::debug;
 
 pub mod reqwest {
     pub use reqwest::{
@@ -94,7 +94,7 @@ impl TowerClient {
 impl ClientSync for TowerClient {
     fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
         let handle = std::thread::current();
-        info!("Spawn threaad name {:?}", handle.id());
+        debug!("Spawn thread name {:?}", handle.id());
         self.handle.spawn(fut);
         // info!("Should spawn but won't!");
     }
@@ -105,8 +105,8 @@ impl ClientSync for TowerClient {
         headers: &HashMap<String, String>,
     ) -> Pin<Box<dyn Send + std::future::Future<Output = Result<Resp, String>>>> {
         use tokio::{fs::File, io::AsyncReadExt};
-        use tracing::{debug, error, info};
-        info!("Should fetch, fetching!");
+        use tracing::error;
+        debug!("fetching resource");
 
         let m_url = reqwest::Url::parse(url);
 
@@ -118,7 +118,7 @@ impl ClientSync for TowerClient {
 
         return async {
             let url = m_url.map_err(|_| String::from("invalid url!"))?;
-            info!("Found url {} {}", url.scheme(), url);
+            debug!("Found url {} {}", url.scheme(), url);
             if url.scheme() == "file" {
                 let mut file = File::open(url.path())
                     .await
@@ -136,7 +136,7 @@ impl ClientSync for TowerClient {
                 });
             }
 
-            debug!("sending blocking");
+            debug!("sending request");
             let resp = match builder.send().await {
                 Ok(x) => x,
                 Err(e) => {
@@ -157,7 +157,7 @@ impl ClientSync for TowerClient {
                     }
                 })
                 .collect();
-            debug!("got resp");
+            debug!("received response");
             let body = resp.text().await.unwrap();
 
             Ok(Resp {

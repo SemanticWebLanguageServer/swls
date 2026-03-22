@@ -9,7 +9,7 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 use lov::LocalPrefix;
-use tower_lsp::lsp_types::{CodeDescription, DiagnosticTag};
+use tower_lsp::lsp_types::DiagnosticTag;
 use tracing::{debug, instrument};
 
 use crate::prelude::*;

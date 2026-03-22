@@ -1,21 +1,21 @@
 use bevy_ecs::prelude::*;
 use lsp_core::lsp_types::{Position, Range};
 use lsp_core::{components::*, prelude::*};
-use tracing::info;
+use tracing::debug;
 
 use crate::{lang::formatter::format_turtle, TurtleLang};
 
 pub fn format_turtle_system(
     mut query: Query<(&RopeC, &Element<TurtleLang>, &Tokens, &mut FormatRequest), Without<Dirty>>,
 ) {
-    info!("Format turtle system");
+    debug!("Format turtle system");
 
     for (source, turtle, tokens, mut request) in &mut query {
         if request.0.is_some() {
-            info!("Didn't format with the turtle format system, already formatted");
+            debug!("Didn't format with the turtle format system, already formatted");
             continue;
         }
-        info!("Formatting with turtle format system");
+        debug!("Formatting with turtle format system");
         let comments: Vec<_> = tokens
             .iter()
             .flat_map(|x| {

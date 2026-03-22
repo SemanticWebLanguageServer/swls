@@ -6,15 +6,14 @@ use sophia_api::{
     quad::Quad as _,
     term::{matcher::TermMatcher, Term as _},
 };
-use tracing::{info, instrument};
+use tracing::{debug, instrument};
 
 use crate::{
-    lsp_types::{TextDocumentItem, Url},
+    lsp_types::TextDocumentItem,
     prelude::*,
     util::{fs::Fs, ns::rdfs},
 };
 
-use super::fetch::spawn_document;
 
 #[derive(Component, Debug)]
 pub struct OntologyExtract;
@@ -26,7 +25,7 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
         .filter(|x| ["rdf", "rdfs", "owl"].iter().any(|y| *y == x.name))
     {
         let url = fs.0.lov_url(&local.location, &local.name).unwrap();
-        info!("Virtual url {}", url.to_string());
+        debug!("Virtual url {}", url.to_string());
 
         let item = TextDocumentItem {
             version: 1,
@@ -48,9 +47,9 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
             OntologyExtract,
         );
 
-        info!("Init ontology {}", local.name);
+        debug!("Init ontology {}", local.name);
         commands.queue(move |world: &mut World| {
-            info!("Spawned");
+            debug!("spawned ontology entity");
             spawn(world);
         });
     }
@@ -63,7 +62,7 @@ pub fn check_added_ontology_extract(
 ) {
     let mut changed = false;
     for (triples, label) in &query {
-        info!("Added triples from {}", label.as_str());
+        debug!("Added triples from {}", label.as_str());
         extractor.quads.extend(triples.0.iter().cloned());
         changed = true;
     }

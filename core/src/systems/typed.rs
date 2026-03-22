@@ -7,12 +7,14 @@ use sophia_api::{
     quad::Quad as _,
 };
 
+use tracing::{debug, error, instrument, trace};
+
 use crate::{prelude::*, util::ns::rdfs};
 
 #[derive(Default, Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct TypeId(pub usize);
 
-#[tracing::instrument(skip(query, hierarchy))]
+#[instrument(skip(query, hierarchy))]
 pub fn extract_type_hierarchy(
     query: Query<&Triples, (Changed<Triples>, Without<Dirty>)>,
     mut hierarchy: ResMut<TypeHierarchy<'static>>,
@@ -60,15 +62,11 @@ pub fn infer_types(
     for (triples, mut types) in &mut query {
         types.clear();
 
-        for t in triples.0.iter() {
-            tracing::info!("Triple {} {} {} .", t.s(), t.p(), t.o());
-        }
-
         for t in triples
             .quads_matching(Any, [rdf::type_], Any, Any)
             .flatten()
         {
-            tracing::info!("Type tryple {} {} {} .", t.s(), t.p(), t.o());
+            trace!("type triple {} {} {} .", t.s(), t.p(), t.o());
             if let Some(id) = hierarchy.get_id_ref(t.o().as_str()) {
                 let vec = types.0.entry(t.s().value.clone()).or_default();
                 vec.insert(id);
@@ -94,7 +92,7 @@ pub fn infer_types(
                             let vec = types.0.entry(s.value.clone()).or_default();
                             vec.insert(id);
                         } else {
-                            tracing::error!(
+                            error!(
                                 "Tried to assign type (domain) {} but failed, not present in hierarchy",
                                 d.as_str()
                             );
@@ -111,7 +109,7 @@ pub fn infer_types(
                             let vec = types.0.entry(o.value.clone()).or_default();
                             vec.insert(id);
                         } else {
-                            tracing::error!(
+                            error!(
                                 "Tried to assign type (range) {} but failed, not present in hierarchy",
                                 d.as_str()
                             );
@@ -124,7 +122,7 @@ pub fn infer_types(
         for (subject, types) in types.0.iter() {
             for ty in types {
                 let ty_str = hierarchy.type_name(*ty);
-                tracing::debug!("{} a {}", subject, ty_str);
+                trace!("{} a {}", subject, ty_str);
             }
         }
 
@@ -139,7 +137,7 @@ pub fn infer_current_type(
     for (e, tc, types) in &query {
         commands.entity(e).remove::<CurrentType>();
         if let Some(types) = types.get(tc.triple.s().as_str()) {
-            tracing::debug!(
+            debug!(
                 "Found current type for {} {} {:?}",
                 e,
                 tc.triple.s().as_str(),
@@ -147,12 +145,12 @@ pub fn infer_current_type(
             );
             commands.entity(e).insert(CurrentType(types.clone()));
         } else {
-            tracing::debug!("No type found for {}", tc.triple.s().as_str(),);
+            debug!("No type found for {}", tc.triple.s().as_str(),);
         }
     }
 }
 
-#[tracing::instrument(skip(query, hierarchy))]
+#[instrument(skip(query, hierarchy))]
 pub fn hover_types(
     mut query: Query<(&TokenComponent, &Types, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy<'static>>,
@@ -179,7 +177,7 @@ pub fn hover_types(
             type_string += type_name.as_ref();
         }
         if !type_string.is_empty() {
-            hover.0.push(format!("Type: {}", type_string));
+            hover.0.push(format!("**Type:** {}", type_string));
         }
     }
 }

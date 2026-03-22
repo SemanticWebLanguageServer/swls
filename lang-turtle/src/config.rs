@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use bevy_ecs::{resource::Resource, system::Res, world::{CommandQueue, World}};
 use lsp_core::{
-    lsp_types::{TextDocumentItem, Url},
+    lsp_types::TextDocumentItem,
     prelude::*,
 };
 

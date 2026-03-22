@@ -1,4 +1,5 @@
 use chumsky::{prelude::*, Error};
+use tracing::debug;
 use lang_turtle::lang::{
     context::Ctx,
     model::TurtlePrefix,
@@ -166,7 +167,7 @@ fn expect_it(
     j(token.clone()).or(not(token.clone())
         .map(|x| x.0)
         .try_map(move |x: Token, span| {
-            println!("{} didn't expect {}", st, x);
+            debug!("unexpected token: {} didn't expect {}", st, x);
             Err(Simple::expected_input_found(
                 span,
                 [Some(PToken(token.clone(), 0))],

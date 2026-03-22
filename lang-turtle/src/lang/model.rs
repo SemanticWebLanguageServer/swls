@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashSet, fmt::Display, ops::Range};
 
 use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, TermContext, Triples2};
 use sophia_iri::resolve::{BaseIri, IriParseError};
-use tracing::info;
+use tracing::warn;
 
 use super::context::{Context, ContextKind};
 
@@ -734,7 +734,7 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
             Term::Variable(var) => MyTerm::variable(&var.0, triple.subject.span().clone()),
 
             x => {
-                info!("Failed, unexpected {}", x.ty());
+                warn!("Failed, unexpected {}", x.ty());
                 return Err(TurtleSimpleError::UnexpectedBaseString(format!(
                     "Unexpected {}",
                     x.ty()

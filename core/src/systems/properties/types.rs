@@ -29,7 +29,7 @@ impl DefinedClass {
         let mut docs = String::new();
         for d in &self.descriptions {
             if !docs.is_empty() {
-                docs += "\n"
+                docs += "\n\n"
             }
             docs += d;
         }
@@ -40,7 +40,7 @@ impl DefinedClass {
                 if !docs.is_empty() {
                     docs += "\n\n"
                 }
-                docs += "Superclass of:";
+                docs += "**Superclass of:**";
                 docs += superclasses.as_str();
             }
             let subclasses = group_per_prefix(hierarchy.iter_subclass(id), pref);
@@ -48,17 +48,18 @@ impl DefinedClass {
                 if !docs.is_empty() {
                     docs += "\n\n"
                 }
-                docs += "Subclass of:";
+                docs += "**Subclass of:**";
                 docs += subclasses.as_str();
             }
         }
 
         for l in &self.locations {
             if !docs.is_empty() {
-                docs += "\n"
+                docs += "\n\n"
             }
-            docs += "from: ";
+            docs += "*from: ";
             docs += l.as_str();
+            docs += "*";
         }
         docs
     }
@@ -87,7 +88,7 @@ pub fn group_per_prefix<'a>(subclasses: impl Iterator<Item = Cow<'a, str>>, pref
     ordered.sort();
 
     for (k, v) in ordered {
-        subclass_str += "\n  ";
+        subclass_str += "\n- ";
         subclass_str += k;
         subclass_str += ":{";
         subclass_str += &v;
@@ -134,7 +135,7 @@ impl DefinedProperty {
             if !docs.is_empty() {
                 docs += "\n\n"
             }
-            docs += "Domain: ";
+            docs += "**Domain:** ";
             let mut first = true;
             for r in &self.domains {
                 let range = prefixes.shorten(r.as_str());
@@ -150,7 +151,7 @@ impl DefinedProperty {
             if !docs.is_empty() {
                 docs += "\n\n"
             }
-            docs += "Range: ";
+            docs += "**Range:** ";
             let mut first = true;
             for r in &self.ranges {
                 let range = prefixes.shorten(r.as_str());
@@ -166,8 +167,9 @@ impl DefinedProperty {
             if !docs.is_empty() {
                 docs += "\n\n"
             }
-            docs += "from: ";
+            docs += "*from: ";
             docs += l.as_str();
+            docs += "*";
         }
         docs
     }

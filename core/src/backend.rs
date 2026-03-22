@@ -14,7 +14,7 @@ use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
-use tracing::info;
+use tracing::{debug, error, info, instrument};
 
 use crate::{
     feature::{
@@ -58,12 +58,12 @@ impl Backend {
         commands.push(move |world: &mut World| {
             let o = f(world);
             if let Err(_) = tx.send(o) {
-                tracing::error!("Failed to run schedule for {}", stringify!(T));
+                error!("Failed to run schedule for {}", stringify!(T));
             };
         });
 
         if let Err(e) = self.sender.0.unbounded_send(commands) {
-            tracing::error!("Failed to send commands {}", e);
+            error!("Failed to send commands {}", e);
             return None;
         }
 
@@ -83,12 +83,12 @@ impl Backend {
             world.entity_mut(entity).insert(param);
             world.run_schedule(schedule.clone());
             if let Err(_) = tx.send(world.entity_mut(entity).take::<T>()) {
-                tracing::error!(name: "Failed to run schedule", "Failed to run schedule {:?}", schedule);
+                error!(name: "Failed to run schedule", "Failed to run schedule {:?}", schedule);
             };
         });
 
         if let Err(e) = self.sender.0.unbounded_send(commands) {
-            tracing::error!("Failed to send commands {}", e);
+            error!("Failed to send commands {}", e);
             return None;
         }
 
@@ -107,7 +107,7 @@ impl Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    #[tracing::instrument(skip(self, init))]
+    #[instrument(skip(self, init))]
     async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
 
@@ -220,12 +220,12 @@ impl LanguageServer for Backend {
         ()
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        info!("semantic tokens full");
+        debug!("semantic tokens full");
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             info!("Didn't find entity {} stopping", uri);
@@ -243,19 +243,19 @@ impl LanguageServer for Backend {
                 },
             )))
         } else {
-            info!("resulitng in no tokens");
+            debug!("resulting in no tokens");
             Ok(None)
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[instrument(skip(self))]
     async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
 
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
@@ -279,7 +279,7 @@ impl LanguageServer for Backend {
         Ok(arr)
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn prepare_rename(
         &self,
         params: TextDocumentPositionParams,
@@ -306,7 +306,7 @@ impl LanguageServer for Backend {
         Ok(resp)
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
@@ -363,9 +363,10 @@ impl LanguageServer for Backend {
         {
             if hover.0.len() > 0 {
                 return Ok(Some(crate::lsp_types::Hover {
-                    contents: crate::lsp_types::HoverContents::Array(
-                        hover.0.into_iter().map(MarkedString::String).collect(),
-                    ),
+                    contents: crate::lsp_types::HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: hover.0.join("\n\n---\n\n"),
+                    }),
                     range: hover.1,
                 }));
             }
@@ -375,7 +376,7 @@ impl LanguageServer for Backend {
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        info!("Inlay hints called");
+        debug!("Inlay hints called");
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             info!("Didn't find entity {}", uri);
@@ -386,7 +387,7 @@ impl LanguageServer for Backend {
             .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest::default())
             .await;
 
-        info!(
+        debug!(
             "Inlay hints resolved {} hints",
             request.as_ref().map(|x| x.0.len()).unwrap_or(0)
         );
@@ -394,7 +395,7 @@ impl LanguageServer for Backend {
         Ok(request.and_then(|x| Some(x.0)))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[instrument(skip(self))]
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
@@ -408,12 +409,10 @@ impl LanguageServer for Backend {
         Ok(request.and_then(|x| x.0))
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
-
-        tracing::info!("Did open");
 
         let lang_id = Some(item.language_id.clone());
         let spawn = spawn_or_insert(
@@ -436,9 +435,7 @@ impl LanguageServer for Backend {
                 let id = spawn(world);
                 world.run_schedule(ParseLabel);
                 world.flush();
-                info!("Running diagnostics");
                 world.run_schedule(DiagnosticsLabel);
-                info!("Done diagnostics");
                 id
             })
             .await;
@@ -447,12 +444,12 @@ impl LanguageServer for Backend {
             self.entities.lock().await.insert(url, entity);
         }
 
-        info!("Requesting tokens refresh");
+        debug!("Requesting tokens refresh");
         let _ = self.client.send_request::<SemanticTokensRefresh>(()).await;
-        info!("Semantic tokens refresh");
+        debug!("Semantic tokens refresh");
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
             info!("Didn't find entity {}", params.text_document.uri.as_str());
@@ -474,27 +471,24 @@ impl LanguageServer for Backend {
                 .insert((Source(change.text), rope_c));
             world.run_schedule(ParseLabel);
             world.flush();
-            info!("Running diagnostics");
             world.run_schedule(DiagnosticsLabel);
-            info!("Running diagnostics done");
         })
         .await;
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let _ = params;
 
-        info!("Did save");
         self.run(move |world| {
             world.run_schedule(SaveLabel);
 
-            info!("Ran OnSave Schedule");
+            debug!("Ran OnSave Schedule");
         })
         .await;
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
     async fn goto_definition(
         &self,
         params: GotoDefinitionParams,
@@ -527,7 +521,7 @@ impl LanguageServer for Backend {
         Ok(arr)
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
     async fn goto_type_definition(
         &self,
         params: GotoTypeDefinitionParams,
@@ -560,7 +554,7 @@ impl LanguageServer for Backend {
         Ok(arr)
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn code_action(
         &self,
         params: CodeActionParams,
@@ -585,7 +579,7 @@ impl LanguageServer for Backend {
         }))
     }
 
-    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())

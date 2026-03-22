@@ -6,7 +6,7 @@ use std::{
 use lsp_core::lsp_types::FormattingOptions;
 use lsp_core::prelude::*;
 use ropey::Rope;
-use tracing::info;
+use tracing::{info, trace, warn};
 
 use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
@@ -192,7 +192,7 @@ impl<'a> FormatState<'a> {
     }
 
     fn check_comments(&mut self, span: &Range<usize>) -> io::Result<bool> {
-        println!("Checking comments with span {:?}", span);
+        trace!("checking comments with span {:?}", span);
         let mut first = true;
         loop {
             let current = self.comments.get(self.comments_idx).unwrap_or(&self.tail);
@@ -454,9 +454,9 @@ pub fn format_turtle(
     let buf: Buf = Cursor::new(Vec::new());
     let mut state = FormatState::new(config, buf, comments, source);
     match state.write_turtle(turtle) {
-        Ok(_) => info!("Format succesful"),
+        Ok(_) => info!("Format successful"),
         Err(e) => {
-            info!("Format unsuccesful {:?}", e);
+            warn!("Format unsuccessful {:?}", e);
             return None;
         }
     }

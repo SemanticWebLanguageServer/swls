@@ -34,18 +34,6 @@ impl<'a> ObjectMemberManager<'a> {
         }
     }
 
-    #[allow(unused)]
-    fn print(&self) {
-        println!(
-            "key {:?} value {:?} (out {} len) (start {} full start {})",
-            self.current_key.as_ref().map(|x| x.value()),
-            self.current_value.as_ref().map(|x| x.value()),
-            self.out.len(),
-            self.start,
-            self.full_start
-        )
-    }
-
     fn invalid(&mut self, span: Range<usize>) -> Spanned<Token> {
         (self.emit)(Simple::custom(span.clone(), "Expected valid token"));
         Spanned(Token::Invalid("".to_string()), span)
