@@ -44,10 +44,11 @@ oxrdf = "0.3.2"
 #
 
 # [patch."https://github.com/ajuvercr/rudof"]
-shacl_rdf = { path = "../../rudof/shacl_rdf" }
-shacl_ir = { path = "../../rudof/shacl_ir" }
-srdf = { path = "../../rudof/srdf" }
-shacl_ast = { path = "../../rudof/shacl_ast" }
-prefixmap = { path = "../../rudof/prefixmap" }
-iri_s = { path = "../../rudof/iri_s" }
-shacl_validation = { path = "../../rudof/shacl_validation", default-features = false }
+shacl_rdf = "0.2.6"
+shacl_ir = "0.2.8"
+rudof_rdf = "0.2.8"
+shacl_ast = "0.2.6"
+prefixmap = "0.2.6"
+iri_s = "0.1.147"
+shacl_validation = { version = "0.2.8", default-features = false }
+

@@ -1,5 +1,6 @@
 use crate::{lsp_types::TextDocumentItem, util};
 use bevy_ecs::prelude::*;
+use rudof_rdf::rdf_core::FocusRDF;
 use shacl_validation::{
     shacl_engine::native::NativeEngine, shape_validation::Validate as _,
     validation_report::result::ValidationResult,
@@ -9,11 +10,10 @@ use std::{collections::HashMap, fmt::Write as _};
 use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
 use shacl_rdf::ShaclParser;
 use sophia_api::quad::Quad as _;
-use srdf::FocusRDF;
 use tracing::{info, info_span, instrument};
 
 use crate::prelude::*;
-use shacl_ast::ast::Schema as ShaclSchema;
+use shacl_ast::ast::ShaclSchema;
 
 mod data;
 use data::*;
