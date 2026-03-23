@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RelationshipHookMode"],"fn":["clone_relationship_target"],"struct":["AncestorIter","DescendantDepthFirstIter","DescendantIter","RelatedSpawner","RelatedSpawnerCommands"],"trait":["OrderedRelationshipSourceCollection","Relationship","RelationshipSourceCollection","RelationshipTarget"],"type":["SourceIter"]};

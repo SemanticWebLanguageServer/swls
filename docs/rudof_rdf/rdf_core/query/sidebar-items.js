@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["QueryResultFormat"],"struct":["QuerySolution","QuerySolutions","SparqlQuery","VarName"],"trait":["QueryRDF","VariableSolutionIndex"]};

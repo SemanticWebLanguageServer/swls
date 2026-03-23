@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Drain","EntityIndexMap","IntoIter","IntoKeys","Iter","IterMut","Keys","Slice"]};

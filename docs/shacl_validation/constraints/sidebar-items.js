@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_shape_from_idx"],"mod":["constraint_error","core"],"struct":["ShaclComponent"],"trait":["NativeDeref","NativeValidator","SparqlDeref","SparqlValidator","Validator"]};

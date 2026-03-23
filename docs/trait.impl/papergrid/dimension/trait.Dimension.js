@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["papergrid",[]],["tabled",[["impl <a class=\"trait\" href=\"tabled/grid/dimension/trait.Dimension.html\" title=\"trait tabled::grid::dimension::Dimension\">Dimension</a> for <a class=\"struct\" href=\"tabled/grid/dimension/struct.CompleteDimension.html\" title=\"struct tabled::grid::dimension::CompleteDimension\">CompleteDimension</a>",0],["impl <a class=\"trait\" href=\"tabled/grid/dimension/trait.Dimension.html\" title=\"trait tabled::grid::dimension::Dimension\">Dimension</a> for <a class=\"struct\" href=\"tabled/grid/dimension/struct.StaticDimension.html\" title=\"struct tabled::grid::dimension::StaticDimension\">StaticDimension</a>",0],["impl <a class=\"trait\" href=\"tabled/grid/dimension/trait.Dimension.html\" title=\"trait tabled::grid::dimension::Dimension\">Dimension</a> for <a class=\"struct\" href=\"tabled/grid/dimension/struct.ZeroDimension.html\" title=\"struct tabled::grid::dimension::ZeroDimension\">ZeroDimension</a>",0],["impl&lt;const COLUMNS: <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.94.0/std/primitive.usize.html\">usize</a>, const ROWS: <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.94.0/std/primitive.usize.html\">usize</a>&gt; <a class=\"trait\" href=\"tabled/grid/dimension/trait.Dimension.html\" title=\"trait tabled::grid::dimension::Dimension\">Dimension</a> for <a class=\"struct\" href=\"tabled/grid/dimension/struct.ConstDimension.html\" title=\"struct tabled::grid::dimension::ConstDimension\">ConstDimension</a>&lt;COLUMNS, ROWS&gt;",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[16,1498]}

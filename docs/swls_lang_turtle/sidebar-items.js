@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["setup_world"],"mod":["config","ecs","lang","prefix"],"struct":["TurtleHelper","TurtleLang"]};

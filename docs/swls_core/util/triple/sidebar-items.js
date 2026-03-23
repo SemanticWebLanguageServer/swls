@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TermContext","TripleTarget"],"fn":["get_current_triple"],"struct":["MyQuad","MyTerm","TripleComponent","Triples","Triples2"]};

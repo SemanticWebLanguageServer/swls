@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["NoColor","NoColors"],"trait":["Colors"]};

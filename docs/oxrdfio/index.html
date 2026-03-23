@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="OxRDF I/O"><title>oxrdfio - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="oxrdfio" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate oxrdfio</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../oxrdfio/index.html"><img src="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg" alt="logo"></a><h2><a href="../oxrdfio/index.html">oxrdfio</a><span class="version">0.2.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#oxrdf-io" title="OxRDF I/O">OxRDF I/O</a><ul><li><a href="#license" title="License">License</a></li></ul></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>oxrdfio</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/oxrdfio/lib.rs.html#1-22">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="oxrdf-io"><a class="doc-anchor" href="#oxrdf-io">§</a>OxRDF I/O</h2>
+<p><a href="https://crates.io/crates/oxrdfio"><img src="https://img.shields.io/crates/v/oxrdfio.svg" alt="Latest Version" /></a>
+<a href="https://docs.rs/oxrdfio"><img src="https://docs.rs/oxrdfio/badge.svg" alt="Released API docs" /></a>
+<a href="https://crates.io/crates/oxrdfio"><img src="https://img.shields.io/crates/d/oxrdfio" alt="Crates.io downloads" /></a>
+<a href="https://github.com/oxigraph/oxigraph/actions"><img src="https://github.com/oxigraph/oxigraph/workflows/build/badge.svg" alt="actions status" /></a>
+<a href="https://gitter.im/oxigraph/community"><img src="https://badges.gitter.im/oxigraph/community.svg" alt="Gitter" /></a></p>
+<p>OxRDF I/O is a set of parsers and serializers for RDF.</p>
+<p>It supports:</p>
+<ul>
+<li><a href="https://www.w3.org/TR/json-ld/">JSON-LD 1.0</a> using <a href="https://crates.io/crates/oxjsonld"><code>oxjsonld</code></a></li>
+<li><a href="https://w3c.github.io/N3/spec/">N3</a> using <a href="https://crates.io/crates/oxttl"><code>oxttl</code></a></li>
+<li><a href="https://www.w3.org/TR/n-quads/">N-Quads</a> using <a href="https://crates.io/crates/oxttl"><code>oxttl</code></a></li>
+<li><a href="https://www.w3.org/TR/n-triples/">N-Triples</a> using <a href="https://crates.io/crates/oxttl"><code>oxttl</code></a></li>
+<li><a href="https://www.w3.org/TR/rdf-syntax-grammar/">RDF/XML</a> using <a href="https://crates.io/crates/oxrdfxml"><code>oxrdfxml</code></a></li>
+<li><a href="https://www.w3.org/TR/trig/">TriG</a> using <a href="https://crates.io/crates/oxttl"><code>oxttl</code></a></li>
+<li><a href="https://www.w3.org/TR/turtle/">Turtle</a> using <a href="https://crates.io/crates/oxttl"><code>oxttl</code></a></li>
+</ul>
+<p>Support for <a href="https://www.w3.org/TR/rdf12-concepts/">RDF 1.2</a> is available behind the <code>rdf-12</code> feature.</p>
+<p>It is designed as a low level parser compatible with both synchronous and asynchronous I/O (behind the <code>async-tokio</code> feature).</p>
+<p>The entry points of this library are the two <a href="struct.RdfParser.html" title="struct oxrdfio::RdfParser"><code>RdfParser</code></a> and <a href="struct.RdfSerializer.html" title="struct oxrdfio::RdfSerializer"><code>RdfSerializer</code></a> structs.</p>
+<p>Usage example converting a Turtle file to a N-Triples file:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>oxrdfio::{RdfFormat, RdfParser, RdfSerializer};
+
+<span class="kw">let </span>turtle_file = <span class="string">b"@base &lt;http://example.com/&gt; .
+@prefix schema: &lt;http://schema.org/&gt; .
+&lt;foo&gt; a schema:Person ;
+    schema:name \"Foo\" .
+&lt;bar&gt; a schema:Person ;
+    schema:name \"Bar\" ."</span>;
+
+<span class="kw">let </span>ntriples_file = <span class="string">b"&lt;http://example.com/foo&gt; &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://schema.org/Person&gt; .
+&lt;http://example.com/foo&gt; &lt;http://schema.org/name&gt; \"Foo\" .
+&lt;http://example.com/bar&gt; &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://schema.org/Person&gt; .
+&lt;http://example.com/bar&gt; &lt;http://schema.org/name&gt; \"Bar\" .
+"</span>;
+
+<span class="kw">let </span><span class="kw-2">mut </span>serializer = RdfSerializer::from_format(RdfFormat::NTriples).for_writer(Vec::new());
+<span class="kw">for </span>quad <span class="kw">in </span>RdfParser::from_format(RdfFormat::Turtle).for_reader(turtle_file.as_ref()) {
+    serializer.serialize_quad(<span class="kw-2">&amp;</span>quad.unwrap()).unwrap();
+}
+<span class="macro">assert_eq!</span>(serializer.finish().unwrap(), ntriples_file);</code></pre></div>
+<p>Parsers for other RDF formats exists in Rust like <a href="https://github.com/nbittich/graph-rdfa-processor">graph-rdfa-processor</a> for RDFa and <a href="https://github.com/timothee-haudebourg/json-ld">json-ld</a> for JSON-LD.</p>
+<h3 id="license"><a class="doc-anchor" href="#license">§</a>License</h3>
+<p>This project is licensed under either of</p>
+<ul>
+<li>Apache License, Version 2.0, (<a href="../LICENSE-APACHE">LICENSE-APACHE</a> or
+<code>&lt;http://www.apache.org/licenses/LICENSE-2.0&gt;</code>)</li>
+<li>MIT license (<a href="../LICENSE-MIT">LICENSE-MIT</a> or
+<code>&lt;http://opensource.org/licenses/MIT&gt;</code>)</li>
+</ul>
+<p>at your option.</p>
+<h4 id="contribution"><a class="doc-anchor" href="#contribution">§</a>Contribution</h4>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Oxigraph by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.JsonLdProfileSet.html" title="struct oxrdfio::JsonLdProfileSet">Json<wbr>LdProfile<wbr>Set</a></dt><dd>Set of JSON-Ld profiles.</dd><dt><a class="struct" href="struct.LoadedDocument.html" title="struct oxrdfio::LoadedDocument">Loaded<wbr>Document</a></dt><dd>A remote document fetched to support parsing.</dd><dt><a class="struct" href="struct.RdfParser.html" title="struct oxrdfio::RdfParser">RdfParser</a></dt><dd>Parsers for RDF serialization formats.</dd><dt><a class="struct" href="struct.RdfSerializer.html" title="struct oxrdfio::RdfSerializer">RdfSerializer</a></dt><dd>A serializer for RDF serialization formats.</dd><dt><a class="struct" href="struct.RdfSyntaxError.html" title="struct oxrdfio::RdfSyntaxError">RdfSyntax<wbr>Error</a></dt><dd>An error in the syntax of the parsed file.</dd><dt><a class="struct" href="struct.ReaderQuadParser.html" title="struct oxrdfio::ReaderQuadParser">Reader<wbr>Quad<wbr>Parser</a></dt><dd>Parses a RDF file from a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Read.html" title="trait std::io::Read"><code>Read</code></a> implementation.</dd><dt><a class="struct" href="struct.SliceQuadParser.html" title="struct oxrdfio::SliceQuadParser">Slice<wbr>Quad<wbr>Parser</a></dt><dd>Parses a RDF file from a byte slice.</dd><dt><a class="struct" href="struct.TextPosition.html" title="struct oxrdfio::TextPosition">Text<wbr>Position</a></dt><dd>A position in a text i.e. a <code>line</code> number starting from 0, a <code>column</code> number starting from 0 (in number of code points) and a global file <code>offset</code> starting from 0 (in number of bytes).</dd><dt><a class="struct" href="struct.WriterQuadSerializer.html" title="struct oxrdfio::WriterQuadSerializer">Writer<wbr>Quad<wbr>Serializer</a></dt><dd>Serializes quads or triples to a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Write.html" title="trait std::io::Write"><code>Write</code></a> implementation.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.JsonLdProfile.html" title="enum oxrdfio::JsonLdProfile">Json<wbr>LdProfile</a></dt><dd>JSON-Ld profile.</dd><dt><a class="enum" href="enum.RdfFormat.html" title="enum oxrdfio::RdfFormat">RdfFormat</a></dt><dd>RDF serialization formats.</dd><dt><a class="enum" href="enum.RdfParseError.html" title="enum oxrdfio::RdfParseError">RdfParse<wbr>Error</a></dt><dd>Error returned during RDF format parsing.</dd></dl></section></div></main></body></html>

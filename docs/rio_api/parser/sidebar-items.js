@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["GeneralizedQuadsParserIterator","LineBytePosition","QuadsParserIterator","TriplesParserIterator"],"trait":["GeneralizedQuadsParser","ParseError","QuadsParser","TriplesParser"]};

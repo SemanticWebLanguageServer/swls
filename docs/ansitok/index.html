@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This is a crate is made for parsing ANSI escape sequences."><title>ansitok - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="ansitok" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate ansitok</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../ansitok/index.html">ansitok</a><span class="version">0.3.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#usage" title="Usage">Usage</a></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>ansitok</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/ansitok/lib.rs.html#1-58">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This is a crate is made for parsing ANSI escape sequences.</p>
+<p>The list of covered sequences.</p>
+<ul>
+<li>Cursor Position</li>
+<li>Cursor {Up, Down, Forward, Backward}</li>
+<li>Cursor {Save, Restore}</li>
+<li>Erase Display</li>
+<li>Erase Line</li>
+<li>Set Graphics mode</li>
+<li>Set/Reset Text Mode</li>
+</ul>
+<h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ansitok::parse_ansi;
+
+<span class="kw">let </span>text = <span class="string">"\x1b[31;1;4mHello World\x1b[0m"</span>;
+<span class="kw">for </span>token <span class="kw">in </span>parse_ansi(text) {
+    <span class="kw">let </span>kind = token.kind();
+    <span class="kw">let </span>token_text = <span class="kw-2">&amp;</span>text[token.start()..token.end()];
+
+    <span class="macro">println!</span>(<span class="string">"text={:?} kind={:?}"</span>, token_text, kind);
+}</code></pre></div>
+<p>Parse SGR.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ansitok::{parse_ansi, parse_ansi_sgr, Output, ElementKind};
+
+<span class="kw">let </span>text = <span class="string">"\x1b[31;1;4mHello World\x1b[0m \x1b[38;2;255;255;0m!!!\x1b[0m"</span>;
+<span class="kw">for </span>token <span class="kw">in </span>parse_ansi(text) {
+    <span class="kw">if </span>token.kind() != ElementKind::Sgr {
+        <span class="kw">continue</span>;
+    }
+
+    <span class="kw">let </span>sgr = <span class="kw-2">&amp;</span>text[token.start()..token.end()];
+    <span class="kw">for </span>style <span class="kw">in </span>parse_ansi_sgr(sgr) {
+        <span class="macro">println!</span>(<span class="string">"style={:?}"</span>, style);
+        <span class="kw">let </span>style = style.as_escape().unwrap();
+        <span class="macro">println!</span>(<span class="string">"style={:?}"</span>, style);
+    }
+}</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.AnsiIterator.html" title="struct ansitok::AnsiIterator">Ansi<wbr>Iterator</a></dt><dd>An ANSI escape sequence parser.</dd><dt><a class="struct" href="struct.Element.html" title="struct ansitok::Element">Element</a></dt><dd>Element indicates a slice position in the string and its type.</dd><dt><a class="struct" href="struct.SGRParser.html" title="struct ansitok::SGRParser">SGRParser</a></dt><dd>A parser for SGR sequences.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.AnsiColor.html" title="enum ansitok::AnsiColor">Ansi<wbr>Color</a></dt><dd>A Color representation in ANSI sequences.</dd><dt><a class="enum" href="enum.ElementKind.html" title="enum ansitok::ElementKind">Element<wbr>Kind</a></dt><dd>A type of a section in a text with ANSI sequences.</dd><dt><a class="enum" href="enum.EscapeCode.html" title="enum ansitok::EscapeCode">Escape<wbr>Code</a></dt><dd>An ANSI Escape Sequence.</dd><dt><a class="enum" href="enum.Output.html" title="enum ansitok::Output">Output</a></dt><dd>The type which represents a result of parsing.</dd><dt><a class="enum" href="enum.VisualAttribute.html" title="enum ansitok::VisualAttribute">Visual<wbr>Attribute</a></dt><dd>An attribute of Select Graphic Rendition(SGR)</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.parse_ansi.html" title="fn ansitok::parse_ansi">parse_<wbr>ansi</a></dt><dd>Creates a parser for ANSI escape sequences.</dd><dt><a class="fn" href="fn.parse_ansi_sgr.html" title="fn ansitok::parse_ansi_sgr">parse_<wbr>ansi_<wbr>sgr</a></dt><dd>Creates a parser for Select Graphic Rendition(SGR) sequences.</dd></dl></section></div></main></body></html>

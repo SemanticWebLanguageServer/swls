@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LoaderError","SerializerError","StorageError"],"struct":["BulkLoader","CorruptionError","GraphNameIter","QuadIter","Store","Transaction"]};

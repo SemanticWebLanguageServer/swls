@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="OxRDF/XML"><title>oxrdfxml - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="oxrdfxml" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate oxrdfxml</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../oxrdfxml/index.html"><img src="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg" alt="logo"></a><h2><a href="../oxrdfxml/index.html">oxrdfxml</a><span class="version">0.2.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#oxrdfxml" title="OxRDF/XML">OxRDF/XML</a><ul><li><a href="#license" title="License">License</a></li></ul></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>oxrdfxml</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/oxrdfxml/lib.rs.html#1-18">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="oxrdfxml"><a class="doc-anchor" href="#oxrdfxml">§</a>OxRDF/XML</h2>
+<p><a href="https://crates.io/crates/oxrdfxml"><img src="https://img.shields.io/crates/v/oxrdfxml.svg" alt="Latest Version" /></a>
+<a href="https://docs.rs/oxrdfxml"><img src="https://docs.rs/oxrdfxml/badge.svg" alt="Released API docs" /></a>
+<a href="https://crates.io/crates/oxrdfxml"><img src="https://img.shields.io/crates/d/oxrdfxml" alt="Crates.io downloads" /></a>
+<a href="https://github.com/oxigraph/oxigraph/actions"><img src="https://github.com/oxigraph/oxigraph/workflows/build/badge.svg" alt="actions status" /></a>
+<a href="https://gitter.im/oxigraph/community"><img src="https://badges.gitter.im/oxigraph/community.svg" alt="Gitter" /></a></p>
+<p>OxRdfXml is a parser and serializer for <a href="https://www.w3.org/TR/rdf-syntax-grammar/">RDF/XML</a>.</p>
+<p>The entry points of this library are the two <a href="struct.RdfXmlParser.html" title="struct oxrdfxml::RdfXmlParser"><code>RdfXmlParser</code></a> and <a href="struct.RdfXmlSerializer.html" title="struct oxrdfxml::RdfXmlSerializer"><code>RdfXmlSerializer</code></a> structs.</p>
+<p>Support for <a href="https://www.w3.org/TR/rdf12-concepts/">RDF 1.2</a> is available behind the <code>rdf-12</code> feature.</p>
+<p>Usage example counting the number of people in a RDF/XML file:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>oxrdf::{NamedNodeRef, vocab::rdf};
+<span class="kw">use </span>oxrdfxml::RdfXmlParser;
+
+<span class="kw">let </span>file = <span class="string">br#"&lt;?xml version="1.0"?&gt;
+&lt;rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:schema="http://schema.org/"&gt;
+ &lt;rdf:Description rdf:about="http://example.com/foo"&gt;
+   &lt;rdf:type rdf:resource="http://schema.org/Person" /&gt;
+   &lt;schema:name&gt;Foo&lt;/schema:name&gt;
+ &lt;/rdf:Description&gt;
+ &lt;schema:Person rdf:about="http://example.com/bar" schema:name="Bar" /&gt;
+&lt;/rdf:RDF&gt;"#</span>;
+
+<span class="kw">let </span>schema_person = NamedNodeRef::new(<span class="string">"http://schema.org/Person"</span>).unwrap();
+<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+<span class="kw">for </span>triple <span class="kw">in </span>RdfXmlParser::new().for_reader(file.as_ref()) {
+    <span class="kw">let </span>triple = triple.unwrap();
+    <span class="kw">if </span>triple.predicate == rdf::TYPE &amp;&amp; triple.object == schema_person.into() {
+        count += <span class="number">1</span>;
+    }
+}
+<span class="macro">assert_eq!</span>(<span class="number">2</span>, count);</code></pre></div><h3 id="license"><a class="doc-anchor" href="#license">§</a>License</h3>
+<p>This project is licensed under either of</p>
+<ul>
+<li>Apache License, Version 2.0, (<a href="../LICENSE-APACHE">LICENSE-APACHE</a> or
+<code>&lt;http://www.apache.org/licenses/LICENSE-2.0&gt;</code>)</li>
+<li>MIT license (<a href="../LICENSE-MIT">LICENSE-MIT</a> or
+<code>&lt;http://opensource.org/licenses/MIT&gt;</code>)</li>
+</ul>
+<p>at your option.</p>
+<h4 id="contribution"><a class="doc-anchor" href="#contribution">§</a>Contribution</h4>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Oxigraph by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.RdfXmlParser.html" title="struct oxrdfxml::RdfXmlParser">RdfXml<wbr>Parser</a></dt><dd>A <a href="https://www.w3.org/TR/rdf-syntax-grammar/">RDF/XML</a> streaming parser.</dd><dt><a class="struct" href="struct.RdfXmlPrefixesIter.html" title="struct oxrdfxml::RdfXmlPrefixesIter">RdfXml<wbr>Prefixes<wbr>Iter</a></dt><dd>Iterator on the file prefixes.</dd><dt><a class="struct" href="struct.RdfXmlSerializer.html" title="struct oxrdfxml::RdfXmlSerializer">RdfXml<wbr>Serializer</a></dt><dd>A <a href="https://www.w3.org/TR/rdf-syntax-grammar/">RDF/XML</a> serializer.</dd><dt><a class="struct" href="struct.RdfXmlSyntaxError.html" title="struct oxrdfxml::RdfXmlSyntaxError">RdfXml<wbr>Syntax<wbr>Error</a></dt><dd>An error in the syntax of the parsed file.</dd><dt><a class="struct" href="struct.ReaderRdfXmlParser.html" title="struct oxrdfxml::ReaderRdfXmlParser">Reader<wbr>RdfXml<wbr>Parser</a></dt><dd>Parses a RDF/XML file from a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Read.html" title="trait std::io::Read"><code>Read</code></a> implementation.</dd><dt><a class="struct" href="struct.SliceRdfXmlParser.html" title="struct oxrdfxml::SliceRdfXmlParser">Slice<wbr>RdfXml<wbr>Parser</a></dt><dd>Parses a RDF/XML file from a byte slice.</dd><dt><a class="struct" href="struct.WriterRdfXmlSerializer.html" title="struct oxrdfxml::WriterRdfXmlSerializer">Writer<wbr>RdfXml<wbr>Serializer</a></dt><dd>Serializes a RDF/XML file to a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Write.html" title="trait std::io::Write"><code>Write</code></a> implementation.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.RdfXmlParseError.html" title="enum oxrdfxml::RdfXmlParseError">RdfXml<wbr>Parse<wbr>Error</a></dt><dd>Error returned during RDF/XML parsing.</dd></dl></section></div></main></body></html>

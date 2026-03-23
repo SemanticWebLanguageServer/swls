@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["bool","debug","empty","option","truncate","wrap"]};

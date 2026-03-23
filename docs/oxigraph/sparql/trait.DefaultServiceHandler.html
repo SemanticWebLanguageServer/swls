@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Default handler for SPARQL 1.1 Federated Query SERVICEs."><title>DefaultServiceHandler in oxigraph::sparql - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="oxigraph" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-ffcac47a.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">DefaultServiceHandler</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../oxigraph/index.html"><img src="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg" alt="logo"></a><h2><a href="../../oxigraph/index.html">oxigraph</a><span class="version">0.5.4</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Default<wbr>Service<wbr>Handler</a></h2><h3><a href="#required-associated-types">Required Associated Types</a></h3><ul class="block"><li><a href="#associatedtype.Error" title="Error">Error</a></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.handle" title="handle">handle</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In oxigraph::<wbr>sparql</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">oxigraph</a>::<wbr><a href="index.html">sparql</a></div><h1>Trait <span class="trait">Default<wbr>Service<wbr>Handler</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/spareval/service.rs.html#131">Source</a> </span></div><pre class="rust item-decl"><code>pub trait DefaultServiceHandler: <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> {
+    type <a href="#associatedtype.Error" class="associatedtype">Error</a>: <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/error/trait.Error.html" title="trait core::error::Error">Error</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static;
+
+    // Required method
+    fn <a href="#tymethod.handle" class="fn">handle</a>(
+        &amp;self,
+        service_name: &amp;<a class="struct" href="../model/struct.NamedNode.html" title="struct oxigraph::model::NamedNode">NamedNode</a>,
+        pattern: &amp;<a class="enum" href="../../spargebra/algebra/enum.GraphPattern.html" title="enum spargebra::algebra::GraphPattern">GraphPattern</a>,
+        base_iri: <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="struct" href="../../oxiri/struct.Iri.html" title="struct oxiri::Iri">Iri</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.QuerySolutionIter.html" title="struct oxigraph::sparql::QuerySolutionIter">QuerySolutionIter</a>&lt;'static&gt;, Self::<a class="associatedtype" href="trait.DefaultServiceHandler.html#associatedtype.Error" title="type oxigraph::sparql::DefaultServiceHandler::Error">Error</a>&gt;;
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Default handler for <a href="https://www.w3.org/TR/sparql11-federated-query/">SPARQL 1.1 Federated Query</a> SERVICEs.</p>
+<p>Should be given to <a href="../../spareval/struct.QueryEvaluator.html#method.with_default_service_handler" title="method spareval::QueryEvaluator::with_default_service_handler"><code>QueryOptions</code></a>
+before evaluating a SPARQL query that uses SERVICE calls.</p>
+<p>Note that you can also use <a href="trait.ServiceHandler.html" title="trait oxigraph::sparql::ServiceHandler"><code>ServiceHandler</code></a> if you need to handle a single service and not any service.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>oxiri::Iri;
+<span class="kw">use </span>oxrdf::{Dataset, NamedNode, Variable};
+<span class="kw">use </span>sparesults::QuerySolution;
+<span class="kw">use </span>spareval::{DefaultServiceHandler, QueryEvaluator, QueryResults, QuerySolutionIter};
+<span class="kw">use </span>spargebra::SparqlParser;
+<span class="kw">use </span>spargebra::algebra::GraphPattern;
+<span class="kw">use </span>std::convert::Infallible;
+<span class="kw">use </span>std::iter::once;
+<span class="kw">use </span>std::sync::Arc;
+
+<span class="kw">struct </span>TestServiceHandler {}
+
+<span class="kw">impl </span>DefaultServiceHandler <span class="kw">for </span>TestServiceHandler {
+    <span class="kw">type </span>Error = Infallible;
+
+    <span class="kw">fn </span>handle(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        service_name: <span class="kw-2">&amp;</span>NamedNode,
+        _pattern: <span class="kw-2">&amp;</span>GraphPattern,
+        _base_iri: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Iri&lt;String&gt;&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;QuerySolutionIter&lt;<span class="lifetime">'static</span>&gt;, <span class="self">Self</span>::Error&gt; {
+        <span class="comment">// Always return a single binding name -&gt; name of service
+        </span><span class="kw">let </span>variables = [Variable::new_unchecked(<span class="string">"foo"</span>)].into();
+        <span class="prelude-val">Ok</span>(QuerySolutionIter::new(
+            Arc::clone(<span class="kw-2">&amp;</span>variables),
+            once(<span class="prelude-val">Ok</span>(QuerySolution::from((
+                variables,
+                <span class="macro">vec!</span>[<span class="prelude-val">Some</span>(service_name.clone().into())],
+            )))),
+        ))
+    }
+}
+
+<span class="kw">let </span>evaluator = QueryEvaluator::default().with_default_service_handler(TestServiceHandler {});
+<span class="kw">let </span>query = SparqlParser::new()
+    .parse_query(<span class="string">"SELECT ?foo WHERE { SERVICE &lt;http://example.com/service&gt; {} }"</span>)<span class="question-mark">?</span>;
+<span class="kw">if let </span>QueryResults::Solutions(<span class="kw-2">mut </span>solutions) =
+    evaluator.prepare(<span class="kw-2">&amp;</span>query).execute(<span class="kw-2">&amp;</span>Dataset::new())<span class="question-mark">?
+</span>{
+    <span class="macro">assert_eq!</span>(
+        solutions.next().unwrap()<span class="question-mark">?</span>.get(<span class="string">"foo"</span>),
+        <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>NamedNode::new(<span class="string">"http://example.com/service"</span>)<span class="question-mark">?</span>.into())
+    );
+}</code></pre></div></div></details><h2 id="required-associated-types" class="section-header">Required Associated Types<a href="#required-associated-types" class="anchor">§</a></h2><div class="methods"><details class="toggle" open><summary><section id="associatedtype.Error" class="method"><a class="src rightside" href="../../src/spareval/service.rs.html#133">Source</a><h4 class="code-header">type <a href="#associatedtype.Error" class="associatedtype">Error</a>: <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/error/trait.Error.html" title="trait core::error::Error">Error</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static</h4></section></summary><div class="docblock"><p>The service evaluation error.</p>
+</div></details></div><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.handle" class="method"><a class="src rightside" href="../../src/spareval/service.rs.html#136-141">Source</a><h4 class="code-header">fn <a href="#tymethod.handle" class="fn">handle</a>(
+    &amp;self,
+    service_name: &amp;<a class="struct" href="../model/struct.NamedNode.html" title="struct oxigraph::model::NamedNode">NamedNode</a>,
+    pattern: &amp;<a class="enum" href="../../spargebra/algebra/enum.GraphPattern.html" title="enum spargebra::algebra::GraphPattern">GraphPattern</a>,
+    base_iri: <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a class="struct" href="../../oxiri/struct.Iri.html" title="struct oxiri::Iri">Iri</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.QuerySolutionIter.html" title="struct oxigraph::sparql::QuerySolutionIter">QuerySolutionIter</a>&lt;'static&gt;, Self::<a class="associatedtype" href="trait.DefaultServiceHandler.html#associatedtype.Error" title="type oxigraph::sparql::DefaultServiceHandler::Error">Error</a>&gt;</h4></section></summary><div class="docblock"><p>Evaluates a <a href="../../spargebra/algebra/enum.GraphPattern.html" title="enum spargebra::algebra::GraphPattern"><code>GraphPattern</code></a> against a given service identified by a <a href="../model/struct.NamedNode.html" title="struct oxigraph::model::NamedNode"><code>NamedNode</code></a>.</p>
+</div></details></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../../trait.impl/spareval/service/trait.DefaultServiceHandler.js" async></script></section></div></main></body></html>

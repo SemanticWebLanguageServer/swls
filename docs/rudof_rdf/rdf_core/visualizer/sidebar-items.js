@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["VisualRDFEdge","VisualRDFNode"],"mod":["errors","style","uml_converter","utils"],"struct":["EdgeId","NodeId","RDFVisualizationConfig","VisualRDFGraph"]};

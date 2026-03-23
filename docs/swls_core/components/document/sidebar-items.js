@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CurrentType","Dirty","DocumentLinks","DynLang","Element","Errors","Global","KeyWords","Label","Open","PositionComponent","RopeC","Source","Wrapped"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["InMemoryGraphError","ReaderMode","SparqlEndpointError"],"struct":["InMemoryGraph","SparqlEndpoint","SparqlVars"]};

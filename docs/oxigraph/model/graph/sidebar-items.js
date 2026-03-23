@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CanonicalizationAlgorithm","CanonicalizationHashAlgorithm"],"struct":["Graph","Iter"]};

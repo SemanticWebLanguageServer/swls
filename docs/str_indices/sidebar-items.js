@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["chars","lines","lines_crlf","lines_lf","utf16"]};

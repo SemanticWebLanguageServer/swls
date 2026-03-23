@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["buf_records","either_string","limit_column_records","limit_row_records","truncate_records"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["prepare_rename","rename","setup_schedules"],"struct":["PrepareRename","PrepareRenameRequest","Rename","RenameEdits"]};

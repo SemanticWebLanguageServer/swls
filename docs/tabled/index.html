@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="An easy to use library for pretty print tables of Rust `struct`s and `enum`s."><title>tabled - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="tabled" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate tabled</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../tabled/index.html"><img src="https://raw.githubusercontent.com/zhiburt/tabled/86ac146e532ce9f7626608d7fd05072123603a2e/assets/tabled-gear.svg" alt="logo"></a><h2><a href="../tabled/index.html">tabled</a><span class="version">0.20.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#building-table-step-by-step" title="Building table step by step">Building table step by step</a></li><li><a href="#settings-1" title="Settings">Settings</a></li><li><a href="#hints" title="Hints">Hints</a></li><li><a href="#no_std" title="`no_std`"><code>no_std</code></a></li><li><a href="#features" title="Features">Features</a><ul><li><a href="#more-information" title="More information">More information</a></li></ul></li></ul><h3><a href="#reexports">Crate Items</a></h3><ul class="block"><li><a href="#reexports" title="Re-exports">Re-exports</a></li><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#macros" title="Macros">Macros</a></li><li><a href="#traits" title="Traits">Traits</a></li><li><a href="#derives" title="Derive Macros">Derive Macros</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>tabled</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/tabled/lib.rs.html#1-307">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>An easy to use library for pretty print tables of Rust <code>struct</code>s and <code>enum</code>s.</p>
+<p>There’s two approaches to construct a table.</p>
+<ol>
+<li>When the type of data is known.</li>
+<li>When it’s unknown.</li>
+</ol>
+<p>Here you can work with both.<br />
+For first approach you shall find <a href="derive.Tabled.html" title="derive tabled::Tabled"><code>derive::Tabled</code></a> macros being very helpfull.<br />
+For a later one you shall take a look at <a href="builder/struct.Builder.html" title="struct tabled::builder::Builder"><code>Builder</code></a>.</p>
+<p>There are a number of <a href="settings/index.html" title="mod tabled::settings"><code>settings</code></a> you can use<br />
+to change table appearance, layout and data itself.</p>
+<p>Beside a default <a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> type there are more,<br />
+more specific table which works best when there are some constraints.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{
+    Tabled, Table, assert::assert_table,
+    settings::{Style, Alignment, object::Columns},
+};
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Language {
+    name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    designed_by: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    invented_year: usize,
+}
+
+<span class="kw">let </span>languages = <span class="macro">vec!</span>[
+    Language{ name: <span class="string">"C"</span>, designed_by: <span class="string">"Dennis Ritchie"</span>, invented_year: <span class="number">1972 </span>},
+    Language{ name: <span class="string">"Rust"</span>, designed_by: <span class="string">"Graydon Hoare"</span>, invented_year: <span class="number">2010 </span>},
+    Language{ name: <span class="string">"Go"</span>, designed_by: <span class="string">"Rob Pike"</span>, invented_year: <span class="number">2009 </span>},
+];
+
+<span class="kw">let </span><span class="kw-2">mut </span>table = Table::new(languages);
+table.with(Style::modern());
+table.modify(Columns::first(), Alignment::right());
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"┌──────┬────────────────┬───────────────┐"
+    "│ name │ designed_by    │ invented_year │"
+    "├──────┼────────────────┼───────────────┤"
+    "│    C │ Dennis Ritchie │ 1972          │"
+    "├──────┼────────────────┼───────────────┤"
+    "│ Rust │ Graydon Hoare  │ 2010          │"
+    "├──────┼────────────────┼───────────────┤"
+    "│   Go │ Rob Pike       │ 2009          │"
+    "└──────┴────────────────┴───────────────┘"
+</span>);</code></pre></div><h3 id="building-table-step-by-step"><a class="doc-anchor" href="#building-table-step-by-step">§</a>Building table step by step</h3>
+<p>When you data scheme is not known at compile time.<br />
+You most likely will not able to relay on <a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a>.<br />
+One option would be is to use <a href="builder/struct.Builder.html" title="struct tabled::builder::Builder"><code>Builder</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::iter::once;
+<span class="kw">use </span>tabled::{builder::Builder, settings::Style, assert::assert_table};
+
+<span class="kw">const </span>X: usize = <span class="number">3</span>;
+<span class="kw">const </span>Y: usize = <span class="number">5</span>;
+
+<span class="kw">let </span><span class="kw-2">mut </span>builder = Builder::default();
+
+<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..X {
+    <span class="kw">let </span>row = (<span class="number">0</span>..Y).map(|j| (i * j).to_string());
+    builder.push_record(row);
+}
+
+builder.insert_record(<span class="number">0</span>, (<span class="number">0</span>..Y).map(|i| i.to_string()));
+builder.insert_column(<span class="number">0</span>, once(String::new()).chain((<span class="number">0</span>..X).map(|i| i.to_string())));
+
+<span class="kw">let </span><span class="kw-2">mut </span>table = builder.build();
+table.with(Style::rounded());
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"╭───┬───┬───┬───┬───┬───╮"
+    "│   │ 0 │ 1 │ 2 │ 3 │ 4 │"
+    "├───┼───┼───┼───┼───┼───┤"
+    "│ 0 │ 0 │ 0 │ 0 │ 0 │ 0 │"
+    "│ 1 │ 0 │ 1 │ 2 │ 3 │ 4 │"
+    "│ 2 │ 0 │ 2 │ 4 │ 6 │ 8 │"
+    "╰───┴───┴───┴───┴───┴───╯"
+</span>);</code></pre></div><h3 id="settings-1"><a class="doc-anchor" href="#settings-1">§</a>Settings</h3>
+<p>You can find lots of settings in <a href="settings/index.html" title="mod tabled::settings"><code>tabled::settings</code></a>.</p>
+<h3 id="hints"><a class="doc-anchor" href="#hints">§</a>Hints</h3>
+<p><a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> can be build from vast majority of Rust’s standard types.<br />
+This allows you to run the following code.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{Table, assert::assert_table};
+
+<span class="kw">let </span>table = Table::new(<span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"+-----+"
+    "| i32 |"
+    "+-----+"
+    "| 1   |"
+    "+-----+"
+    "| 2   |"
+    "+-----+"
+    "| 3   |"
+    "+-----+"
+</span>);</code></pre></div>
+<p>You can compine types, and settings together using a tupples.<br />
+And achive magical results.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{
+    Table, assert::assert_table,
+    settings::{style::{Style, HorizontalLine}, Alignment, Padding},
+};
+
+<span class="kw">let </span>data = <span class="kw-2">&amp;</span>[(<span class="number">1</span>, <span class="number">2</span>, <span class="string">"Hello"</span>), (<span class="number">1</span>, <span class="number">3</span>, <span class="string">"World"</span>)];
+
+<span class="kw">let </span><span class="kw-2">mut </span>table = Table::new(data);
+table.with(
+    Style::modern()
+        .remove_horizontal()
+        .horizontals([(<span class="number">1</span>, HorizontalLine::inherit(Style::modern()))])
+);
+table.with((Alignment::right(), Padding::new(<span class="number">2</span>, <span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>)));
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"┌─────┬─────┬───────┐"
+    "│     │     │       │"
+    "│     │     │       │"
+    "│  i32│  i32│   &amp;str│"
+    "│     │     │       │"
+    "├─────┼─────┼───────┤"
+    "│     │     │       │"
+    "│     │     │       │"
+    "│    1│    2│  Hello│"
+    "│     │     │       │"
+    "│     │     │       │"
+    "│     │     │       │"
+    "│    1│    3│  World│"
+    "│     │     │       │"
+    "└─────┴─────┴───────┘"
+</span>);</code></pre></div>
+<p>Be ware you don’t obligated to <code>collect</code> your data before building.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{Tabled, Table, assert::assert_table};
+
+<span class="kw">let </span>data = (<span class="number">0</span>..<span class="number">3</span>).map(|i| [i, i * <span class="number">2</span>, i * <span class="number">3</span>]);
+
+<span class="kw">let </span><span class="kw-2">mut </span>table = Table::new(data);
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"+---+---+---+"
+    "| 0 | 1 | 2 |"
+    "+---+---+---+"
+    "| 0 | 0 | 0 |"
+    "+---+---+---+"
+    "| 1 | 2 | 3 |"
+    "+---+---+---+"
+    "| 2 | 4 | 6 |"
+    "+---+---+---+"
+</span>);</code></pre></div>
+<p>Build table using <a href="macro.row.html" title="macro tabled::row"><code>row!</code></a> and <a href="macro.col.html" title="macro tabled::col"><code>col!</code></a> macros.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{row, col, assert::assert_table};
+
+<span class="kw">let </span>table = <span class="macro">row!</span>[
+    <span class="macro">col!</span>[<span class="string">"Hello"</span>, <span class="string">"World"</span>, <span class="string">"!"</span>],
+    <span class="macro">col!</span>[<span class="string">"Hello"</span>; <span class="number">3</span>],
+    <span class="macro">col!</span>[<span class="string">"World"</span>; <span class="number">3</span>],
+];
+
+<span class="macro">assert_table!</span>(
+    table,
+    <span class="string">"+-----------+-----------+-----------+"
+    "| +-------+ | +-------+ | +-------+ |"
+    "| | Hello | | | Hello | | | World | |"
+    "| +-------+ | +-------+ | +-------+ |"
+    "| | World | | | Hello | | | World | |"
+    "| +-------+ | +-------+ | +-------+ |"
+    "| | !     | | | Hello | | | World | |"
+    "| +-------+ | +-------+ | +-------+ |"
+    "+-----------+-----------+-----------+"
+</span>);</code></pre></div><h2 id="no_std"><a class="doc-anchor" href="#no_std">§</a><code>no_std</code></h2>
+<p>Only <a href="tables/struct.CompactTable.html" title="struct tabled::tables::CompactTable"><code>CompactTable</code></a> can be used in <code>no_std</code> context.</p>
+<h2 id="features"><a class="doc-anchor" href="#features">§</a>Features</h2>
+<ul>
+<li><code>std</code>     - Used by default. If not its considered <code>no_std</code> with a limited set of functionality.</li>
+<li><code>derive</code>  - Used by default. A support for <code>Tabled</code> derive macro.</li>
+<li><code>ansi</code>    - A support for ANSI sequences.</li>
+<li><code>macros</code>  - A support for <code>row!</code>, <code>col!</code> macro.</li>
+</ul>
+<h3 id="more-information"><a class="doc-anchor" href="#more-information">§</a>More information</h3>
+<p>You can find more examples of settings and attributes in
+<a href="https://github.com/zhiburt/tabled/blob/master/README.md">README.md</a></p>
+</div></details><h2 id="reexports" class="section-header">Re-exports<a href="#reexports" class="anchor">§</a></h2><dl class="item-table reexports"><dt id="reexport.Table"><code>pub use crate::tables::<a class="struct" href="tables/struct.Table.html" title="struct tabled::tables::Table">Table</a>;</code></dt></dl><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="assert/index.html" title="mod tabled::assert">assert</a></dt><dd>Assert module contains a help macros to compare and test tables conveniently.</dd><dt><a class="mod" href="builder/index.html" title="mod tabled::builder">builder</a></dt><dd>Builder module provides a <a href="builder/struct.Builder.html" title="struct tabled::builder::Builder"><code>Builder</code></a> type which helps building
+a <a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> dynamically.</dd><dt><a class="mod" href="derive/index.html" title="mod tabled::derive">derive</a></dt><dd>Module contains a list of helpers for work with derive.</dd><dt><a class="mod" href="grid/index.html" title="mod tabled::grid">grid</a></dt><dd>Module is responsible for tables underlyign grid.</dd><dt><a class="mod" href="iter/index.html" title="mod tabled::iter">iter</a></dt><dd>A module for iterator structures.</dd><dt><a class="mod" href="settings/index.html" title="mod tabled::settings">settings</a></dt><dd>Module contains various table configuration settings.</dd><dt><a class="mod" href="tables/index.html" title="mod tabled::tables">tables</a></dt><dd>Module contains a list of table representatives.</dd></dl><h2 id="macros" class="section-header">Macros<a href="#macros" class="anchor">§</a></h2><dl class="item-table"><dt><a class="macro" href="macro.col.html" title="macro tabled::col">col</a></dt><dd>Creates a <a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> with <a href="https://doc.rust-lang.org/1.94.0/core/fmt/trait.Display.html" title="trait core::fmt::Display"><code>Display</code></a> arguments nested within.</dd><dt><a class="macro" href="macro.row.html" title="macro tabled::row">row</a></dt><dd>Creates a <a href="tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> with <a href="https://doc.rust-lang.org/1.94.0/core/fmt/trait.Display.html" title="trait core::fmt::Display"><code>Display</code></a> arguments nested within.</dd></dl><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><dl class="item-table"><dt><a class="trait" href="trait.Tabled.html" title="trait tabled::Tabled">Tabled</a></dt><dd>Tabled a trait responsible for providing a header fields and a row fields.</dd></dl><h2 id="derives" class="section-header">Derive Macros<a href="#derives" class="anchor">§</a></h2><dl class="item-table"><dt><a class="derive" href="derive.Tabled.html" title="derive tabled::Tabled">Tabled</a></dt><dd>A derive macro to implement a <a href="derive.Tabled.html" title="derive tabled::Tabled"><code>Tabled</code></a> trait.</dd></dl></section></div></main></body></html>

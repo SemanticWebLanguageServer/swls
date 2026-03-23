@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["owl","rdf","rdfs","xml","xsd"],"struct":["IriRef","Namespace","NsTerm"]};

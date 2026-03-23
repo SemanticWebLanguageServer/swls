@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":["AsMut","AsRef","Binary","Deref","DerefMut","Display","From","Into","IsVariant","LowerExp","LowerHex","Octal","Pointer","UpperExp","UpperHex"]};

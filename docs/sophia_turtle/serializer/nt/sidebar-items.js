@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["write_term","write_triple"],"struct":["NtConfig","NtSerializer"]};

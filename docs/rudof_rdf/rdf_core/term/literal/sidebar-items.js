@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConcreteLiteral","LangParseError","NumericLiteral","XsdDateTimeParseError"],"struct":["Lang","XsdDateTime"],"trait":["Literal"]};

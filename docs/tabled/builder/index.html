@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Builder module provides a `Builder` type which helps building a `Table` dynamically."><title>tabled::builder - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="tabled" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module builder</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../tabled/index.html"><img src="https://raw.githubusercontent.com/zhiburt/tabled/86ac146e532ce9f7626608d7fd05072123603a2e/assets/tabled-gear.svg" alt="logo"></a><h2><a href="../../tabled/index.html">tabled</a><span class="version">0.20.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module builder</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate tabled</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">tabled</a></div><h1>Module <span>builder</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/tabled/builder/mod.rs.html#1-115">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Builder module provides a <a href="struct.Builder.html" title="struct tabled::builder::Builder"><code>Builder</code></a> type which helps building
+a <a href="../tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> dynamically.</p>
+<p>It also contains <a href="struct.IndexBuilder.html" title="struct tabled::builder::IndexBuilder"><code>IndexBuilder</code></a> which can help to build a table with index.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<p>Here’s an example of <a href="struct.IndexBuilder.html" title="struct tabled::builder::IndexBuilder"><code>IndexBuilder</code></a> usage</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{Table, Tabled, settings::Style};
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Mission {
+    name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    <span class="attr">#[tabled(inline)]
+    </span>status: Status,
+}
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">enum </span>Status {
+    Complete,
+    Started,
+    Ready,
+    Unknown,
+}
+
+<span class="kw">let </span>data = [
+    Mission { name: <span class="string">"Algebra"</span>, status: Status::Unknown },
+    Mission { name: <span class="string">"Apolo"</span>, status: Status::Complete },
+];
+
+<span class="kw">let </span><span class="kw-2">mut </span>builder = Table::builder(<span class="kw-2">&amp;</span>data)
+    .index()
+    .column(<span class="number">0</span>)
+    .name(<span class="prelude-val">None</span>)
+    .transpose();
+
+<span class="kw">let </span><span class="kw-2">mut </span>table = builder.build();
+table.with(Style::modern());
+
+<span class="macro">println!</span>(<span class="string">"{}"</span>, table);
+
+<span class="macro">assert_eq!</span>(
+    table.to_string(),
+    <span class="macro">concat!</span>(
+        <span class="string">"┌──────────┬─────────┬───────┐\n"</span>,
+        <span class="string">"│          │ Algebra │ Apolo │\n"</span>,
+        <span class="string">"├──────────┼─────────┼───────┤\n"</span>,
+        <span class="string">"│ Complete │         │ +     │\n"</span>,
+        <span class="string">"├──────────┼─────────┼───────┤\n"</span>,
+        <span class="string">"│ Started  │         │       │\n"</span>,
+        <span class="string">"├──────────┼─────────┼───────┤\n"</span>,
+        <span class="string">"│ Ready    │         │       │\n"</span>,
+        <span class="string">"├──────────┼─────────┼───────┤\n"</span>,
+        <span class="string">"│ Unknown  │ +       │       │\n"</span>,
+        <span class="string">"└──────────┴─────────┴───────┘"</span>,
+   ),
+)</code></pre></div>
+<p>Example when we don’t want to show empty data of enum where not all variants are used.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::{Table, Tabled, settings::Style};
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">enum </span>Status {
+    <span class="attr">#[tabled(inline)]
+    </span>Complete {
+        started_timestamp: usize,
+        finihsed_timestamp: usize,
+    },
+    <span class="attr">#[tabled(inline)]
+    </span>Started {
+        timestamp: usize,
+    },
+    Ready,
+    Unknown,
+}
+
+<span class="kw">let </span>data = [
+    Status::Unknown,
+    Status::Complete { started_timestamp: <span class="number">123</span>, finihsed_timestamp: <span class="number">234 </span>},
+];
+
+<span class="kw">let </span>table = Table::new(data)
+    .with(Style::modern())
+    .to_string();
+
+<span class="macro">println!</span>(<span class="string">"{}"</span>, table);
+
+<span class="macro">assert_eq!</span>(
+    table,
+    <span class="macro">concat!</span>(
+        <span class="string">"┌───────────────────┬────────────────────┬───────────┬───────┬─────────┐\n"</span>,
+        <span class="string">"│ started_timestamp │ finihsed_timestamp │ timestamp │ Ready │ Unknown │\n"</span>,
+        <span class="string">"├───────────────────┼────────────────────┼───────────┼───────┼─────────┤\n"</span>,
+        <span class="string">"│                   │                    │           │       │ +       │\n"</span>,
+        <span class="string">"├───────────────────┼────────────────────┼───────────┼───────┼─────────┤\n"</span>,
+        <span class="string">"│ 123               │ 234                │           │       │         │\n"</span>,
+        <span class="string">"└───────────────────┴────────────────────┴───────────┴───────┴─────────┘"</span>,
+   ),
+)</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Builder.html" title="struct tabled::builder::Builder">Builder</a></dt><dd>Builder creates a <a href="../tables/struct.Table.html" title="struct tabled::tables::Table"><code>Table</code></a> from dynamic data set.</dd><dt><a class="struct" href="struct.IndexBuilder.html" title="struct tabled::builder::IndexBuilder">Index<wbr>Builder</a></dt><dd><a href="struct.IndexBuilder.html" title="struct tabled::builder::IndexBuilder"><code>IndexBuilder</code></a> helps to add an index to the table.</dd></dl></section></div></main></body></html>

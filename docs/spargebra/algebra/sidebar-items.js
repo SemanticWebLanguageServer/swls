@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AggregateExpression","AggregateFunction","Expression","Function","GraphPattern","GraphTarget","OrderExpression","PropertyPathExpression"],"struct":["QueryDataset"]};

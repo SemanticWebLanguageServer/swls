@@ -1,0 +1,302 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A Decimal number implementation written in pure Rust suitable for financial calculations that require significant integral and fractional digits with no round-off errors."><title>rust_decimal - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="rust_decimal" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate rust_decimal</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../rust_decimal/index.html">rust_<wbr>decimal</a><span class="version">1.40.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#installing" title="Installing">Installing</a></li><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#features" title="Features">Features</a><ul><li><a href="#align16" title="`align16`"><code>align16</code></a></li><li><a href="#borsh" title="`borsh`"><code>borsh</code></a></li><li><a href="#c-repr" title="`c-repr`"><code>c-repr</code></a></li><li><a href="#db-postgres" title="`db-postgres`"><code>db-postgres</code></a></li><li><a href="#db-tokio-postgres" title="`db-tokio-postgres`"><code>db-tokio-postgres</code></a></li><li><a href="#db-diesel-postgres" title="`db-diesel-postgres`"><code>db-diesel-postgres</code></a></li><li><a href="#db-diesel-mysql" title="`db-diesel-mysql`"><code>db-diesel-mysql</code></a></li><li><a href="#legacy-ops" title="`legacy-ops`"><code>legacy-ops</code></a></li><li><a href="#macros" title="`macros`"><code>macros</code></a></li><li><a href="#maths" title="`maths`"><code>maths</code></a></li><li><a href="#ndarray" title="`ndarray`"><code>ndarray</code></a></li><li><a href="#proptest" title="`proptest`"><code>proptest</code></a></li><li><a href="#rand" title="`rand`"><code>rand</code></a></li><li><a href="#rkyv" title="`rkyv`"><code>rkyv</code></a></li><li><a href="#rocket-traits" title="`rocket-traits`"><code>rocket-traits</code></a></li><li><a href="#rust-fuzz" title="`rust-fuzz`"><code>rust-fuzz</code></a></li><li><a href="#serde-float" title="`serde-float`"><code>serde-float</code></a></li><li><a href="#serde-str" title="`serde-str`"><code>serde-str</code></a></li><li><a href="#serde-arbitrary-precision" title="`serde-arbitrary-precision`"><code>serde-arbitrary-precision</code></a></li><li><a href="#serde-with-float" title="`serde-with-float`"><code>serde-with-float</code></a></li><li><a href="#serde-with-str" title="`serde-with-str`"><code>serde-with-str</code></a></li><li><a href="#serde-with-arbitrary-precision" title="`serde-with-arbitrary-precision`"><code>serde-with-arbitrary-precision</code></a></li><li><a href="#std" title="`std`"><code>std</code></a></li></ul></li><li><a href="#building" title="Building">Building</a></li><li><a href="#minimum-rust-compiler-version" title="Minimum Rust Compiler Version">Minimum Rust Compiler Version</a></li><li><a href="#comparison-to-other-decimal-implementations" title="Comparison to other Decimal implementations">Comparison to other Decimal implementations</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>rust_<wbr>decimal</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/rust_decimal/lib.rs.html#1-81">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A Decimal number implementation written in pure Rust suitable for financial calculations that require significant
+integral and fractional digits with no round-off errors.</p>
+<p>The binary representation consists of a 96 bit integer number, a scaling factor used to specify the decimal fraction and
+a 1 bit sign. Because of this representation, trailing zeros are preserved and may be exposed when in string form. These
+can be truncated using the <code>normalize</code> or <code>round_dp</code> functions.</p>
+<h3 id="installing"><a class="doc-anchor" href="#installing">§</a>Installing</h3><div class="example-wrap"><pre class="language-sh"><code>$ cargo add rust_decimal</code></pre></div>
+<p>Alternatively, you can edit your <code>Cargo.toml</code> directly and run <code>cargo update</code>:</p>
+<div class="example-wrap"><pre class="language-toml"><code>[dependencies]
+rust_decimal = &quot;1.40&quot;</code></pre></div>
+<p>To enable macro support, you can enable the <code>macros</code> feature:</p>
+<div class="example-wrap"><pre class="language-sh"><code>$ cargo add rust_decimal --features macros</code></pre></div><h3 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h3>
+<p>Decimal numbers can be created in a few distinct ways. The easiest and most efficient method of creating a Decimal is to
+use the macro:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="comment">// Import via use rust_decimal_macros or use the `macros` feature to import at the crate level
+// `use rust_decimal_macros::dec;`
+// or
+// `use rust_decimal::dec;`
+
+</span><span class="kw">let </span>number = <span class="macro">dec!</span>(-<span class="number">1.23</span>) + <span class="macro">dec!</span>(<span class="number">3.45</span>);
+<span class="macro">assert_eq!</span>(number, <span class="macro">dec!</span>(<span class="number">2.22</span>));
+<span class="macro">assert_eq!</span>(number.to_string(), <span class="string">"2.22"</span>);</code></pre></div>
+<p>Alternatively you can also use one of the Decimal number convenience
+functions (<a href="https://docs.rs/rust_decimal/">see the docs</a> for more details):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="comment">// Using the prelude can help importing trait based functions (e.g. core::str::FromStr).
+</span><span class="kw">use </span>rust_decimal::prelude::<span class="kw-2">*</span>;
+
+<span class="comment">// Using an integer followed by the decimal points
+</span><span class="kw">let </span>scaled = Decimal::new(<span class="number">202</span>, <span class="number">2</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"2.02"</span>, scaled.to_string());
+
+<span class="comment">// From a 128 bit integer
+</span><span class="kw">let </span>balance = Decimal::from_i128_with_scale(<span class="number">5_897_932_384_626_433_832</span>, <span class="number">2</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"58979323846264338.32"</span>, balance.to_string());
+
+<span class="comment">// From a string representation
+</span><span class="kw">let </span>from_string = Decimal::from_str(<span class="string">"2.02"</span>).unwrap();
+<span class="macro">assert_eq!</span>(<span class="string">"2.02"</span>, from_string.to_string());
+
+<span class="comment">// From a string representation in a different base
+</span><span class="kw">let </span>from_string_base16 = Decimal::from_str_radix(<span class="string">"ffff"</span>, <span class="number">16</span>).unwrap();
+<span class="macro">assert_eq!</span>(<span class="string">"65535"</span>, from_string_base16.to_string());
+
+<span class="comment">// From scientific notation
+</span><span class="kw">let </span>sci = Decimal::from_scientific(<span class="string">"9.7e-7"</span>).unwrap();
+<span class="macro">assert_eq!</span>(<span class="string">"0.00000097"</span>, sci.to_string());
+
+<span class="comment">// Using the `Into` trait
+</span><span class="kw">let </span>my_int: Decimal = <span class="number">3_i32</span>.into();
+<span class="macro">assert_eq!</span>(<span class="string">"3"</span>, my_int.to_string());
+
+<span class="comment">// Using the raw decimal representation
+</span><span class="kw">let </span>pi = Decimal::from_parts(<span class="number">1_102_470_952</span>, <span class="number">185_874_565</span>, <span class="number">1_703_060_790</span>, <span class="bool-val">false</span>, <span class="number">28</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"3.1415926535897932384626433832"</span>, pi.to_string());
+
+<span class="comment">// If the `macros` feature is enabled, it also allows for the `dec!` macro
+</span><span class="kw">let </span>amount = <span class="macro">dec!</span>(<span class="number">25.12</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"25.12"</span>, amount.to_string());</code></pre></div>
+<p>Once you have instantiated your <code>Decimal</code> number you can perform calculations with it just like any other number:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">use </span>rust_decimal::prelude::<span class="kw-2">*</span>; <span class="comment">// Includes the `dec` macro when feature specified
+
+</span><span class="kw">let </span>amount = <span class="macro">dec!</span>(<span class="number">25.12</span>);
+<span class="kw">let </span>tax_percentage = <span class="macro">dec!</span>(<span class="number">0.085</span>);
+<span class="kw">let </span>total = amount + (amount * tax_percentage).round_dp(<span class="number">2</span>);
+<span class="macro">assert_eq!</span>(total, <span class="macro">dec!</span>(<span class="number">27.26</span>));</code></pre></div><h3 id="features"><a class="doc-anchor" href="#features">§</a>Features</h3>
+<p><strong>Behavior / Functionality</strong></p>
+<ul>
+<li><a href="#borsh">borsh</a></li>
+<li><a href="#c-repr">c-repr</a></li>
+<li><a href="#legacy-ops">legacy-ops</a></li>
+<li><a href="#macros">macros</a></li>
+<li><a href="#maths">maths</a></li>
+<li><a href="#ndarray">ndarray</a></li>
+<li><a href="#rkyv">rkyv</a></li>
+<li><a href="#rocket-traits">rocket-traits</a></li>
+<li><a href="#rust-fuzz">rust-fuzz</a></li>
+<li><a href="#std">std</a></li>
+</ul>
+<p><strong>Database</strong></p>
+<ul>
+<li><a href="#db-postgres">db-postgres</a></li>
+<li><a href="#db-tokio-postgres">db-tokio-postgres</a></li>
+<li><a href="#db-diesel-postgres">db-diesel-postgres</a></li>
+<li><a href="#db-diesel-mysql">db-diesel-mysql</a></li>
+</ul>
+<p><strong>Serde</strong></p>
+<ul>
+<li><a href="#serde-float">serde-float</a></li>
+<li><a href="#serde-str">serde-str</a></li>
+<li><a href="#serde-arbitrary-precision">serde-arbitrary-precision</a></li>
+<li><a href="#serde-with-float">serde-with-float</a></li>
+<li><a href="#serde-with-str">serde-with-str</a></li>
+<li><a href="#serde-with-arbitrary-precision">serde-with-arbitrary-precision</a></li>
+</ul>
+<h4 id="align16"><a class="doc-anchor" href="#align16">§</a><code>align16</code></h4>
+<p>Forces <code>Decimal</code>’s alignment to 16 bytes (128 bits). This is identical to <code>u128</code> and <code>i128</code>’s alignment on x86 platforms.</p>
+<h4 id="borsh"><a class="doc-anchor" href="#borsh">§</a><code>borsh</code></h4>
+<p>Enables <a href="https://borsh.io/">Borsh</a> serialization for <code>Decimal</code>.</p>
+<h4 id="c-repr"><a class="doc-anchor" href="#c-repr">§</a><code>c-repr</code></h4>
+<p>Forces <code>Decimal</code> to use <code>[repr(C)]</code>.</p>
+<h4 id="db-postgres"><a class="doc-anchor" href="#db-postgres">§</a><code>db-postgres</code></h4>
+<p>Enables a PostgreSQL communication module. It allows for reading and writing the <code>Decimal</code>
+type by transparently serializing/deserializing into the <code>NUMERIC</code> data type within PostgreSQL.</p>
+<h4 id="db-tokio-postgres"><a class="doc-anchor" href="#db-tokio-postgres">§</a><code>db-tokio-postgres</code></h4>
+<p>Enables the tokio postgres module allowing for async communication with PostgreSQL.</p>
+<h4 id="db-diesel-postgres"><a class="doc-anchor" href="#db-diesel-postgres">§</a><code>db-diesel-postgres</code></h4>
+<p>Enable <a href="https://diesel.rs"><code>diesel</code></a> PostgreSQL support.</p>
+<h4 id="db-diesel-mysql"><a class="doc-anchor" href="#db-diesel-mysql">§</a><code>db-diesel-mysql</code></h4>
+<p>Enable <a href="https://diesel.rs"><code>diesel</code></a> MySQL support.</p>
+<h4 id="legacy-ops"><a class="doc-anchor" href="#legacy-ops">§</a><code>legacy-ops</code></h4>
+<p><strong>Warning:</strong> This is deprecated and will be removed from a future versions.</p>
+<p>As of <code>1.10</code> the algorithms used to perform basic operations have changed which has benefits of significant speed
+improvements.
+To maintain backwards compatibility this can be opted out of by enabling the <code>legacy-ops</code> feature.</p>
+<h4 id="macros"><a class="doc-anchor" href="#macros">§</a><code>macros</code></h4>
+<p>The <code>macros</code> feature enables a compile time macro <code>dec</code> to be available at both the crate root, and via prelude.</p>
+<p>This parses the input at compile time and converts it to an optimized <code>Decimal</code> representation. Invalid inputs will
+cause a compile time error.</p>
+<p>Any Rust number format is supported, including scientific notation and alternate bases.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rust_decimal::prelude::<span class="kw-2">*</span>;
+
+<span class="macro">assert_eq!</span>(<span class="macro">dec!</span>(<span class="number">1.23</span>), Decimal::new(<span class="number">123</span>, <span class="number">2</span>));</code></pre></div><h4 id="maths"><a class="doc-anchor" href="#maths">§</a><code>maths</code></h4>
+<p>The <code>maths</code> feature enables additional complex mathematical functions such as <code>pow</code>, <code>ln</code>, <code>enf</code>, <code>exp</code> etc.
+Documentation detailing the additional functions can be found on the
+<a href="https://docs.rs/rust_decimal/latest/rust_decimal/trait.MathematicalOps.html"><code>MathematicalOps</code></a> trait.</p>
+<p>Please note that <code>ln</code> and <code>log10</code> will panic on invalid input with <code>checked_ln</code> and <code>checked_log10</code> the preferred
+functions
+to curb against this. When the <code>maths</code> feature was first developed the library would instead return <code>0</code> on invalid
+input. To re-enable this
+non-panicking behavior, please use the feature: <code>maths-nopanic</code>.</p>
+<h4 id="ndarray"><a class="doc-anchor" href="#ndarray">§</a><code>ndarray</code></h4>
+<p>Enables arithmetic operations using <a href="https://github.com/rust-ndarray/ndarray"><code>ndarray</code></a> on arrays of <code>Decimal</code>.</p>
+<h4 id="proptest"><a class="doc-anchor" href="#proptest">§</a><code>proptest</code></h4>
+<p>Enables a <a href="https://github.com/proptest-rs/proptest"><code>proptest</code></a> strategy to generate values for Rust Decimal.</p>
+<h4 id="rand"><a class="doc-anchor" href="#rand">§</a><code>rand</code></h4>
+<p>Implements <code>rand::distributions::Distribution&lt;Decimal&gt;</code> to allow the creation of random instances.</p>
+<p>Note: When using <code>rand::Rng</code> trait to generate a decimal between a range of two other decimals, the scale of the
+randomly-generated
+decimal will be the same as the scale of the input decimals (or, if the inputs have different scales, the higher of the
+two).</p>
+<h4 id="rkyv"><a class="doc-anchor" href="#rkyv">§</a><code>rkyv</code></h4>
+<p>Enables <a href="https://github.com/rkyv/rkyv">rkyv</a> serialization for <code>Decimal</code>. In order to avoid breaking changes, this is
+currently locked at version <code>0.7</code>.</p>
+<p>Supports rkyv’s safe API when the <code>rkyv-safe</code> feature is enabled as well.</p>
+<p>If <code>rkyv</code> support for versions <code>0.8</code> of greater is desired, <code>rkyv</code>’
+s <a href="https://rkyv.org/derive-macro-features/remote-derive.html">remote derives</a> should be used instead. See
+<code>examples/rkyv-remote</code>.</p>
+<h4 id="rocket-traits"><a class="doc-anchor" href="#rocket-traits">§</a><code>rocket-traits</code></h4>
+<p>Enable support for Rocket forms by implementing the <code>FromFormField</code> trait.</p>
+<h4 id="rust-fuzz"><a class="doc-anchor" href="#rust-fuzz">§</a><code>rust-fuzz</code></h4>
+<p>Enable <code>rust-fuzz</code> support by implementing the <code>Arbitrary</code> trait.</p>
+<h4 id="serde-float"><a class="doc-anchor" href="#serde-float">§</a><code>serde-float</code></h4>
+<blockquote>
+<p><strong>Note:</strong> This feature applies float serialization/deserialization rules as the default method for handling <code>Decimal</code>
+numbers.
+See also the <code>serde-with-*</code> features for greater flexibility.</p>
+</blockquote>
+<p>Enable this so that JSON serialization of <code>Decimal</code> types are sent as a float instead of a string (default).</p>
+<p>e.g. with this turned on, JSON serialization would output:</p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;value&quot;: 1.234
+}</code></pre></div><h4 id="serde-str"><a class="doc-anchor" href="#serde-str">§</a><code>serde-str</code></h4>
+<blockquote>
+<p><strong>Note:</strong> This feature applies string serialization/deserialization rules as the default method for handling <code>Decimal</code>
+numbers.
+See also the <code>serde-with-*</code> features for greater flexibility.</p>
+</blockquote>
+<p>This is typically useful for <code>bincode</code> or <code>csv</code> like implementations.</p>
+<p>Since <code>bincode</code> does not specify type information, we need to ensure that a type hint is provided in order to
+correctly be able to deserialize. Enabling this feature on its own will force deserialization to use <code>deserialize_str</code>
+instead of <code>deserialize_any</code>.</p>
+<p>If, for some reason, you also have <code>serde-float</code> enabled then this will use <code>deserialize_f64</code> as a type hint. Because
+converting to <code>f64</code> <em>loses</em> precision, it’s highly recommended that you do NOT enable this feature when working with
+<code>bincode</code>. That being said, this will only use 8 bytes so is slightly more efficient in terms of storage size.</p>
+<h4 id="serde-arbitrary-precision"><a class="doc-anchor" href="#serde-arbitrary-precision">§</a><code>serde-arbitrary-precision</code></h4>
+<blockquote>
+<p><strong>Note:</strong> This feature applies arbitrary serialization/deserialization rules as the default method for
+handling <code>Decimal</code> numbers.
+See also the <code>serde-with-*</code> features for greater flexibility.</p>
+</blockquote>
+<p>This is used primarily with <code>serde_json</code> and consequently adds it as a “weak dependency”. This supports the
+<code>arbitrary_precision</code> feature inside <code>serde_json</code> when parsing decimals.</p>
+<p>This is recommended when parsing “float” looking data as it will prevent data loss.</p>
+<p>Please note, this currently serializes numbers in a float like format by default, which can be an unexpected
+consequence. For greater
+control over the serialization format, please use the <code>serde-with-arbitrary-precision</code> feature.</p>
+<h4 id="serde-with-float"><a class="doc-anchor" href="#serde-with-float">§</a><code>serde-with-float</code></h4>
+<p>Enable this to access the module for serializing <code>Decimal</code> types to a float. This can be used in <code>struct</code> definitions
+like so:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>FloatExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::float"</span>)]
+    </span>value: Decimal,
+}</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>OptionFloatExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::float_option"</span>)]
+    </span>value: <span class="prelude-ty">Option</span>&lt;Decimal&gt;,
+}</code></pre></div>
+<p>Alternatively, if only the serialization feature is desired (e.g. to keep flexibility while deserialization):</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>FloatExample {
+    <span class="attr">#[serde(serialize_with = <span class="string">"rust_decimal::serde::float::serialize"</span>)]
+    </span>value: Decimal,
+}</code></pre></div><h4 id="serde-with-str"><a class="doc-anchor" href="#serde-with-str">§</a><code>serde-with-str</code></h4>
+<p>Enable this to access the module for serializing <code>Decimal</code> types to a <code>String</code>. This can be used in <code>struct</code> definitions
+like so:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>StrExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::str"</span>)]
+    </span>value: Decimal,
+}</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>OptionStrExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::str_option"</span>)]
+    </span>value: <span class="prelude-ty">Option</span>&lt;Decimal&gt;,
+}</code></pre></div>
+<p>This feature isn’t typically required for serialization however can be useful for deserialization purposes since it does
+not require
+a type hint. Consequently, you can force this for just deserialization by:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>StrExample {
+    <span class="attr">#[serde(deserialize_with = <span class="string">"rust_decimal::serde::str::deserialize"</span>)]
+    </span>value: Decimal,
+}</code></pre></div><h4 id="serde-with-arbitrary-precision"><a class="doc-anchor" href="#serde-with-arbitrary-precision">§</a><code>serde-with-arbitrary-precision</code></h4>
+<p>Enable this to access the module for deserializing <code>Decimal</code> types using the <code>serde_json/arbitrary_precision</code> feature.
+This can be used in <code>struct</code> definitions like so:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>ArbitraryExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::arbitrary_precision"</span>)]
+    </span>value: Decimal,
+}</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>OptionArbitraryExample {
+    <span class="attr">#[serde(with = <span class="string">"rust_decimal::serde::arbitrary_precision_option"</span>)]
+    </span>value: <span class="prelude-ty">Option</span>&lt;Decimal&gt;,
+}</code></pre></div>
+<p>An unexpected consequence of this feature is that it will serialize as a float like number. To prevent this, you can
+target the struct to only deserialize with the <code>arbitrary_precision</code> feature:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>ArbitraryExample {
+    <span class="attr">#[serde(deserialize_with = <span class="string">"rust_decimal::serde::arbitrary_precision::deserialize"</span>)]
+    </span>value: Decimal,
+}</code></pre></div>
+<p>This will ensure that serialization still occurs as a string.</p>
+<p>Please see the <code>examples</code> directory for more information regarding <code>serde_json</code> scenarios.</p>
+<h4 id="std"><a class="doc-anchor" href="#std">§</a><code>std</code></h4>
+<p>Enable <code>std</code> library support. This is enabled by default, however in the future will be opt in. For now, to
+support <code>no_std</code>
+libraries, this crate can be compiled with <code>--no-default-features</code>.</p>
+<h3 id="building"><a class="doc-anchor" href="#building">§</a>Building</h3>
+<p>Please refer to the <a href="https://github.com/paupino/rust-decimal/blob/master/BUILD.md">Build document</a> for more information on building and testing Rust Decimal.</p>
+<h3 id="minimum-rust-compiler-version"><a class="doc-anchor" href="#minimum-rust-compiler-version">§</a>Minimum Rust Compiler Version</h3>
+<p>The current <em>minimum</em> compiler version is <code>1.67.1</code> which was released on <code>2023-02-09</code>.</p>
+<p>This library maintains support for rust compiler versions that are 4 minor versions away from the current stable rust
+compiler version.
+For example, if the current stable compiler version is <code>1.50.0</code> then we will guarantee support up to and
+including <code>1.46.0</code>.
+Of note, we will only update the minimum supported version if and when required.</p>
+<h3 id="comparison-to-other-decimal-implementations"><a class="doc-anchor" href="#comparison-to-other-decimal-implementations">§</a>Comparison to other Decimal implementations</h3>
+<p>During the development of this library, there were various design decisions made to ensure that decimal calculations
+would
+be quick, accurate and efficient. Some decisions, however, put limitations on what this library can do and ultimately
+what
+it is suitable for. One such decision was the structure of the internal decimal representation.</p>
+<p>This library uses a mantissa of 96 bits made up of three 32-bit unsigned integers with a fourth 32-bit unsigned integer
+to represent the scale/sign
+(similar to the C and .NET Decimal implementations).
+This structure allows us to make use of algorithmic optimizations to implement basic arithmetic; ultimately this gives
+us the ability
+to squeeze out performance and make it one of the fastest implementations available. The downside of this approach
+however is that
+the maximum number of significant digits that can be represented is roughly 28 base-10 digits (29 in some cases).</p>
+<p>While this constraint is not an issue for many applications (e.g. when dealing with money), some applications may
+require a higher number of significant digits to be represented. Fortunately,
+there are alternative implementations that may be worth investigating, such as:</p>
+<ul>
+<li><a href="https://crates.io/crates/bigdecimal">bigdecimal</a></li>
+<li><a href="https://crates.io/crates/decimal-rs">decimal-rs</a></li>
+</ul>
+<p>If you have further questions about the suitability of this library for your project, then feel free to either start a
+<a href="https://github.com/paupino/rust-decimal/discussions">discussion</a> or open
+an <a href="https://github.com/paupino/rust-decimal/issues">issue</a> and we’ll
+do our best to help.</p>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="prelude/index.html" title="mod rust_decimal::prelude">prelude</a></dt><dd>A convenience module appropriate for glob imports (<code>use rust_decimal::prelude::*;</code>).</dd><dt><a class="mod" href="str/index.html" title="mod rust_decimal::str">str</a></dt></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Decimal.html" title="struct rust_decimal::Decimal">Decimal</a></dt><dd><code>Decimal</code> represents a 128 bit representation of a fixed-precision decimal number.
+The finite set of values of type <code>Decimal</code> are of the form m / 10<sup>e</sup>,
+where m is an integer such that -2<sup>96</sup> &lt; m &lt; 2<sup>96</sup>, and e is an integer
+between 0 and 28 inclusive.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.Error.html" title="enum rust_decimal::Error">Error</a></dt><dd>Error type for the library.</dd><dt><a class="enum" href="enum.RoundingStrategy.html" title="enum rust_decimal::RoundingStrategy">Rounding<wbr>Strategy</a></dt><dd><code>RoundingStrategy</code> represents the different rounding strategies that can be used by
+<code>round_dp_with_strategy</code>.</dd></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Result.html" title="type rust_decimal::Result">Result</a></dt><dd>Shortcut for <code>core::result::Result&lt;T, rust_decimal::Error&gt;</code>. Useful to distinguish
+between <code>rust_decimal</code> and <code>std</code> types.</dd></dl></section></div></main></body></html>

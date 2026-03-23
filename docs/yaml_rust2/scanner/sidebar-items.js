@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Chomping","TEncoding","TScalarStyle","TokenType"],"struct":["Marker","ScanError","Scanner","Token"],"type":["ScanResult"]};

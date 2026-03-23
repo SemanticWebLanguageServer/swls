@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AlignmentStrategy","TrimStrategy"],"struct":["Charset","CleanCharset","Justification","TabSize"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["BaseIri","BaseIriRef","IriParseError","Oxiri","OxiriRef"],"trait":["Resolvable"]};

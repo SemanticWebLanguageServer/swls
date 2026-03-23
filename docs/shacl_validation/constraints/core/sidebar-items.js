@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["cardinality","logical","other","property_pair","shape_based","string_based","value","value_range"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["StrWithWidth","Text","VecRecords"],"trait":["Cell"]};

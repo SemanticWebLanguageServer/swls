@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["alloc","arc","critical_section","define_alias","disabled","enabled","panic_abort","panic_unwind","std","switch","web"]};

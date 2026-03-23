@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["JsonLdErrorCode","JsonLdParseError","JsonLdProfile"],"struct":["JsonLdLoadDocumentOptions","JsonLdParser","JsonLdPrefixesIter","JsonLdProfileSet","JsonLdRemoteDocument","JsonLdSerializer","JsonLdSyntaxError","ReaderJsonLdParser","SliceJsonLdParser","TextPosition","WriterJsonLdSerializer"]};

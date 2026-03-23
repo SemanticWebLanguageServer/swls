@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["extract_known_prefixes_from_config","extract_known_shapes_from_config"]};

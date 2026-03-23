@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["report","result","validation_report_error"]};

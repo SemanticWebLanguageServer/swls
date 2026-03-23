@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["parse_list_recursive","term_to_bool","term_to_int","term_to_iri","term_to_iri_or_blanknode","term_to_literal","term_to_number","term_to_string","value_to_iri"]};

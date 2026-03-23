@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"static":["Father","PREFIX","base","id","lang","space"]};

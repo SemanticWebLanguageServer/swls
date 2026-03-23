@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["into_records","vec_records"],"struct":["EmptyRecords","IterRecords"],"trait":["ExactRecords","IntoRecords","PeekableRecords","Records","RecordsMut","Resizable"]};

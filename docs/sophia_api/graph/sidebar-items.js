@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["adapter"],"trait":["CollectibleGraph","Graph","MutableGraph","SetGraph"],"type":["GResult","GTerm","GTermSource","GTripleSource","MgResult"]};

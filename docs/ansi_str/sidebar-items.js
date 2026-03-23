@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Color"],"fn":["get_blocks"],"struct":["AnsiBlock","AnsiBlockIter","AnsiSequenceEnd","AnsiSequenceStart","AnsiSplit","Style"],"trait":["AnsiStr"]};

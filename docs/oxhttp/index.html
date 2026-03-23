@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="OxHTTP"><title>oxhttp - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="oxhttp" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate oxhttp</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../oxhttp/index.html">oxhttp</a><span class="version">0.3.1</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#oxhttp" title="OxHTTP">OxHTTP</a><ul><li><a href="#client" title="Client">Client</a></li><li><a href="#server" title="Server">Server</a></li><li><a href="#license" title="License">License</a></li></ul></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>oxhttp</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/oxhttp/lib.rs.html#1-25">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="oxhttp"><a class="doc-anchor" href="#oxhttp">§</a>OxHTTP</h2>
+<p><a href="https://github.com/oxigraph/oxhttp/actions"><img src="https://github.com/oxigraph/oxhttp/workflows/build/badge.svg" alt="actions status" /></a>
+<a href="https://crates.io/crates/oxhttp"><img src="https://img.shields.io/crates/v/oxhttp.svg" alt="Latest Version" /></a>
+<a href="https://docs.rs/oxhttp"><img src="https://docs.rs/oxhttp/badge.svg" alt="Released API docs" /></a></p>
+<p>OxHTTP is a simple and naive synchronous implementation of <a href="https://httpwg.org/http-core/">HTTP 1.1</a> in Rust.
+It provides both a client and a server.
+It does not aim to be a fully-working-in-all-cases HTTP implementation
+but to be only a simple one to be use in simple usecases.</p>
+<h3 id="client"><a class="doc-anchor" href="#client">§</a>Client</h3>
+<p>OxHTTP provides <a href="https://docs.rs/oxhttp/latest/oxhttp/struct.Client.html">a client</a>.
+It aims at following the basic concepts of the <a href="https://fetch.spec.whatwg.org/">Web Fetch standard</a> without the bits
+specific to web browsers (context, CORS…).</p>
+<p>HTTPS is supported behind the disabled by default features.
+To enable it, you need to enable one of the following features:</p>
+<ul>
+<li><code>native-tls</code> to use the current system native implementation.</li>
+<li><code>rustls-ring-webpki</code> to use <a href="https://github.com/rustls/rustls">Rustls</a> with
+the <a href="https://github.com/briansmith/ring">Ring</a> cryptographic library and
+the <a href="https://www.ccadb.org/">Common CA Database</a>.</li>
+<li><code>rustls-ring-native</code> to use <a href="https://github.com/rustls/rustls">Rustls</a> with
+the <a href="https://github.com/briansmith/ring">Ring</a> cryptographic library and the host certificates.</li>
+<li><code>rustls-aws-lc-webpki</code> to use <a href="https://github.com/rustls/rustls">Rustls</a> with
+the <a href="https://github.com/aws/aws-lc-rs">AWS Libcrypto for Rust</a> and
+the <a href="https://www.ccadb.org/">Common CA Database</a>.</li>
+<li><code>rustls-aws-lc-native</code> to use <a href="https://github.com/rustls/rustls">Rustls</a> with
+the <a href="https://github.com/aws/aws-lc-rs">AWS Libcrypto for Rust</a> and the host certificates.</li>
+</ul>
+<p>Example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>oxhttp::Client;
+<span class="kw">use </span>oxhttp::model::{Body, Request, Method, StatusCode, HeaderName};
+<span class="kw">use </span>oxhttp::model::header::CONTENT_TYPE;
+<span class="kw">use </span>std::io::Read;
+
+<span class="kw">let </span>client = Client::new();
+<span class="kw">let </span>response = client.request(Request::builder().uri(<span class="string">"http://example.com"</span>).body(Body::empty()).unwrap()).unwrap();
+<span class="macro">assert_eq!</span>(response.status(), StatusCode::OK);
+<span class="macro">assert_eq!</span>(response.headers().get(CONTENT_TYPE).unwrap(), <span class="string">"text/html"</span>);
+
+<span class="kw">let </span>body = response.into_body().to_string().unwrap();</code></pre></div><h3 id="server"><a class="doc-anchor" href="#server">§</a>Server</h3>
+<p>OxHTTP provides <a href="https://docs.rs/oxhttp/latest/oxhttp/struct.Server.html">a threaded HTTP server</a>.
+It is still a work in progress. Use at your own risks behind a reverse proxy!</p>
+<p>Example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::net::{Ipv4Addr, Ipv6Addr};
+<span class="kw">use </span>oxhttp::Server;
+<span class="kw">use </span>oxhttp::model::{Body, Response, StatusCode};
+<span class="kw">use </span>std::time::Duration;
+
+<span class="comment">// Builds a new server that returns a 404 everywhere except for "/" where it returns the body 'home'
+</span><span class="kw">let </span><span class="kw-2">mut </span>server = Server::new( | request| {
+<span class="kw">if </span>request.uri().path() == <span class="string">"/" </span>{
+Response::builder().body(Body::from(<span class="string">"home"</span>)).unwrap()
+} <span class="kw">else </span>{
+Response::builder().status(StatusCode::NOT_FOUND).body(Body::empty()).unwrap()
+}
+});
+<span class="comment">// We bind the server to localhost on both IPv4 and v6
+</span>server = server.bind((Ipv4Addr::LOCALHOST, <span class="number">8080</span>)).bind((Ipv6Addr::LOCALHOST, <span class="number">8080</span>));
+<span class="comment">// Raise a timeout error if the client does not respond after 10s.
+</span>server = server.with_global_timeout(Duration::from_secs(<span class="number">10</span>));
+<span class="comment">// Limits the max number of concurrent connections to 128.
+</span>server = server.with_max_concurrent_connections(<span class="number">128</span>);
+<span class="comment">// We spawn the server and block on it
+</span>server.spawn().unwrap().join().unwrap();</code></pre></div><h3 id="license"><a class="doc-anchor" href="#license">§</a>License</h3>
+<p>This project is licensed under either of</p>
+<ul>
+<li>Apache License, Version 2.0, (<a href="LICENSE-APACHE">LICENSE-APACHE</a> or
+<code>&lt;http://www.apache.org/licenses/LICENSE-2.0&gt;</code>)</li>
+<li>MIT license (<a href="LICENSE-MIT">LICENSE-MIT</a> or
+<code>&lt;http://opensource.org/licenses/MIT&gt;</code>)</li>
+</ul>
+<p>at your option.</p>
+<h4 id="contribution"><a class="doc-anchor" href="#contribution">§</a>Contribution</h4>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in OxHTTP by you, as
+defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.</p>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="model/index.html" title="mod oxhttp::model">model</a></dt><dd>The HTTP model encoded in Rust type system.</dd></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Client.html" title="struct oxhttp::Client">Client</a></dt><dd>An HTTP client.</dd><dt><a class="struct" href="struct.ListeningServer.html" title="struct oxhttp::ListeningServer">Listening<wbr>Server</a></dt><dd>Handle to a running server created by <a href="struct.Server.html#method.spawn" title="method oxhttp::Server::spawn"><code>Server::spawn</code></a>.</dd><dt><a class="struct" href="struct.Server.html" title="struct oxhttp::Server">Server</a></dt><dd>An HTTP server.</dd></dl></section></div></main></body></html>

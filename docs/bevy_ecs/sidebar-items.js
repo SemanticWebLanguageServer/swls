@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["children","define_label","related"],"mod":["archetype","batching","bundle","change_detection","component","entity","entity_disabling","error","event","hierarchy","intern","label","lifecycle","message","name","never","observer","prelude","query","relationship","resource","schedule","spawn","storage","system","traversal","world"]};

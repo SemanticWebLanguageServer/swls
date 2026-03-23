@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["config","document","resources","type_hierarchy"]};

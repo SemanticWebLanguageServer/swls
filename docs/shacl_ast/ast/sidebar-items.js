@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["component","message_map","node_kind","node_shape","property_shape","reifier_info","schema","severity","shacl_error","shape","target","value"]};

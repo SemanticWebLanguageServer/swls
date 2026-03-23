@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["assert_table","assert_width","static_table","test_table"]};

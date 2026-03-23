@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BlankNode","Literal","NamedNode","Term","TurtleSimpleError"],"struct":["Base","PO","RDFLiteral","Triple","TriplesBuilder","Turtle","TurtlePrefix","Variable"],"trait":["Based"]};

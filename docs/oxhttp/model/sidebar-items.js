@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["header","method","request","response","status","uri","version"],"struct":["Body","Error","Extensions","HeaderMap","HeaderName","HeaderValue","Method","Request","Response","StatusCode","Uri","Version"],"trait":["ChunkedTransferPayload"],"type":["Result"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["MapErr","MapOk"],"trait":["Map"]};

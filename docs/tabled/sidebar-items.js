@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":["Tabled"],"macro":["col","row"],"mod":["assert","builder","derive","grid","iter","settings","tables"],"trait":["Tabled"]};

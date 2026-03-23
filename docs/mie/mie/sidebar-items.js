@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CrossReference","DataStatistics","Mie","RdfExample","SchemaInfo","ShapeExpression","SparqlQueryExample"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ByColumnName","ByCondition","ByContent","ByValue","Locator"],"trait":["Location"]};

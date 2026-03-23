@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["BorderCorrection","Colorization","ColumnNames","ExactColorization","Layout","Theme"]};

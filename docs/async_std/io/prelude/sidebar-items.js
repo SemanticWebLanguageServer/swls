@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"trait":["BufReadExt","ReadExt","SeekExt","WriteExt"]};

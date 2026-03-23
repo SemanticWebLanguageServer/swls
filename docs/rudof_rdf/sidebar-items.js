@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["combine_rdf_parser_impl","rdf_parser","vocab_term"],"mod":["rdf_core","rdf_impl"]};

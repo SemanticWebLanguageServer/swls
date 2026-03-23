@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SimpleTerm","TermKind"],"fn":["assert_consistent_term_impl","graph_name_eq"],"mod":["bnode_id","language_tag","matcher","var_name"],"struct":["CmpTerm"],"trait":["FromTerm","Term","TryFromTerm"],"type":["GraphName","IriRef"]};

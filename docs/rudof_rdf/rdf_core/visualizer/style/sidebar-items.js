@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_OBJECT_ARROW_STYLE","DEFAULT_PREDICATE_ARROW_STYLE","DEFAULT_SUBJECT_ARROW_STYLE"],"enum":["ThicknessStyle","UmlColor"],"struct":["ArrowStyle","StereotypeStyle","Style"]};

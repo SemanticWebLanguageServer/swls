@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BufIterator"],"struct":["BufRecords","BufRecordsIter"]};

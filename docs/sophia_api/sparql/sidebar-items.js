@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SparqlResult"],"trait":["IntoQuery","Query","SparqlBindings","SparqlDataset"]};

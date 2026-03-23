@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["RdfVocab","RdfsVocab","ShaclNodeExprVocab","ShaclVocab","XsdVocab"],"trait":["RdfVocabulary"]};

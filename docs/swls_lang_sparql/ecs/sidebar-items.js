@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["setup_completion","setup_parse","sparql_lov_undefined_prefix_completion","variable_completion"]};

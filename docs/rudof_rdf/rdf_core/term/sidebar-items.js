@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["IriOrBlankNode","Object","TermKind"],"mod":["literal"],"struct":["ConcreteBlankNode","ConcreteTriple"],"trait":["BlankNode","BlankNodeRef","Iri","Subject","Term","Triple"]};

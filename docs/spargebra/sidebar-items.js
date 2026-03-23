@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GraphUpdateOperation","Query"],"mod":["algebra","term"],"struct":["SparqlParser","SparqlSyntaxError","Update"]};

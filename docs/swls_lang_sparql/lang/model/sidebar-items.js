@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GraphPatternNotTriples","GroupGraphPattern","GroupGraphPatternSub","Modifier","Prologue","QueryClause","Solution"],"struct":["Base","Bind","ConstructClause","DatasetClause","Expression","Query","SelectClause","SubSelect","Variable","WhereClause"]};

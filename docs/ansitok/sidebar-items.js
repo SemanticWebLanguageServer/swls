@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AnsiColor","ElementKind","EscapeCode","Output","VisualAttribute"],"fn":["parse_ansi","parse_ansi_sgr"],"struct":["AnsiIterator","Element","SGRParser"]};

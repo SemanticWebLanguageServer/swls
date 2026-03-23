@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["setup_code_action","setup_completion","setup_formatting","setup_parsing"]};

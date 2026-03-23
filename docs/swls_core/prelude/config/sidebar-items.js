@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CompletionConfig","CompletionMode","Disabled"],"struct":["Config","ExceptRules","LocalConfig","ServerConfig","StrictRules"]};

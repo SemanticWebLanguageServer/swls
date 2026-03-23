@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["publish_diagnostics","setup_schedule"],"struct":["DiagnosticItem","DiagnosticPublisher","DiagnosticSender","Label","SimpleDiagnostic"]};

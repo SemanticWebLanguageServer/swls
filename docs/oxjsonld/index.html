@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="OxJSON-LD"><title>oxjsonld - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="oxjsonld" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate oxjsonld</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../oxjsonld/index.html"><img src="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg" alt="logo"></a><h2><a href="../oxjsonld/index.html">oxjsonld</a><span class="version">0.2.2</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#oxjson-ld" title="OxJSON-LD">OxJSON-LD</a><ul><li><a href="#license" title="License">License</a></li></ul></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>oxjsonld</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/oxjsonld/lib.rs.html#1-26">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="oxjson-ld"><a class="doc-anchor" href="#oxjson-ld">§</a>OxJSON-LD</h2>
+<p><a href="https://crates.io/crates/oxjsonld"><img src="https://img.shields.io/crates/v/oxjsonld.svg" alt="Latest Version" /></a>
+<a href="https://docs.rs/oxjsonld"><img src="https://docs.rs/oxjsonld/badge.svg" alt="Released API docs" /></a>
+<a href="https://crates.io/crates/oxjsonld"><img src="https://img.shields.io/crates/d/oxjsonld" alt="Crates.io downloads" /></a>
+<a href="https://github.com/oxigraph/oxigraph/actions"><img src="https://github.com/oxigraph/oxigraph/workflows/build/badge.svg" alt="actions status" /></a>
+<a href="https://gitter.im/oxigraph/community"><img src="https://badges.gitter.im/oxigraph/community.svg" alt="Gitter" /></a></p>
+<p>OxJSON-LD is a parser and serializer for <a href="https://www.w3.org/TR/json-ld/">JSON-LD</a>.</p>
+<p>The entry points of this library are the two <a href="struct.JsonLdParser.html" title="struct oxjsonld::JsonLdParser"><code>JsonLdParser</code></a> and <a href="struct.JsonLdSerializer.html" title="struct oxjsonld::JsonLdSerializer"><code>JsonLdSerializer</code></a> structs.</p>
+<p>The parser is a work in progress.
+Only JSON-LD 1.0 is supported at the moment, JSON-LD 1.1 is not supported yet.</p>
+<p>The parser supports two modes:</p>
+<ul>
+<li>regular JSON-LD parsing that needs to buffer the full file into memory.</li>
+<li><a href="https://www.w3.org/TR/json-ld11-streaming/">Streaming JSON-LD</a> that can avoid buffering in a few cases.</li>
+<li>To enable it, call the <a href="struct.JsonLdParser.html#method.with_profile" title="method oxjsonld::JsonLdParser::with_profile"><code>with_profile(JsonLdProfile::Streaming)</code></a> method.</li>
+</ul>
+<p>Usage example counting the number of people in a JSON-LD file:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>oxrdf::{NamedNodeRef, vocab::rdf};
+<span class="kw">use </span>oxjsonld::JsonLdParser;
+
+<span class="kw">let </span>file = <span class="string">br#"{
+    "@context": {"schema": "http://schema.org/"},
+    "@graph": [
+        {
+            "@type": "schema:Person",
+            "@id": "http://example.com/foo",
+            "schema:name": "Foo"
+        },
+        {
+            "@type": "schema:Person",
+            "schema:name": "Bar"
+        }   
+    ]
+}"#</span>;
+
+<span class="kw">let </span>schema_person = NamedNodeRef::new(<span class="string">"http://schema.org/Person"</span>).unwrap();
+<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+<span class="kw">for </span>triple <span class="kw">in </span>JsonLdParser::new().for_reader(file.as_ref()) {
+    <span class="kw">let </span>triple = triple.unwrap();
+    <span class="kw">if </span>triple.predicate == rdf::TYPE &amp;&amp; triple.object == schema_person.into() {
+        count += <span class="number">1</span>;
+    }
+}
+<span class="macro">assert_eq!</span>(<span class="number">2</span>, count);</code></pre></div><h3 id="license"><a class="doc-anchor" href="#license">§</a>License</h3>
+<p>This project is licensed under either of</p>
+<ul>
+<li>Apache License, Version 2.0, (<a href="../LICENSE-APACHE">LICENSE-APACHE</a> or
+<code>&lt;http://www.apache.org/licenses/LICENSE-2.0&gt;</code>)</li>
+<li>MIT license (<a href="../LICENSE-MIT">LICENSE-MIT</a> or
+<code>&lt;http://opensource.org/licenses/MIT&gt;</code>)</li>
+</ul>
+<p>at your option.</p>
+<h4 id="contribution"><a class="doc-anchor" href="#contribution">§</a>Contribution</h4>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Oxigraph by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.</p>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.JsonLdLoadDocumentOptions.html" title="struct oxjsonld::JsonLdLoadDocumentOptions">Json<wbr>LdLoad<wbr>Document<wbr>Options</a></dt><dd>Used to pass various options to the LoadDocumentCallback.</dd><dt><a class="struct" href="struct.JsonLdParser.html" title="struct oxjsonld::JsonLdParser">Json<wbr>LdParser</a></dt><dd>A <a href="https://www.w3.org/TR/json-ld/">JSON-LD</a> parser.</dd><dt><a class="struct" href="struct.JsonLdPrefixesIter.html" title="struct oxjsonld::JsonLdPrefixesIter">Json<wbr>LdPrefixes<wbr>Iter</a></dt><dd>Iterator on the file prefixes.</dd><dt><a class="struct" href="struct.JsonLdProfileSet.html" title="struct oxjsonld::JsonLdProfileSet">Json<wbr>LdProfile<wbr>Set</a></dt><dd>Set of JSON-Ld profiles.</dd><dt><a class="struct" href="struct.JsonLdRemoteDocument.html" title="struct oxjsonld::JsonLdRemoteDocument">Json<wbr>LdRemote<wbr>Document</a></dt><dd>Returned information about a remote JSON-LD document or context.</dd><dt><a class="struct" href="struct.JsonLdSerializer.html" title="struct oxjsonld::JsonLdSerializer">Json<wbr>LdSerializer</a></dt><dd>A <a href="https://www.w3.org/TR/json-ld/">JSON-LD</a> serializer.</dd><dt><a class="struct" href="struct.JsonLdSyntaxError.html" title="struct oxjsonld::JsonLdSyntaxError">Json<wbr>LdSyntax<wbr>Error</a></dt><dd>An error in the syntax of the parsed file.</dd><dt><a class="struct" href="struct.ReaderJsonLdParser.html" title="struct oxjsonld::ReaderJsonLdParser">Reader<wbr>Json<wbr>LdParser</a></dt><dd>Parses a JSON-LD file from a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Read.html" title="trait std::io::Read"><code>Read</code></a> implementation.</dd><dt><a class="struct" href="struct.SliceJsonLdParser.html" title="struct oxjsonld::SliceJsonLdParser">Slice<wbr>Json<wbr>LdParser</a></dt><dd>Parses a JSON-LD file from a byte slice.</dd><dt><a class="struct" href="struct.TextPosition.html" title="struct oxjsonld::TextPosition">Text<wbr>Position</a></dt><dd>A position in a text i.e. a <code>line</code> number starting from 0, a <code>column</code> number starting from 0 (in number of code points) and a global file <code>offset</code> starting from 0 (in number of bytes).</dd><dt><a class="struct" href="struct.WriterJsonLdSerializer.html" title="struct oxjsonld::WriterJsonLdSerializer">Writer<wbr>Json<wbr>LdSerializer</a></dt><dd>Serializes a JSON-LD file to a <a href="https://doc.rust-lang.org/1.94.0/std/io/trait.Write.html" title="trait std::io::Write"><code>Write</code></a> implementation.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.JsonLdErrorCode.html" title="enum oxjsonld::JsonLdErrorCode">Json<wbr>LdError<wbr>Code</a></dt><dd>A <a href="https://www.w3.org/TR/json-ld-api/#dom-jsonlderrorcode">JSON-LD error code</a></dd><dt><a class="enum" href="enum.JsonLdParseError.html" title="enum oxjsonld::JsonLdParseError">Json<wbr>LdParse<wbr>Error</a></dt><dd>Error returned during JSON-LD parsing.</dd><dt><a class="enum" href="enum.JsonLdProfile.html" title="enum oxjsonld::JsonLdProfile">Json<wbr>LdProfile</a></dt><dd>JSON-Ld profile.</dd></dl></section></div></main></body></html>

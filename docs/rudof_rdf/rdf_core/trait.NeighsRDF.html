@@ -1,0 +1,312 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Trait for navigating RDF graphs and querying triples."><title>NeighsRDF in rudof_rdf::rdf_core - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rudof_rdf" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">NeighsRDF</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../rudof_rdf/index.html">rudof_<wbr>rdf</a><span class="version">0.2.8</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">NeighsRDF</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#graph-navigation" title="Graph Navigation">Graph Navigation</a></li></ul><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.triples" title="triples">triples</a></li><li><a href="#tymethod.triples_matching" title="triples_matching">triples_matching</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.contains" title="contains">contains</a></li><li><a href="#method.incoming_arcs" title="incoming_arcs">incoming_arcs</a></li><li><a href="#method.object_for" title="object_for">object_for</a></li><li><a href="#method.objects_for" title="objects_for">objects_for</a></li><li><a href="#method.objects_for_shacl_path" title="objects_for_shacl_path">objects_for_shacl_path</a></li><li><a href="#method.outgoing_arcs" title="outgoing_arcs">outgoing_arcs</a></li><li><a href="#method.outgoing_arcs_from_list" title="outgoing_arcs_from_list">outgoing_arcs_from_list</a></li><li><a href="#method.reifiers_of_triple" title="reifiers_of_triple">reifiers_of_triple</a></li><li><a href="#method.shacl_instances_of" title="shacl_instances_of">shacl_instances_of</a></li><li><a href="#method.subjects_for" title="subjects_for">subjects_for</a></li><li><a href="#method.triples_with_object" title="triples_with_object">triples_with_object</a></li><li><a href="#method.triples_with_predicate" title="triples_with_predicate">triples_with_predicate</a></li><li><a href="#method.triples_with_predicate_object" title="triples_with_predicate_object">triples_with_predicate_object</a></li><li><a href="#method.triples_with_subject" title="triples_with_subject">triples_with_subject</a></li><li><a href="#method.triples_with_subject_predicate" title="triples_with_subject_predicate">triples_with_subject_predicate</a></li></ul><h3><a href="#dyn-compatibility">Dyn Compatibility</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In rudof_<wbr>rdf::<wbr>rdf_<wbr>core</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">rudof_rdf</a>::<wbr><a href="index.html">rdf_core</a></div><h1>Trait <span class="trait">NeighsRDF</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#32-426">Source</a> </span></div><pre class="rust item-decl"><code>pub trait NeighsRDF: <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a> {
+<details class="toggle type-contents-toggle"><summary class="hideme"><span>Show 17 methods</span></summary>    // Required methods
+    fn <a href="#tymethod.triples" class="fn">triples</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;;
+<span class="item-spacer"></span>    fn <a href="#tymethod.triples_matching" class="fn">triples_matching</a>&lt;S, P, O&gt;(
+        &amp;self,
+        subject: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;S</a>,
+        predicate: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;P</a>,
+        object: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;
+       <span class="where">where S: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;,
+             P: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>&gt;,
+             O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;</span>;
+
+    // Provided methods
+    fn <a href="#method.contains" class="fn">contains</a>&lt;S, P, O&gt;(
+        &amp;self,
+        subject: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;S</a>,
+        predicate: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;P</a>,
+        object: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.bool.html">bool</a>, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;
+       <span class="where">where S: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;,
+             P: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>&gt;,
+             O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;</span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.triples_with_subject" class="fn">triples_with_subject</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.triples_with_subject_predicate" class="fn">triples_with_subject_predicate</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.triples_with_predicate" class="fn">triples_with_predicate</a>(
+        &amp;self,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.triples_with_predicate_object" class="fn">triples_with_predicate_object</a>(
+        &amp;self,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+        object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.triples_with_object" class="fn">triples_with_object</a>(
+        &amp;self,
+        object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.incoming_arcs" class="fn">incoming_arcs</a>(
+        &amp;self,
+        object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.outgoing_arcs" class="fn">outgoing_arcs</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.outgoing_arcs_from_list" class="fn">outgoing_arcs_from_list</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+        preds: &amp;[Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>],
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.shacl_instances_of" class="fn">shacl_instances_of</a>&lt;O&gt;(
+        &amp;self,
+        cls: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;
+       <span class="where">where O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;</span> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.reifiers_of_triple" class="fn">reifiers_of_triple</a>(
+        &amp;self,
+        triple: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.object_for" class="fn">object_for</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.94.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="enum" href="term/enum.Object.html" title="enum rudof_rdf::rdf_core::term::Object">Object</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.objects_for_shacl_path" class="fn">objects_for_shacl_path</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+        path: &amp;<a class="enum" href="enum.SHACLPath.html" title="enum rudof_rdf::rdf_core::SHACLPath">SHACLPath</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.objects_for" class="fn">objects_for</a>(
+        &amp;self,
+        subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.subjects_for" class="fn">subjects_for</a>(
+        &amp;self,
+        predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+        object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt; { ... }
+</details>}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Trait for navigating RDF graphs and querying triples.</p>
+<p>This trait extends <a href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf"><code>Rdf</code></a> with methods for retrieving triples based on
+subject-predicate-object patterns, exploring node neighborhoods, and
+following SHACL property paths. All query methods support flexible
+matching using the <a href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher"><code>Matcher</code></a> trait, allowing exact matches or wildcards.</p>
+<h2 id="graph-navigation"><a class="doc-anchor" href="#graph-navigation">§</a>Graph Navigation</h2>
+<p>The trait provides two primary navigation models:</p>
+<ul>
+<li><strong>Triple queries</strong>: Retrieve triples matching specific patterns</li>
+<li><strong>Arc-based navigation</strong>: Explore incoming and outgoing relationships</li>
+</ul>
+</div></details><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.triples" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#38">Source</a><h4 class="code-header">fn <a href="#tymethod.triples" class="fn">triples</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns an iterator over all triples in the RDF graph.</p>
+<p>This method provides access to the complete set of triples. For large
+graphs, implementations should return a lazy iterator that retrieves
+triples incrementally rather than loading everything into memory.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.triples_matching" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#75-84">Source</a><h4 class="code-header">fn <a href="#tymethod.triples_matching" class="fn">triples_matching</a>&lt;S, P, O&gt;(
+    &amp;self,
+    subject: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;S</a>,
+    predicate: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;P</a>,
+    object: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;<div class="where">where
+    S: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;,
+    P: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>&gt;,
+    O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;,</div></h4></section></summary><div class="docblock"><p>Returns an iterator over triples matching the given pattern.</p>
+<p>This is the core query method that all other triple queries delegate to.
+Each parameter accepts a <a href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher"><code>Matcher</code></a>, allowing exact values or wildcards
+via <a href="struct.Any.html" title="struct rudof_rdf::rdf_core::Any"><code>Any</code></a>.</p>
+<h5 id="implementation-note"><a class="doc-anchor" href="#implementation-note">§</a>Implementation Note</h5>
+<p>This function must retrieve triples from the graph, but should <strong>not</strong>
+load all triples into memory for large graphs. For SPARQL-based
+implementations, translate the pattern into a SPARQL query that
+retrieves only matching triples incrementally.</p>
+<h5 id="arguments"><a class="doc-anchor" href="#arguments">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - Matcher for the subject position</li>
+<li><code>predicate</code> - Matcher for the predicate position</li>
+<li><code>object</code> - Matcher for the object position</li>
+</ul>
+</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.contains" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#47-55">Source</a><h4 class="code-header">fn <a href="#method.contains" class="fn">contains</a>&lt;S, P, O&gt;(
+    &amp;self,
+    subject: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;S</a>,
+    predicate: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;P</a>,
+    object: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.bool.html">bool</a>, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;<div class="where">where
+    S: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;,
+    P: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>&gt;,
+    O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;,</div></h4></section></summary><div class="docblock"><p>Checks whether the graph contains at least one triple matching the pattern.</p>
+<h5 id="arguments-1"><a class="doc-anchor" href="#arguments-1">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - Matcher for the subject (use <a href="struct.Any.html" title="struct rudof_rdf::rdf_core::Any"><code>Any</code></a> for wildcard)</li>
+<li><code>predicate</code> - Matcher for the predicate (use <a href="struct.Any.html" title="struct rudof_rdf::rdf_core::Any"><code>Any</code></a> for wildcard)</li>
+<li><code>object</code> - Matcher for the object (use <a href="struct.Any.html" title="struct rudof_rdf::rdf_core::Any"><code>Any</code></a> for wildcard)</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.triples_with_subject" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#93-98">Source</a><h4 class="code-header">fn <a href="#method.triples_with_subject" class="fn">triples_with_subject</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all triples with the specified subject.</p>
+<p>Equivalent to <code>triples_matching(subject, Any, Any)</code>.</p>
+<h5 id="arguments-2"><a class="doc-anchor" href="#arguments-2">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.triples_with_subject_predicate" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#108-114">Source</a><h4 class="code-header">fn <a href="#method.triples_with_subject_predicate" class="fn">triples_with_subject_predicate</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all triples with the specified subject and predicate.</p>
+<p>Equivalent to <code>triples_matching(subject, predicate, Any)</code>.</p>
+<h5 id="arguments-3"><a class="doc-anchor" href="#arguments-3">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject to match</li>
+<li><code>predicate</code> - The predicate to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.triples_with_predicate" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#123-128">Source</a><h4 class="code-header">fn <a href="#method.triples_with_predicate" class="fn">triples_with_predicate</a>(
+    &amp;self,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all triples with the specified predicate.</p>
+<p>Equivalent to <code>triples_matching(Any, predicate, Any)</code>.</p>
+<h5 id="arguments-4"><a class="doc-anchor" href="#arguments-4">§</a>Arguments</h5>
+<ul>
+<li><code>predicate</code> - The predicate to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.triples_with_predicate_object" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#138-144">Source</a><h4 class="code-header">fn <a href="#method.triples_with_predicate_object" class="fn">triples_with_predicate_object</a>(
+    &amp;self,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all triples with the specified predicate and object.</p>
+<p>Equivalent to <code>triples_matching(Any, predicate, object)</code>.</p>
+<h5 id="arguments-5"><a class="doc-anchor" href="#arguments-5">§</a>Arguments</h5>
+<ul>
+<li><code>predicate</code> - The predicate to match</li>
+<li><code>object</code> - The object to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.triples_with_object" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#153-155">Source</a><h4 class="code-header">fn <a href="#method.triples_with_object" class="fn">triples_with_object</a>(
+    &amp;self,
+    object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>&gt; + '_, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all triples with the specified object.</p>
+<p>Equivalent to <code>triples_matching(Any, Any, object)</code>.</p>
+<h5 id="arguments-6"><a class="doc-anchor" href="#arguments-6">§</a>Arguments</h5>
+<ul>
+<li><code>object</code> - The object to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.incoming_arcs" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#165-172">Source</a><h4 class="code-header">fn <a href="#method.incoming_arcs" class="fn">incoming_arcs</a>(
+    &amp;self,
+    object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all incoming arcs (predicates and subjects) pointing to an object.</p>
+<p>This method performs reverse navigation, finding all subjects that have
+relationships pointing to the specified object, grouped by predicate.</p>
+<h5 id="arguments-7"><a class="doc-anchor" href="#arguments-7">§</a>Arguments</h5>
+<ul>
+<li><code>object</code> - The object term to find incoming relationships for</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.outgoing_arcs" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#182-189">Source</a><h4 class="code-header">fn <a href="#method.outgoing_arcs" class="fn">outgoing_arcs</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all outgoing arcs (predicates and objects) from a subject.</p>
+<p>This method performs forward navigation, finding all predicates and
+their associated objects for the specified subject.</p>
+<h5 id="arguments-8"><a class="doc-anchor" href="#arguments-8">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject to find outgoing relationships for</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.outgoing_arcs_from_list" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#201-216">Source</a><h4 class="code-header">fn <a href="#method.outgoing_arcs_from_list" class="fn">outgoing_arcs_from_list</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>,
+    preds: &amp;[Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>],
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>, <a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;&lt;Self as <a class="trait" href="trait.Rdf.html" title="trait rudof_rdf::rdf_core::Rdf">Rdf</a>&gt;::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns filtered outgoing arcs and remainder predicates.</p>
+<p>This method retrieves outgoing arcs from a subject, but only includes
+predicates that appear in the provided allowlist. Predicates not in
+the list are collected separately in the remainder vector.</p>
+<h5 id="arguments-9"><a class="doc-anchor" href="#arguments-9">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject to query</li>
+<li><code>preds</code> - A slice of predicates to include in the filtered results</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.shacl_instances_of" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#226-236">Source</a><h4 class="code-header">fn <a href="#method.shacl_instances_of" class="fn">shacl_instances_of</a>&lt;O&gt;(
+    &amp;self,
+    cls: <a class="primitive" href="https://doc.rust-lang.org/1.94.0/std/primitive.reference.html">&amp;O</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;<div class="where">where
+    O: <a class="trait" href="trait.Matcher.html" title="trait rudof_rdf::rdf_core::Matcher">Matcher</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;,</div></h4></section></summary><div class="docblock"><p>Returns all subjects that are instances of the specified class.</p>
+<p>This method queries for subjects that have <code>rdf:type</code> relationships
+pointing to the given class term.</p>
+<h5 id="arguments-10"><a class="doc-anchor" href="#arguments-10">§</a>Arguments</h5>
+<ul>
+<li><code>cls</code> - Matcher for the class (object position of <code>rdf:type</code> triples)</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.reifiers_of_triple" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#247-255">Source</a><h4 class="code-header">fn <a href="#method.reifiers_of_triple" class="fn">reifiers_of_triple</a>(
+    &amp;self,
+    triple: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Triple" title="type rudof_rdf::rdf_core::Rdf::Triple">Triple</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;impl <a class="trait" href="https://doc.rust-lang.org/1.94.0/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Subject" title="type rudof_rdf::rdf_core::Rdf::Subject">Subject</a>&gt;, Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Err" title="type rudof_rdf::rdf_core::Rdf::Err">Err</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all subjects that reify the specified triple.</p>
+<p>This method finds RDF reification statements where subjects use
+<code>rdf:reifies</code> to reference the given triple. This supports RDF-star
+reification patterns.</p>
+<h5 id="arguments-11"><a class="doc-anchor" href="#arguments-11">§</a>Arguments</h5>
+<ul>
+<li><code>triple</code> - The triple to find reifiers for</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.object_for" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#266-274">Source</a><h4 class="code-header">fn <a href="#method.object_for" class="fn">object_for</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.94.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="enum" href="term/enum.Object.html" title="enum rudof_rdf::rdf_core::term::Object">Object</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns the first object for the given subject-predicate pair.</p>
+<p>This is a convenience method that returns at most one object. If multiple
+objects exist, only the first encountered is returned.</p>
+<h5 id="arguments-12"><a class="doc-anchor" href="#arguments-12">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject to query</li>
+<li><code>predicate</code> - The predicate to match</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.objects_for_shacl_path" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#296-367">Source</a><h4 class="code-header">fn <a href="#method.objects_for_shacl_path" class="fn">objects_for_shacl_path</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    path: &amp;<a class="enum" href="enum.SHACLPath.html" title="enum rudof_rdf::rdf_core::SHACLPath">SHACLPath</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all objects reachable by following a SHACL property path.</p>
+<p>SHACL property paths extend simple predicate-based navigation with
+complex path expressions including sequences, alternatives, inverses,
+and quantifiers.</p>
+<h5 id="path-types"><a class="doc-anchor" href="#path-types">§</a>Path Types</h5>
+<ul>
+<li><strong>Predicate</strong>: Direct predicate navigation (<code>ex:name</code>)</li>
+<li><strong>Alternative</strong>: Union of multiple paths (<code>ex:father | ex:mother</code>)</li>
+<li><strong>Sequence</strong>: Composed paths (<code>ex:parent / ex:name</code>)</li>
+<li><strong>Inverse</strong>: Reverse navigation (<code>^ex:author</code>)</li>
+<li><strong>ZeroOrMore</strong>: Transitive closure (<code>ex:subClassOf*</code>)</li>
+<li><strong>OneOrMore</strong>: Non-empty transitive closure (<code>ex:subClassOf+</code>)</li>
+<li><strong>ZeroOrOne</strong>: Optional path (<code>ex:nickname?</code>)</li>
+</ul>
+<h5 id="arguments-13"><a class="doc-anchor" href="#arguments-13">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The starting term for path navigation</li>
+<li><code>path</code> - The SHACL property path to follow</li>
+</ul>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.objects_for" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#383-398">Source</a><h4 class="code-header">fn <a href="#method.objects_for" class="fn">objects_for</a>(
+    &amp;self,
+    subject: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all objects for the given subject-predicate pair.</p>
+<p>This method retrieves the object position of all triples matching
+the specified subject and predicate.</p>
+<h5 id="arguments-14"><a class="doc-anchor" href="#arguments-14">§</a>Arguments</h5>
+<ul>
+<li><code>subject</code> - The subject term to query</li>
+<li><code>predicate</code> - The predicate IRI to match</li>
+</ul>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>Returns <a href="enum.RDFError.html#variant.ErrorObjectsFor" title="variant rudof_rdf::rdf_core::RDFError::ErrorObjectsFor"><code>RDFError::ErrorObjectsFor</code></a> if the query fails or if the
+subject term cannot be converted to a valid subject.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.subjects_for" class="method"><a class="src rightside" href="../../src/rudof_rdf/rdf_core/neighs_rdf.rs.html#413-425">Source</a><h4 class="code-header">fn <a href="#method.subjects_for" class="fn">subjects_for</a>(
+    &amp;self,
+    predicate: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.IRI" title="type rudof_rdf::rdf_core::Rdf::IRI">IRI</a>,
+    object: &amp;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.94.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.94.0/std/collections/hash/set/struct.HashSet.html" title="struct std::collections::hash::set::HashSet">HashSet</a>&lt;Self::<a class="associatedtype" href="trait.Rdf.html#associatedtype.Term" title="type rudof_rdf::rdf_core::Rdf::Term">Term</a>&gt;, <a class="enum" href="enum.RDFError.html" title="enum rudof_rdf::rdf_core::RDFError">RDFError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns all subjects for the given predicate-object pair.</p>
+<p>This method performs reverse lookup, finding subjects that have the
+specified predicate pointing to the given object.</p>
+<h5 id="arguments-15"><a class="doc-anchor" href="#arguments-15">§</a>Arguments</h5>
+<ul>
+<li><code>predicate</code> - The predicate IRI to match</li>
+<li><code>object</code> - The object term to query</li>
+</ul>
+<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
+<p>Returns <a href="enum.RDFError.html#variant.ErrorSubjectsFor" title="variant rudof_rdf::rdf_core::RDFError::ErrorSubjectsFor"><code>RDFError::ErrorSubjectsFor</code></a> if the query fails.</p>
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.94.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety", so this trait is not object safe.</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><div class="negative-marker"></div><section id="impl-NeighsRDF-for-InMemoryGraph" class="impl"><a class="src rightside" href="../../src/rudof_rdf/rdf_impl/in_memory_graph.rs.html#675-771">Source</a><a href="#impl-NeighsRDF-for-InMemoryGraph" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.NeighsRDF.html" title="trait rudof_rdf::rdf_core::NeighsRDF">NeighsRDF</a> for <a class="struct" href="../rdf_impl/struct.InMemoryGraph.html" title="struct rudof_rdf::rdf_impl::InMemoryGraph">InMemoryGraph</a></h3><div class="docblock"><p>Implementation of the <code>NeighsRDF</code> trait for navigating graph neighbors.</p>
+</div></section><div class="docblock"><p>This implementation provides methods to iterate over triples in the graph,
+optionally filtered by subject, predicate, or object patterns.</p>
+</div><section id="impl-NeighsRDF-for-SparqlEndpoint" class="impl"><a class="src rightside" href="../../src/rudof_rdf/rdf_impl/sparql_endpoint.rs.html#519-617">Source</a><a href="#impl-NeighsRDF-for-SparqlEndpoint" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="trait.NeighsRDF.html" title="trait rudof_rdf::rdf_core::NeighsRDF">NeighsRDF</a> for <a class="struct" href="../rdf_impl/struct.SparqlEndpoint.html" title="struct rudof_rdf::rdf_impl::SparqlEndpoint">SparqlEndpoint</a></h3><span class="item-info"><div class="stab portability">Available on <strong>non-<code>target_family=wasm</code></strong> only.</div></span></section></div><script src="../../trait.impl/rudof_rdf/rdf_core/neighs_rdf/trait.NeighsRDF.js" async></script></section></div></main></body></html>

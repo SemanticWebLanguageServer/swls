@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["closed_info","compiled_shacl_error","component_ir","dependency_graph","node_shape","property_shape","reifier_info","schema_ir","severity","shape","shape_label_idx","target"]};

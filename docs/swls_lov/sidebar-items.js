@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["LOCAL_PREFIXES"],"struct":["LocalPrefix"]};

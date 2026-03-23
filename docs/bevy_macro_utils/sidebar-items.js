@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["derive_label","ensure_no_collision","get_lit_bool","get_lit_str","get_struct_fields","terminated_parser"],"mod":["fq_std"],"struct":["BevyManifest","ResultSifter","Symbol"]};

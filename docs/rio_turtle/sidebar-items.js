@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["GTriGParser","GeneralizedNQuadsParser","NQuadsFormatter","NQuadsParser","NTriplesFormatter","NTriplesParser","TriGFormatter","TriGParser","TurtleError","TurtleFormatter","TurtleParser"]};

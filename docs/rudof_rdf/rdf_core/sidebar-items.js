@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Neigh","RDFError","RDFFormat","SHACLPath"],"mod":["parser","query","term","utils","visualizer","vocabs"],"struct":["Any","NeighsIterator","RdfDataConfig"],"trait":["AsyncRDF","BuildRDF","FocusRDF","Matcher","NeighsRDF","Rdf"]};

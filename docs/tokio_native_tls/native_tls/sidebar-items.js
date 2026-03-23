@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HandshakeError","Protocol"],"struct":["Certificate","Error","Identity","MidHandshakeTlsStream","TlsAcceptor","TlsAcceptorBuilder","TlsConnector","TlsConnectorBuilder","TlsStream"],"type":["Result"]};

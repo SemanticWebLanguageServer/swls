@@ -1,0 +1,170 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A derive macro to implement a [`Tabled`] trait."><title>Tabled in tabled - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="tabled" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../static.files/storage-e2aeef58.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc derive"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Tabled</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../tabled/index.html"><img src="https://raw.githubusercontent.com/zhiburt/tabled/86ac146e532ce9f7626608d7fd05072123603a2e/assets/tabled-gear.svg" alt="logo"></a><h2><a href="../tabled/index.html">tabled</a><span class="version">0.20.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Tabled</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#rename-a-column-name" title="Rename a column name">Rename a column name</a></li><li><a href="#hide-a-column" title="Hide a column">Hide a column</a></li><li><a href="#set-column-order" title="Set column order">Set column order</a></li><li><a href="#format-fields" title="Format fields">Format fields</a><ul><li><a href="#tableddisplay" title="`#[tabled(display)]`"><code>#[tabled(display)]</code></a></li><li><a href="#tabledformat" title="`#[tabled(format)]`"><code>#[tabled(format)]</code></a></li></ul></li><li><a href="#format-headers" title="Format headers">Format headers</a></li><li><a href="#embeding-a-field" title="Embeding a field">Embeding a field</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate tabled</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">tabled</a></div><h1>Derive Macro <span class="derive">Tabled</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/tabled_derive/lib.rs.html#31">Source</a> </span></div><pre class="rust item-decl"><code>#[derive(Tabled)]
+{
+    <span class="comment">// Attributes available to this derive:</span>
+    #[tabled]
+}
+</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A derive macro to implement a <a href="derive.Tabled.html" title="derive tabled::Tabled"><code>Tabled</code></a> trait.</p>
+<p>The macro available only when <code>derive</code> feature in turned on (and it is by default).</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>SomeType {
+    field0: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    field1: String,
+    field2: usize,
+}</code></pre></div>
+<p>To be able to use the derive each field must implement <code>std::fmt::Display</code>.<br />
+The following example will cause an error because of that.</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>SomeType {
+    field1: Vec&lt;usize&gt;,
+}</code></pre></div>
+<p>Bellow you’ll find available options for it.</p>
+<h3 id="rename-a-column-name"><a class="doc-anchor" href="#rename-a-column-name">§</a>Rename a column name</h3>
+<p>You can use a <code>#[tabled(rename = "")]</code> attribute to override a column name.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Person {
+    <span class="attr">#[tabled(rename = <span class="string">"Name"</span>)]
+    </span>first_name: String,
+    <span class="attr">#[tabled(rename = <span class="string">"Surname"</span>)]
+    </span>last_name: String,
+}</code></pre></div><h3 id="hide-a-column"><a class="doc-anchor" href="#hide-a-column">§</a>Hide a column</h3>
+<p>You can mark fields as hidden in which case they fill be ignored and not be present on a sheet.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Person {
+   id: u8,
+   <span class="attr">#[tabled(skip)]
+   </span>number: String,
+   name: String,
+}</code></pre></div><h3 id="set-column-order"><a class="doc-anchor" href="#set-column-order">§</a>Set column order</h3>
+<p>You can change the order in which they will be displayed in table.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Person {
+   id: u8,
+   <span class="attr">#[tabled(order = <span class="number">0</span>)]
+   </span>number: String,
+   <span class="attr">#[tabled(order = <span class="number">1</span>)]
+   </span>name: String,
+}</code></pre></div><h3 id="format-fields"><a class="doc-anchor" href="#format-fields">§</a>Format fields</h3>
+<p>Using <code>#[derive(Tabled)]</code> is possible only when all fields implement a <code>Display</code> trait.<br />
+However, this may be not convinient for example when a field uses the <code>Option</code> type.<br />
+There’s 2 common ways how to solve this:</p>
+<ul>
+<li>Implement <code>Tabled</code> trait manually for a type.</li>
+<li>Wrap <code>Option</code> to something like <code>DisplayedOption&lt;T&gt;(Option&lt;T&gt;)</code> and implement a Display trait for it.</li>
+</ul>
+<p>But, it’s not quite convient either.</p>
+<p>So alternatively, we provide the next solutions.</p>
+<ul>
+<li>Use the <code>#[tabled(display = "func")]</code> - attribute to set a display function.</li>
+<li>Use the <code>#[tabled(format = "{}")]</code> - attribute to format field.</li>
+</ul>
+<h4 id="tableddisplay"><a class="doc-anchor" href="#tableddisplay">§</a><code>#[tabled(display)]</code></h4>
+<p>A poverfull helper, the set function must have a first argument as a reference to a field.<br />
+It supports custom arguments as well (including <code>self</code>).</p>
+<p>You can set it right on the whole type,<br />
+In which case all fields which are matching a set type will be using the given function.</p>
+<p>We also provide a set of commonly used function for your types.<br />
+You can find them in <a href="crate::tabled::derive::display"><code>tabled::derive::display</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+<span class="kw">use </span>tabled::derive::display;
+
+<span class="attr">#[derive(Tabled)]
+#[tabled(display(i64, <span class="string">"display_i64"</span>))]
+</span><span class="kw">pub struct </span>Record {
+    <span class="kw">pub </span>id: i64,
+    <span class="attr">#[tabled(display(<span class="string">"display::option"</span>, <span class="string">"unvalidated"</span>))]
+    </span><span class="kw">pub </span>valid: <span class="prelude-ty">Option</span>&lt;bool&gt;,
+    <span class="attr">#[tabled(display(<span class="string">"display_private"</span>, <span class="self">self</span>))]
+    </span><span class="kw">pub </span>private: (),
+}
+
+<span class="kw">fn </span>display_private(<span class="kw">_</span>: <span class="kw-2">&amp;</span>(), rec: <span class="kw-2">&amp;</span>Record) -&gt; String {
+    <span class="macro">todo!</span>()
+}
+
+<span class="kw">fn </span>display_i64(val: <span class="kw-2">&amp;</span>i64) -&gt; String {
+    <span class="macro">todo!</span>()
+}</code></pre></div><h4 id="tabledformat"><a class="doc-anchor" href="#tabledformat">§</a><code>#[tabled(format)]</code></h4>
+<p>An analogue to <a href="https://doc.rust-lang.org/1.94.0/alloc/macro.format.html" title="macro alloc::format"><code>format!</code></a>, which can be used right on the field.\</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Record {
+    <span class="attr">#[tabled(skip)]
+    </span>id: u8,
+    <span class="attr">#[tabled(format(<span class="string">"{}.{}-{}"</span>, <span class="self">self</span>.id, <span class="self">self</span>.name, <span class="number">123</span>))]
+    </span>name: String,
+}</code></pre></div><h3 id="format-headers"><a class="doc-anchor" href="#format-headers">§</a>Format headers</h3>
+<p>Beside <code>#[tabled(rename = "")]</code> you can change a format of a column name using<br />
+<code>#[tabled(rename_all = "UPPERCASE")]</code>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+#[tabled(rename_all = <span class="string">"CamelCase"</span>)]
+</span><span class="kw">struct </span>Person {
+    id: u8,
+    number: String,
+    name: String,
+    <span class="attr">#[tabled(rename_all = <span class="string">"snake_case"</span>)]
+    </span>middle_name: String,
+}</code></pre></div><h3 id="embeding-a-field"><a class="doc-anchor" href="#embeding-a-field">§</a>Embeding a field</h3>
+<p>You can inline a field or a variant if it implements <code>Tabled</code> trait<br />
+using <code>#[tabled(inline)]</code>.
+You can also set a prefix for inlined elements by given it as a argument<br />
+<code>#[tabled(inline("::::"))]</code>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Person {
+    id: u8,
+    name: String,
+    <span class="attr">#[tabled(inline)]
+    </span>ed: Education,
+}
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Education {
+    uni: String,
+    graduated: bool,
+}</code></pre></div>
+<p>And it works for enums as well.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>tabled::Tabled;
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">enum </span>Vehicle {
+    <span class="attr">#[tabled(inline(<span class="string">"Auto::"</span>))]
+    </span>Auto {
+        model: String,
+        engine: String,
+    },
+    <span class="attr">#[tabled(inline)]
+    </span>Bikecycle(
+        String,
+        <span class="attr">#[tabled(inline)] </span>Bike,
+    ),
+}
+
+<span class="attr">#[derive(Tabled)]
+</span><span class="kw">struct </span>Bike {
+    brand: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    price: f32,
+}</code></pre></div></div></details></section></div></main></body></html>

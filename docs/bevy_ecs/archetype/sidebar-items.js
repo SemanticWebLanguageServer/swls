@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Archetype","ArchetypeEntity","ArchetypeGeneration","ArchetypeId","ArchetypeRecord","ArchetypeRow","Archetypes","Edges"],"type":["ComponentIndex"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Iri"],"macro":["iri","iri_once","static_once"],"mod":["error"],"struct":["IriS"],"trait":["MimeType"]};

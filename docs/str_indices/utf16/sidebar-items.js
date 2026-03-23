@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["count","count_surrogates","from_byte_idx","to_byte_idx"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AggregateExpression","Expression","Function","GraphPattern","GroundTerm","GroundTermPattern","JoinAlgorithm","LeftJoinAlgorithm","MinusAlgorithm","NamedNodePattern","OrderExpression","PropertyPathExpression"],"struct":["Literal","NamedNode","Variable"]};

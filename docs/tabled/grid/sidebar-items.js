@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["ansi","colors","config","dimension","records","util"],"struct":["CompactGrid","IterGrid","PeekableGrid"]};

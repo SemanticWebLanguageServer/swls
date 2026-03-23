@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["QueryResultsFormat","QueryResultsParseError","ReaderQueryResultsParserOutput","SliceQueryResultsParserOutput"],"mod":["solution"],"struct":["QueryResultsParser","QueryResultsSerializer","QueryResultsSyntaxError","QuerySolution","ReaderSolutionsParser","SliceSolutionsParser","TextPosition","WriterSolutionsSerializer"]};

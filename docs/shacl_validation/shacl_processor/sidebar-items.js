@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ShaclValidationMode"],"struct":["EndpointValidation","GraphValidation","RdfDataValidation"],"trait":["ShaclProcessor"]};

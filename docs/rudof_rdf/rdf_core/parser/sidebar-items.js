@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["rdf_node_parser"],"struct":["RDFParse"]};

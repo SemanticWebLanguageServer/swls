@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["And","Class","Closed","Datatype","Disjoint","Equals","HasValue","In","LanguageIn","LessThan","LessThanOrEquals","MaxCount","MaxExclusive","MaxInclusive","MaxLength","MinCount","MinExclusive","MinInclusive","MinLength","Node","Nodekind","Not","Or","Pattern","QualifiedValueShape","UniqueLang","Xone"]};
