@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use bevy_ecs::{resource::Resource, system::Res, world::{CommandQueue, World}};
-use lsp_core::{
+use swls_core::{
     lsp_types::TextDocumentItem,
     prelude::*,
 };
@@ -91,7 +91,7 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                     prefix
                 );
 
-                let lov = lov::LocalPrefix {
+                let lov = swls_lov::LocalPrefix {
                     location: Cow::Owned(location.to_string()),
                     namespace: Cow::Owned(url.to_string()),
                     content: Cow::Owned(content),

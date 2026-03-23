@@ -1,16 +1,21 @@
 [package]
-name = "token-helpers"
+name = "swls-token-helpers"
+description = "Token parsing helpers for the Semantic Web Language Server"
+keywords = ["lsp", "semantic-web", "parser", "token"]
+categories = ["development-tools", "parser-implementations"]
 
-authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
-edition = "2021"
-version = "0.1.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 chumsky.workspace      = true
 
-lsp-core = { path = "../core/" }
+swls-core = { path = "../core/" }
 
 [dev-dependencies]
 test-log   = { version = "0.2.19", features = ["trace"] }
-test-utils = { path = "../test-utils/" }
-
+swls-test-utils = { path = "../test-utils/" }

@@ -5,12 +5,12 @@ use std::{
 };
 
 use chumsky::prelude::*;
-use lang_turtle::lang::{
+use swls_lang_turtle::lang::{
     parse_source,
     // parser2::parse_source as parse_source2,
     tokenizer::{parse_tokens, parse_tokens_str_safe},
 };
-use lsp_core::lsp_types::Url;
+use swls_core::lsp_types::Url;
 
 fn tokenize_combinator(inp: &str) -> bool {
     parse_tokens().parse(inp).is_ok()
@@ -114,7 +114,7 @@ fn main() {
         let name = path;
         println!("\nName: {}", name.display());
         let absolute = path::absolute(&name).expect("valid url");
-        let url = lsp_core::lsp_types::Url::from_file_path(absolute).expect("valid url");
+        let url = swls_core::lsp_types::Url::from_file_path(absolute).expect("valid url");
         let content = fs::read_to_string(name).unwrap();
         if content.len() == 0 {
             continue;

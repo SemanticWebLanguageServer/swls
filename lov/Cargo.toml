@@ -1,10 +1,16 @@
 
 [package]
-name = "lov"
+name = "swls-lov"
+description = "Linked Open Vocabularies (LOV) data and types for the Semantic Web Language Server"
+keywords = ["lsp", "semantic-web", "rdf", "lov", "ontology"]
+categories = ["development-tools"]
 
-authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
-edition = "2021"
-version = "0.1.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 bevy_ecs.workspace     = true

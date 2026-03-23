@@ -118,7 +118,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
             Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,
         ),
     >,
-    ontologies: Query<(Entity, &lov::LocalPrefix)>,
+    ontologies: Query<(Entity, &swls_lov::LocalPrefix)>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
@@ -264,7 +264,7 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
 }
 
 async fn local_lov<C: Client + Resource>(
-    local: lov::LocalPrefix,
+    local: swls_lov::LocalPrefix,
     label: Url,
     sender: Sender,
     fs: Fs,

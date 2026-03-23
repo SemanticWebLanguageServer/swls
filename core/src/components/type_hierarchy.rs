@@ -51,7 +51,7 @@ impl Types {
 ///
 /// Example
 /// ```
-/// use lsp_core::components::TypeHierarchy;
+/// use swls_core::components::TypeHierarchy;
 ///
 /// let mut hierarchy = TypeHierarchy::default();
 /// let image_id = hierarchy.get_id("http://xmlns.com/foaf/0.1/Image");

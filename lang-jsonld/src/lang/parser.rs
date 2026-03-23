@@ -4,7 +4,7 @@ use std::{
 };
 
 use chumsky::{prelude::*, Error, Parser, Stream};
-use lsp_core::prelude::{spanned, MyTerm, Spanned, Token};
+use swls_core::prelude::{spanned, MyTerm, Spanned, Token};
 use Token::*;
 
 struct ObjectMemberManager<'a> {
@@ -385,7 +385,7 @@ fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
 
 #[cfg(test)]
 mod tests {
-    use lsp_core::prelude::StringStyle;
+    use swls_core::prelude::StringStyle;
 
     use super::*;
     use crate::lang::tokenizer::tokenize;

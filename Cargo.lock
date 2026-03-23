@@ -677,19 +677,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conformance"
-version = "0.1.0"
-dependencies = [
- "chumsky",
- "lang-turtle",
- "lsp-core",
- "sophia_api",
- "sophia_inmem",
- "sophia_iri",
- "sophia_turtle",
-]
-
-[[package]]
 name = "const_format"
 version = "0.2.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1619,72 +1606,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lang-jsonld"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bevy_ecs",
- "chumsky",
- "futures",
- "lang-turtle",
- "lsp-core",
- "ropey",
- "serde_json",
- "sophia_api",
- "sophia_iri",
- "test-log",
- "test-utils",
- "tracing",
-]
-
-[[package]]
-name = "lang-sparql"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bevy_ecs",
- "chumsky",
- "futures",
- "lang-turtle",
- "lazy_static",
- "logos",
- "lov",
- "lsp-core",
- "ropey",
- "serde_json",
- "sophia_api",
- "sophia_iri",
- "test-log",
- "test-utils",
- "token-helpers",
- "tracing",
-]
-
-[[package]]
-name = "lang-turtle"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bevy_ecs",
- "bevy_tasks",
- "chumsky",
- "futures",
- "logos",
- "lov",
- "lsp-core",
- "ropey",
- "serde",
- "serde_json",
- "similar",
- "sophia_api",
- "sophia_iri",
- "test-log",
- "test-utils",
- "token-helpers",
- "tracing",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1768,42 +1689,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "605d9697bcd5ef3a42d38efc51541aa3d6a4a25f7ab6d1ed0da5ac632a26b470"
 dependencies = [
  "logos-codegen",
-]
-
-[[package]]
-name = "lov"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
-]
-
-[[package]]
-name = "lsp-core"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
- "chrono",
- "chumsky",
- "derive_more",
- "dirs",
- "futures",
- "iri_s",
- "lazy_static",
- "lov",
- "oxigraph",
- "oxrdf",
- "prefixmap",
- "ropey",
- "rudof_rdf",
- "serde",
- "serde_json",
- "shacl_ast",
- "shacl_ir",
- "shacl_rdf",
- "shacl_validation",
- "sophia_api",
- "tower-lsp",
- "tracing",
 ]
 
 [[package]]
@@ -3510,20 +3395,163 @@ dependencies = [
  "chumsky",
  "futures",
  "glob",
- "lang-jsonld",
- "lang-sparql",
- "lang-turtle",
- "lsp-core",
  "reqwest",
  "ropey",
  "serde_json",
  "sophia_api",
  "sophia_iri",
+ "swls-core",
+ "swls-lang-jsonld",
+ "swls-lang-sparql",
+ "swls-lang-turtle",
  "tokio",
  "tower-lsp",
  "tracing",
  "tracing-flame",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "swls-conformance"
+version = "0.1.0"
+dependencies = [
+ "chumsky",
+ "sophia_api",
+ "sophia_inmem",
+ "sophia_iri",
+ "sophia_turtle",
+ "swls-core",
+ "swls-lang-turtle",
+]
+
+[[package]]
+name = "swls-core"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "chrono",
+ "chumsky",
+ "derive_more",
+ "dirs",
+ "futures",
+ "iri_s",
+ "lazy_static",
+ "oxigraph",
+ "oxrdf",
+ "prefixmap",
+ "ropey",
+ "rudof_rdf",
+ "serde",
+ "serde_json",
+ "shacl_ast",
+ "shacl_ir",
+ "shacl_rdf",
+ "shacl_validation",
+ "sophia_api",
+ "swls-lov",
+ "tower-lsp",
+ "tracing",
+]
+
+[[package]]
+name = "swls-lang-jsonld"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "chumsky",
+ "futures",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "swls-core",
+ "swls-lang-turtle",
+ "swls-test-utils",
+ "test-log",
+ "tracing",
+]
+
+[[package]]
+name = "swls-lang-sparql"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "chumsky",
+ "futures",
+ "lazy_static",
+ "logos",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "swls-core",
+ "swls-lang-turtle",
+ "swls-lov",
+ "swls-test-utils",
+ "swls-token-helpers",
+ "test-log",
+ "tracing",
+]
+
+[[package]]
+name = "swls-lang-turtle"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "bevy_tasks",
+ "chumsky",
+ "futures",
+ "logos",
+ "ropey",
+ "serde",
+ "serde_json",
+ "similar",
+ "sophia_api",
+ "sophia_iri",
+ "swls-core",
+ "swls-lov",
+ "swls-test-utils",
+ "swls-token-helpers",
+ "test-log",
+ "tracing",
+]
+
+[[package]]
+name = "swls-lov"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+]
+
+[[package]]
+name = "swls-test-utils"
+version = "0.1.0"
+dependencies = [
+ "async-executor",
+ "async-std",
+ "bevy_ecs",
+ "chumsky",
+ "futures",
+ "glob",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "swls-core",
+ "tower-lsp",
+ "tracing",
+]
+
+[[package]]
+name = "swls-token-helpers"
+version = "0.1.0"
+dependencies = [
+ "chumsky",
+ "swls-core",
+ "swls-test-utils",
+ "test-log",
 ]
 
 [[package]]
@@ -3657,24 +3685,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-utils"
-version = "0.1.0"
-dependencies = [
- "async-executor",
- "async-std",
- "bevy_ecs",
- "chumsky",
- "futures",
- "glob",
- "lsp-core",
- "ropey",
- "serde_json",
- "sophia_api",
- "tower-lsp",
- "tracing",
-]
-
-[[package]]
 name = "testing_table"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3757,16 +3767,6 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
-
-[[package]]
-name = "token-helpers"
-version = "0.1.0"
-dependencies = [
- "chumsky",
- "lsp-core",
- "test-log",
- "test-utils",
-]
 
 [[package]]
 name = "tokio"

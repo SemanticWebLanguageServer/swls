@@ -3,7 +3,7 @@ extern crate tracing;
 
 use bevy_ecs::prelude::*;
 use chumsky::error::Simple;
-use lsp_core::{lsp_types::SemanticTokenType, prelude::*};
+use swls_core::{lsp_types::SemanticTokenType, prelude::*};
 
 pub mod ecs;
 use crate::ecs::{setup_completion, setup_parse};
@@ -87,7 +87,7 @@ lazy_static::lazy_static! {
     static ref KWDS: Vec<&'static str> = {
         let mut m = Vec::new();
 
-        // lsp_core::token::SparqlCall::ITEMS.iter().for_each(|x| m.push(x.complete()));
+        // swls_core::token::SparqlCall::ITEMS.iter().for_each(|x| m.push(x.complete()));
         SparqlKeyword::ITEMS.iter().for_each(|x| m.push(x.complete()));
         SparqlAggregate::ITEMS.iter().for_each(|x| m.push(x.complete()));
 

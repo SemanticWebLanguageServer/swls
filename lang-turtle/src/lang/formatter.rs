@@ -3,8 +3,8 @@ use std::{
     ops::Range,
 };
 
-use lsp_core::lsp_types::FormattingOptions;
-use lsp_core::prelude::*;
+use swls_core::lsp_types::FormattingOptions;
+use swls_core::prelude::*;
 use ropey::Rope;
 use tracing::{info, trace, warn};
 
@@ -468,7 +468,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use lsp_core::prelude::{Spanned, Token};
+    use swls_core::prelude::{Spanned, Token};
     use ropey::Rope;
 
     use crate::lang::{
@@ -484,7 +484,7 @@ mod tests {
 
     fn parse_turtle(
         inp: &str,
-        url: &lsp_core::lsp_types::Url,
+        url: &swls_core::lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
         let context = Context::new();
         let ctx = context.ctx();
@@ -532,11 +532,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -561,11 +561,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -598,11 +598,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -627,11 +627,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -652,11 +652,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -682,11 +682,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -716,12 +716,12 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         println!("OUtput {:?}", output);
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -751,11 +751,11 @@ mod tests {
 
 #trailing comments
 "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -797,11 +797,11 @@ mod tests {
 
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
         let formatted = format_turtle(
             &output,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },

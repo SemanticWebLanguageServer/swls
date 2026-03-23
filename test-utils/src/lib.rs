@@ -25,7 +25,7 @@ use futures::{
     lock::Mutex,
     FutureExt as _,
 };
-use lsp_core::{
+use swls_core::{
     client::{Client, ClientSync, Resp},
     components::*,
     lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url},
@@ -41,7 +41,7 @@ use lsp_core::{
 #[derive(Resource, Debug, Clone)]
 pub struct TestClient {
     logs: Arc<Mutex<Vec<(MessageType, String)>>>,
-    diagnostics: Arc<Mutex<Vec<(Url, Vec<lsp_core::lsp_types::Diagnostic>)>>>,
+    diagnostics: Arc<Mutex<Vec<(Url, Vec<swls_core::lsp_types::Diagnostic>)>>>,
     locations: HashMap<String, String>,
     tasks_running: Arc<std::sync::atomic::AtomicU32>,
     executor: Arc<async_executor::Executor<'static>>,
@@ -132,7 +132,7 @@ impl ClientSync for TestClient {
         url: &str,
         _headers: &std::collections::HashMap<String, String>,
     ) -> std::pin::Pin<
-        Box<dyn Send + std::future::Future<Output = Result<lsp_core::client::Resp, String>>>,
+        Box<dyn Send + std::future::Future<Output = Result<swls_core::client::Resp, String>>>,
     > {
         let body = self.locations.get(url).cloned();
         Sendable(async move {
@@ -169,17 +169,17 @@ impl TestFs {
 
 #[tower_lsp::async_trait]
 impl FsTrait for TestFs {
-    fn virtual_url(&self, url: &str) -> Option<lsp_core::lsp_types::Url> {
+    fn virtual_url(&self, url: &str) -> Option<swls_core::lsp_types::Url> {
         let mut pb = self.0.clone();
-        if let Ok(url) = lsp_core::lsp_types::Url::parse(url) {
+        if let Ok(url) = swls_core::lsp_types::Url::parse(url) {
             pb.push(url.path());
         } else {
             pb.push(url);
         }
-        lsp_core::lsp_types::Url::from_file_path(pb).ok()
+        swls_core::lsp_types::Url::from_file_path(pb).ok()
     }
 
-    async fn read_file(&self, url: &lsp_core::lsp_types::Url) -> Option<String> {
+    async fn read_file(&self, url: &swls_core::lsp_types::Url) -> Option<String> {
         let fp = url.to_file_path().ok()?;
         let content = read_to_string(fp).await.ok()?;
         Some(content)
@@ -200,7 +200,7 @@ impl FsTrait for TestFs {
         Some(files)
     }
 
-    async fn write_file(&self, url: &lsp_core::lsp_types::Url, content: &str) -> Option<()> {
+    async fn write_file(&self, url: &swls_core::lsp_types::Url, content: &str) -> Option<()> {
         let fp = url.to_file_path().ok()?;
         if let Some(parent) = fp.parent() {
             fs::create_dir_all(parent).await.ok()?;
@@ -222,7 +222,7 @@ pub fn setup_world(
     world.insert_resource(client);
     world.insert_resource(Fs(Arc::new(TestFs::new())));
 
-    world.schedule_scope(lsp_core::Tasks, |_, schedule| {
+    world.schedule_scope(swls_core::Tasks, |_, schedule| {
         schedule.add_systems(handle_tasks);
     });
 

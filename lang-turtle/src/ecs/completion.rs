@@ -1,9 +1,9 @@
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
-use lov::LocalPrefix;
-use lsp_core::lsp_types::CompletionItemKind;
-use lsp_core::systems::PrefixEntry;
-use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use swls_lov::LocalPrefix;
+use swls_core::lsp_types::CompletionItemKind;
+use swls_core::systems::PrefixEntry;
+use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use tracing::debug;
 
 use crate::{lang::model::NamedNode, TurtleLang};
@@ -26,13 +26,13 @@ pub fn turtle_lov_undefined_prefix_completion(
             start = Position::new(1, 0);
         }
 
-        use lsp_core::lsp_types::{Position, Range};
+        use swls_core::lsp_types::{Position, Range};
         prefix_completion_helper(
             word,
             prefixes,
             &mut req.0,
             |name, location| {
-                Some(vec![lsp_core::lsp_types::TextEdit {
+                Some(vec![swls_core::lsp_types::TextEdit {
                     range: Range::new(start.clone(), start),
                     new_text: format!("@prefix {}: <{}>.\n", name, location),
                 }])
@@ -76,7 +76,7 @@ pub fn subject_completion(
                             SimpleCompletion::new(
                                 CompletionItemKind::MODULE,
                                 subj.to_string(),
-                                lsp_core::lsp_types::TextEdit {
+                                swls_core::lsp_types::TextEdit {
                                     new_text,
                                     range: word.range.clone(),
                                 },
@@ -95,10 +95,10 @@ mod tests {
 
     use completion::CompletionRequest;
     use futures::executor::block_on;
-    use lsp_core::{components::*, lang::LangHelper, prelude::*, Tasks};
+    use swls_core::{components::*, lang::LangHelper, prelude::*, Tasks};
     use ropey::Rope;
     use test_log::test;
-    use test_utils::{create_file, setup_world, TestClient};
+    use swls_test_utils::{create_file, setup_world, TestClient};
     use tracing::info;
 
     use crate::TurtleHelper;
@@ -127,7 +127,7 @@ foa
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 2,
                 character: 0,
             }),
@@ -186,7 +186,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 2,
                 character: 0,
             }),
@@ -227,7 +227,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 1,
                 character: 6,
             }),
@@ -273,7 +273,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 1,
                 character: 4,
             }),
@@ -317,7 +317,7 @@ foaf:me foaf:friend <#me>.
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 2,
                 character: 5,
             }),

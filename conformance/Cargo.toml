@@ -1,9 +1,14 @@
 [package]
-name = "conformance"
+name = "swls-conformance"
+description = "W3C conformance tests for the Semantic Web Language Server"
+publish = false
 
-authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
-edition = "2021"
-version = "0.1.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 sophia_api.workspace   = true
@@ -11,12 +16,11 @@ sophia_iri.workspace   = true
 chumsky.workspace   = true
 sophia_turtle = "0.9.0"
 
-lang-turtle = { path = "../lang-turtle/" }
-lsp-core = { path = "../core/" }
+swls-lang-turtle = { path = "../lang-turtle/" }
+swls-core        = { path = "../core/" }
 
 [build-dependencies]
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 sophia_turtle = "0.9.0"
 sophia_inmem = "0.9.0"
-

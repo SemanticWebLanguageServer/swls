@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use crate::lang::{context::Context, model::Turtle, parser::parse_turtle, tokenizer::parse_tokens_str};
-use lsp_core::{lsp_types::Url, prelude::*, util::fs::File};
+use swls_core::{lsp_types::Url, prelude::*, util::fs::File};
 
 /// Finds a resource.
 /// If the location starts with http, it is a remote resource.
@@ -38,7 +38,7 @@ pub async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn file_name_to_url(name: &str) -> Option<Url> {
-    lsp_core::lsp_types::Url::from_file_path(name).ok()
+    swls_core::lsp_types::Url::from_file_path(name).ok()
 }
 
 #[cfg(target_arch = "wasm32")]

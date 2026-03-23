@@ -6,7 +6,7 @@ use std::{
 
 use bevy_ecs::{resource::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use lsp_core::{lsp_types::SemanticTokenType, prelude::*};
+use swls_core::{lsp_types::SemanticTokenType, prelude::*};
 use swls::{client::BinFs, timings, TowerClient};
 use tower_lsp::{LspService, Server};
 use tracing::{debug, info, level_filters::LevelFilter};
@@ -28,9 +28,9 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
         }
     });
 
-    lang_turtle::setup_world::<C>(&mut world);
-    lang_jsonld::setup_world(&mut world);
-    lang_sparql::setup_world(&mut world);
+    swls_lang_turtle::setup_world::<C>(&mut world);
+    swls_lang_jsonld::setup_world(&mut world);
+    swls_lang_sparql::setup_world(&mut world);
 
     let (tx, mut rx) = unbounded();
     let sender = CommandSender(tx);

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
-use lsp_core::{
+use swls_core::{
     components::*,
     prelude::{Tokens, Triples},
 };

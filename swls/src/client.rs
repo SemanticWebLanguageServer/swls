@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf, pin::Pin};
 
 use bevy_ecs::resource::Resource;
 use futures::FutureExt;
-use lsp_core::{
+use swls_core::{
     client::{Client, ClientSync, Resp},
     lsp_types::{Diagnostic, MessageType, Url},
     prelude::{File, FsTrait},
@@ -37,17 +37,17 @@ impl BinFs {
 
 #[tower_lsp::async_trait]
 impl FsTrait for BinFs {
-    fn virtual_url(&self, url: &str) -> Option<lsp_core::lsp_types::Url> {
+    fn virtual_url(&self, url: &str) -> Option<swls_core::lsp_types::Url> {
         let mut pb = self.0.clone();
-        if let Ok(url) = lsp_core::lsp_types::Url::parse(url) {
+        if let Ok(url) = swls_core::lsp_types::Url::parse(url) {
             pb.push(url.path());
         } else {
             pb.push(url);
         }
-        lsp_core::lsp_types::Url::from_file_path(pb).ok()
+        swls_core::lsp_types::Url::from_file_path(pb).ok()
     }
 
-    async fn read_file(&self, url: &lsp_core::lsp_types::Url) -> Option<String> {
+    async fn read_file(&self, url: &swls_core::lsp_types::Url) -> Option<String> {
         let fp = url.to_file_path().ok()?;
         let content = read_to_string(fp).await.ok()?;
         Some(content)
@@ -68,7 +68,7 @@ impl FsTrait for BinFs {
         Some(files)
     }
 
-    async fn write_file(&self, url: &lsp_core::lsp_types::Url, content: &str) -> Option<()> {
+    async fn write_file(&self, url: &swls_core::lsp_types::Url, content: &str) -> Option<()> {
         let fp = url.to_file_path().ok()?;
         if let Some(parent) = fp.parent() {
             fs::create_dir_all(parent).await.ok()?;

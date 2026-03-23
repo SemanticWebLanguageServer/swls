@@ -13,7 +13,7 @@
 //! respond to requests.
 //!
 //! Language specific implementations that handle things like tokenizing and parsing are
-//! implemented in separate crates. The binary currently supports [Turtle](../lang_turtle/index.html), [JSON-LD](../lang_jsonld/index.html) and [SPARQL](../lang_sparql/index.html).
+//! implemented in separate crates. The binary currently supports [Turtle](../swls_lang_turtle/index.html), [JSON-LD](../swls_lang_jsonld/index.html) and [SPARQL](../swls_lang_sparql/index.html).
 //! The goal is that each language at least generates [`Tokens`], [`Triples`] and
 //! [`Prefixes`].
 //! These components are then used to derive properties for autcompletion but also derive
@@ -24,7 +24,7 @@
 //! ## Example add completion for all subjects that start with `a`
 //! ```
 //! use bevy_ecs::prelude::*;
-//! use lsp_core::prelude::*;
+//! use swls_core::prelude::*;
 //! # use sophia_api::dataset::Dataset;
 //! # use sophia_api::prelude::Quad;
 //!
@@ -63,9 +63,9 @@
 //!       for my_completion in &completions.subjects {
 //!         request.push(
 //!           SimpleCompletion::new(
-//!             lsp_core::lsp_types::CompletionItemKind::FIELD,
+//!             swls_core::lsp_types::CompletionItemKind::FIELD,
 //!             my_completion.clone(),
-//!             lsp_core::lsp_types::TextEdit {
+//!             swls_core::lsp_types::TextEdit {
 //!               range: token.range.clone(),
 //!               new_text: my_completion.clone(),
 //!             }
@@ -98,7 +98,7 @@ pub mod client;
 pub mod store;
 /// Common utils
 ///
-/// Includes range transformations between [`std::ops::Range`] and [`lsp_core::lsp_types::Range`].
+/// Includes range transformations between [`std::ops::Range`] and [`swls_core::lsp_types::Range`].
 /// And commonly used [`Spanned`].
 pub mod util;
 
@@ -155,9 +155,9 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 ///
 /// Example
 /// ```rust
-/// # use lsp_core::components::DynLang;
-/// # use lsp_core::CreateEvent;
-/// # use lsp_core::lang::LangHelper;
+/// # use swls_core::components::DynLang;
+/// # use swls_core::CreateEvent;
+/// # use swls_core::lang::LangHelper;
 /// # use bevy_ecs::event::EntityEvent;
 /// # use bevy_ecs::prelude::{Commands, On, World, Component};
 ///

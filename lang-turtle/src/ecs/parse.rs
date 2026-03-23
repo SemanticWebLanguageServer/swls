@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy_ecs::prelude::*;
-use lsp_core::prelude::*;
+use swls_core::prelude::*;
 use tracing::{info, instrument};
 
 use crate::{

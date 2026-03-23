@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::*;
-use lsp_core::lsp_types::{Position, Range};
-use lsp_core::{components::*, prelude::*};
+use swls_core::lsp_types::{Position, Range};
+use swls_core::{components::*, prelude::*};
 use tracing::debug;
 
 use crate::{lang::formatter::format_turtle, TurtleLang};
@@ -28,7 +28,7 @@ pub fn format_turtle_system(
 
         let formatted = format_turtle(
             &turtle.0,
-            lsp_core::lsp_types::FormattingOptions {
+            swls_core::lsp_types::FormattingOptions {
                 tab_size: 2,
                 ..Default::default()
             },
@@ -37,7 +37,7 @@ pub fn format_turtle_system(
         );
 
         request.0 = formatted.map(|x| {
-            vec![lsp_core::lsp_types::TextEdit::new(
+            vec![swls_core::lsp_types::TextEdit::new(
                 Range::new(
                     Position::new(0, 0),
                     Position::new(source.0.len_lines() as u32 + 1, 0),
@@ -50,8 +50,8 @@ pub fn format_turtle_system(
 
 #[cfg(test)]
 mod test {
-    use lsp_core::prelude::FormatLabel;
-    use test_utils::{create_file, setup_world, TestClient};
+    use swls_core::prelude::FormatLabel;
+    use swls_test_utils::{create_file, setup_world, TestClient};
 
     use super::*;
 

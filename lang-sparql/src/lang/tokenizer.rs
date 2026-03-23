@@ -1,6 +1,6 @@
 use chumsky::prelude::*;
 use logos::Logos;
-use lsp_core::prelude::{
+use swls_core::prelude::{
     spanned, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword, StringStyle, Token,
 };
 

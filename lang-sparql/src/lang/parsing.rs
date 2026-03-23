@@ -1,11 +1,11 @@
 use chumsky::{prelude::*, Error};
 use tracing::debug;
-use lang_turtle::lang::{
+use swls_lang_turtle::lang::{
     context::Ctx,
     model::TurtlePrefix,
     parser::{named_node, not, triple},
 };
-use lsp_core::prelude::{spanned, PToken, Spanned, SparqlExpr, SparqlKeyword, Token};
+use swls_core::prelude::{spanned, PToken, Spanned, SparqlExpr, SparqlKeyword, Token};
 
 use crate::lang::model::{
     Base, Bind, DatasetClause, Expression, GroupGraphPattern, GroupGraphPatternSub, Modifier,
@@ -227,7 +227,7 @@ fn modifier() -> impl Parser<PToken, Modifier, Error = Simple<PToken>> + Clone {
 }
 
 pub fn query<'a>(
-    base: lsp_core::lsp_types::Url,
+    base: swls_core::lsp_types::Url,
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, Query, Error = Simple<PToken>> + Clone + use<'a> {
     let prologues = prologue().map_with_span(spanned).repeated().map(|xs| {
@@ -266,7 +266,7 @@ pub fn query<'a>(
 
 pub fn parse(
     source: &str,
-    base: lsp_core::lsp_types::Url,
+    base: swls_core::lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     ctx: Ctx<'_>,
 ) -> (Spanned<Query>, Vec<Simple<PToken>>) {
@@ -295,7 +295,7 @@ pub fn parse(
 #[cfg(test)]
 mod tests {
     use chumsky::Stream;
-    use lang_turtle::lang::context::Context;
+    use swls_lang_turtle::lang::context::Context;
 
     use super::*;
     use crate::lang::{parsing::select_clause, tokenizer::parse_tokens_str};
@@ -413,7 +413,7 @@ SELECT  ?title ?price
         let (q, tok) = parse_it(
             inp,
             query(
-                lsp_core::lsp_types::Url::parse("memory://myFile.sq").unwrap(),
+                swls_core::lsp_types::Url::parse("memory://myFile.sq").unwrap(),
                 ctx,
             ),
         );

@@ -1,13 +1,13 @@
 use std::{borrow::Cow, collections::HashSet, fmt::Display, ops::Range};
 
-use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, TermContext, Triples2};
+use swls_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, TermContext, Triples2};
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::warn;
 
 use super::context::{Context, ContextKind};
 
 pub trait Based {
-    fn get_base(&self) -> &lsp_core::lsp_types::Url;
+    fn get_base(&self) -> &swls_core::lsp_types::Url;
     fn prefixes(&self) -> &[Spanned<TurtlePrefix>];
 }
 
@@ -406,7 +406,7 @@ impl Base {
     pub fn fix_spans(&mut self, len: usize) {
         self.1 .1 = rev_range(&self.1 .1, len);
     }
-    pub fn resolve_location(&mut self, location: &lsp_core::lsp_types::Url) {
+    pub fn resolve_location(&mut self, location: &swls_core::lsp_types::Url) {
         match self.1.value_mut() {
             NamedNode::Full(s, _) => {
                 if let Some(ns) = location.join(&s).ok() {
@@ -457,12 +457,12 @@ pub enum TurtleSimpleError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Turtle {
     pub base: Option<Spanned<Base>>,
-    pub set_base: lsp_core::lsp_types::Url,
+    pub set_base: swls_core::lsp_types::Url,
     pub prefixes: Vec<Spanned<TurtlePrefix>>,
     pub triples: Vec<Spanned<Triple>>,
 }
 impl Based for Turtle {
-    fn get_base(&self) -> &lsp_core::lsp_types::Url {
+    fn get_base(&self) -> &swls_core::lsp_types::Url {
         &self.set_base
     }
 
@@ -749,7 +749,7 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
 }
 
 impl Turtle {
-    pub fn empty(location: &lsp_core::lsp_types::Url) -> Self {
+    pub fn empty(location: &swls_core::lsp_types::Url) -> Self {
         Self::new(None, Vec::new(), Vec::new(), location)
     }
 
@@ -780,7 +780,7 @@ impl Turtle {
         mut base: Option<Spanned<Base>>,
         prefixes: Vec<Spanned<TurtlePrefix>>,
         triples: Vec<Spanned<Triple>>,
-        location: &lsp_core::lsp_types::Url,
+        location: &swls_core::lsp_types::Url,
     ) -> Self {
         if let Some(b) = base.as_mut() {
             b.resolve_location(location);
@@ -799,7 +799,7 @@ impl Turtle {
         }
     }
 
-    pub fn get_base(&self) -> &lsp_core::lsp_types::Url {
+    pub fn get_base(&self) -> &swls_core::lsp_types::Url {
         &self.set_base
     }
 
@@ -835,7 +835,7 @@ impl Display for Turtle {
 mod test {
     use std::{collections::HashSet, str::FromStr};
 
-    use lsp_core::prelude::{MyQuad, Spanned, Token};
+    use swls_core::prelude::{MyQuad, Spanned, Token};
 
     use super::Turtle;
     use crate::lang::{context::Context, parser as parser2, tokenizer::parse_tokens_str_safe};
@@ -847,7 +847,7 @@ mod test {
 
     fn parse_turtle(
         inp: &str,
-        url: &lsp_core::lsp_types::Url,
+        url: &swls_core::lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
         let context = Context::new();
         let ctx = context.ctx();
@@ -883,7 +883,7 @@ mod test {
    foaf:knows <abc>;.
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple");
         let triples = output.get_simple_triples().expect("Triples found");
 
@@ -906,7 +906,7 @@ mod test {
             a foaf:Name; ] ].
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple");
         let triples = output.get_simple_triples().expect("Triples found");
 
@@ -919,7 +919,7 @@ mod test {
 <e> <pred> (<a> <b> <c>).
 "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
         let triples = output.get_simple_triples().expect("Triples found");
 
@@ -952,7 +952,7 @@ _:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://ex
     fn owl_is_valid() {
         let txt = include_str!("../../../lov/prefixes/owl.ttl");
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
         output.get_simple_triples().expect("Triples found");
     }
@@ -973,7 +973,7 @@ _:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://ex
         rdfs:comment                   "\r\n  This ontology partially describes the built-in " ; .
             "#;
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
         output.get_simple_triples().expect("Triples found");
     }

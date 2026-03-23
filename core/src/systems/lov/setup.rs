@@ -13,7 +13,7 @@ pub struct PrefixEntry {
 
 pub fn populate_known_ontologies(mut commands: Commands) {
     let mut actual_local = HashSet::new();
-    for lov in lov::LOCAL_PREFIXES.iter() {
+    for lov in swls_lov::LOCAL_PREFIXES.iter() {
         actual_local.insert(lov.name.clone());
         commands.spawn(lov.clone());
     }

@@ -1,7 +1,7 @@
 use bevy_ecs::{prelude::*, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use format::format_turtle_system;
-use lsp_core::prelude::*;
+use swls_core::prelude::*;
 use parse::{derive_triples, parse_source, parse_turtle_system};
 
 use crate::TurtleLang;
@@ -12,7 +12,7 @@ mod format;
 mod parse;
 
 pub fn setup_parsing(world: &mut World) {
-    use lsp_core::feature::parse::*;
+    use swls_core::feature::parse::*;
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_source,
@@ -30,14 +30,14 @@ pub fn setup_formatting(world: &mut World) {
 }
 
 pub fn setup_code_action(world: &mut World) {
-    use lsp_core::feature::code_action::Label as CodeActionLabel;
+    use swls_core::feature::code_action::Label as CodeActionLabel;
     world.schedule_scope(CodeActionLabel, |_, schedule| {
         schedule.add_systems(code_action::organize_imports);
     });
 }
 
 pub fn setup_completion(world: &mut World) {
-    use lsp_core::feature::completion::*;
+    use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
             turtle_lov_undefined_prefix_completion.after(get_current_token),
@@ -56,7 +56,7 @@ fn derive_prefixes(
             .iter()
             .flat_map(|prefix| {
                 let url = prefix.value.expand(turtle.value())?;
-                let url = lsp_core::lsp_types::Url::parse(&url).ok()?;
+                let url = swls_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
                     prefix: prefix.prefix.value().clone(),
@@ -70,7 +70,7 @@ fn derive_prefixes(
             .and_then(|b| {
                 b.0 .1
                     .expand(turtle.value())
-                    .and_then(|x| lsp_core::lsp_types::Url::parse(&x).ok())
+                    .and_then(|x| swls_core::lsp_types::Url::parse(&x).ok())
             })
             .unwrap_or(url.0.clone());
 
@@ -81,13 +81,13 @@ fn derive_prefixes(
 #[cfg(test)]
 mod tests {
     use futures::executor::block_on;
-    use lsp_core::{
+    use swls_core::{
         components::*,
         prelude::{diagnostics::DiagnosticItem, *},
     };
     use ropey::Rope;
     use test_log::test;
-    use test_utils::{create_file, setup_world, TestClient};
+    use swls_test_utils::{create_file, setup_world, TestClient};
 
     #[test]
     fn diagnostics_work() {
@@ -101,7 +101,7 @@ mod tests {
         let t3 = "\n@prefix foaf: <>.\nfoa\n            ";
 
         // Drain all published diagnostic items and return the last (most complete) merged set.
-        let mut last_diags = move || -> Vec<lsp_core::lsp_types::Diagnostic> {
+        let mut last_diags = move || -> Vec<swls_core::lsp_types::Diagnostic> {
             let mut items: Vec<DiagnosticItem> = Vec::new();
             while let Ok(Some(x)) = rx.try_next() {
                 items.push(x);
@@ -167,7 +167,7 @@ mod tests {
 
         // assert_eq!(world.entities().len(), 1);
         let c = world.resource::<TestClient>().clone();
-        block_on(c.await_futures(|| world.run_schedule(lsp_core::feature::ParseLabel)));
+        block_on(c.await_futures(|| world.run_schedule(swls_core::feature::ParseLabel)));
 
         // We added 3 ontologies that are always present
         assert!(world.entities().len() >= 2 + 3);

@@ -1,7 +1,7 @@
 use chumsky::prelude::*;
 use logos::Logos;
-use lsp_core::prelude::{spanned, Spanned, StringStyle, Token};
-use token_helpers::*;
+use swls_core::prelude::{spanned, Spanned, StringStyle, Token};
+use swls_token_helpers::*;
 
 #[allow(non_camel_case_types)]
 #[derive(Logos, Debug, PartialEq)]

@@ -1,8 +1,8 @@
-use lang_turtle::lang::{
+use swls_lang_turtle::lang::{
     context::Context,
     model::{Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError},
 };
-use lsp_core::prelude::{Spanned, SparqlKeyword, Token};
+use swls_core::prelude::{Spanned, SparqlKeyword, Token};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Base {
@@ -219,7 +219,7 @@ pub enum Modifier {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Query {
-    pub base: lsp_core::lsp_types::Url,
+    pub base: swls_core::lsp_types::Url,
     pub prefixes: Vec<Spanned<TurtlePrefix>>,
     pub base_statement: Option<Spanned<Base>>,
     pub kwds: QueryClause,
@@ -240,25 +240,25 @@ impl Query {
         Ok(())
     }
 
-    pub fn set_base(&mut self, base: lsp_core::lsp_types::Url) {
+    pub fn set_base(&mut self, base: swls_core::lsp_types::Url) {
         self.base = self
             .base_statement
             .as_ref()
             .iter()
             .find_map(|x| match x.iri.value() {
-                NamedNode::Full(x, _) => lsp_core::lsp_types::Url::parse(&x).ok(),
+                NamedNode::Full(x, _) => swls_core::lsp_types::Url::parse(&x).ok(),
                 _ => None,
             })
             .unwrap_or_else(|| base.clone());
     }
 
-    pub fn get_base(&self) -> &lsp_core::lsp_types::Url {
+    pub fn get_base(&self) -> &swls_core::lsp_types::Url {
         &self.base
     }
 }
 
 impl Based for Query {
-    fn get_base(&self) -> &lsp_core::lsp_types::Url {
+    fn get_base(&self) -> &swls_core::lsp_types::Url {
         &self.base
     }
 
@@ -270,7 +270,7 @@ impl Based for Query {
 impl Default for Query {
     fn default() -> Self {
         Query {
-            base: lsp_core::lsp_types::Url::parse("memory://somefile.sq").unwrap(),
+            base: swls_core::lsp_types::Url::parse("memory://somefile.sq").unwrap(),
             base_statement: None,
             prefixes: vec![],
             kwds: QueryClause::Invalid,
@@ -289,7 +289,7 @@ impl Default for Query {
 
 #[cfg(test)]
 mod tests {
-    use lang_turtle::lang::context::Context;
+    use swls_lang_turtle::lang::context::Context;
     use sophia_iri::resolve::BaseIri;
 
     use super::*;
@@ -311,7 +311,7 @@ mod tests {
 
         let (jsonld, errors) = parse(
             inp,
-            lsp_core::lsp_types::Url::parse("memory::myFile.sq").unwrap(),
+            swls_core::lsp_types::Url::parse("memory::myFile.sq").unwrap(),
             tokens,
             ctx,
         );

@@ -4,7 +4,7 @@
 )]
 use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
-use lsp_core::{
+use swls_core::{
     components::DynLang,
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, ops::Range};
 
-use lsp_core::prelude::*;
+use swls_core::prelude::*;
 
 use crate::lang::parser::{Json, ObjectMember};
 
@@ -40,7 +40,7 @@ fn find_field<'a>(
         .and_then(|x| x.json_value().map(|y| (y, x.field().span())))
 }
 
-pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_core::lsp_types::Url) -> Prefixes {
+pub fn derive_prefixes(json: &Spanned<Json>, base: &swls_core::lsp_types::Url) -> Prefixes {
     let mut options: Vec<(Cow<str>, Cow<str>)> = Vec::new();
 
     // Extract prefixes
@@ -91,7 +91,7 @@ pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_core::lsp_types::Url) ->
     let mut out = Vec::new();
 
     for (k, v) in options {
-        if let Some(url) = lsp_core::lsp_types::Url::parse(&v).ok() {
+        if let Some(url) = swls_core::lsp_types::Url::parse(&v).ok() {
             out.push(Prefix {
                 prefix: k.into_owned(),
                 url,
@@ -201,7 +201,7 @@ pub fn derive_triples(json: &Spanned<Json>, prefixes: &Prefixes) -> Vec<MyQuad<'
 #[cfg(test)]
 mod tests {
 
-    use lsp_core::prelude::{MyQuad, Spanned};
+    use swls_core::prelude::{MyQuad, Spanned};
     use sophia_api::term::{Term, TermKind};
 
     use super::{derive_prefixes, derive_triples};
@@ -229,7 +229,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -249,7 +249,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -270,7 +270,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -296,7 +296,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -316,7 +316,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -345,7 +345,7 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "@type": "http://example.com/ns#my_type"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -376,7 +376,7 @@ mod tests {
             "@context": {"foaf": "http://xmlns.com/foaf/0.1/"} ,
             "foaf:name": "Arthur"
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -406,7 +406,7 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -436,7 +436,7 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);
@@ -469,7 +469,7 @@ mod tests {
                 }
             }
         } "#;
-        let url = lsp_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
+        let url = swls_core::lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
         let prefixes = derive_prefixes(&json, &url);

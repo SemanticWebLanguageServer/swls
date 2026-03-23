@@ -8,7 +8,7 @@ use crate::{
     systems::PrefixEntry,
 };
 use bevy_ecs::prelude::*;
-use lov::LocalPrefix;
+use swls_lov::LocalPrefix;
 use tower_lsp::lsp_types::DiagnosticTag;
 use tracing::{debug, instrument};
 
@@ -25,7 +25,7 @@ pub struct Prefix {
 
 /// [`Component`] that containing defined prefixes and base URL.
 ///
-/// [`lsp_core`](crate) uses [`Prefixes`] in different systems, for example
+/// [`swls_core`](crate) uses [`Prefixes`] in different systems, for example
 /// - to check for undefined prefixes diagnostics with
 /// [`undefined_prefix`](crate::prelude::systems::undefined_prefix)
 /// - derive linked documents [`DocumentLinks`] with

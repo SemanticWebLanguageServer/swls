@@ -20,7 +20,7 @@ pub struct OntologyExtract;
 
 #[instrument(skip(commands))]
 pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
-    for local in lov::LOCAL_PREFIXES
+    for local in swls_lov::LOCAL_PREFIXES
         .iter()
         .filter(|x| ["rdf", "rdfs", "owl"].iter().any(|y| *y == x.name))
     {

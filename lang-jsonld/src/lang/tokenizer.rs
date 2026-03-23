@@ -1,5 +1,5 @@
 use chumsky::{chain::Chain as _, prelude::*};
-use lsp_core::prelude::{spanned, Spanned, StringStyle, Token};
+use swls_core::prelude::{spanned, Spanned, StringStyle, Token};
 
 pub fn tokenize(st: &str) -> (Vec<Spanned<Token>>, Vec<Simple<char>>) {
     let parser = parser()
@@ -122,7 +122,7 @@ fn parse_string() -> impl Parser<char, String, Error = Simple<char>> {
 
 #[cfg(test)]
 mod tests {
-    use lsp_core::prelude::Token::*;
+    use swls_core::prelude::Token::*;
 
     use super::*;
 

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
-use lsp_core::{
+use swls_core::{
     feature::code_action::CodeActionRequest,
     prelude::*,
 };
-use lsp_core::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
+use swls_core::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
 
 use crate::TurtleLang;
 
@@ -69,7 +69,7 @@ pub fn organize_imports(
         let new_text = new_text.trim_end_matches('\n').to_string();
 
         let edit = TextEdit {
-            range: lsp_core::lsp_types::Range::new(start_pos, end_pos),
+            range: swls_core::lsp_types::Range::new(start_pos, end_pos),
             new_text,
         };
 
@@ -90,8 +90,8 @@ pub fn organize_imports(
 
 #[cfg(test)]
 mod tests {
-    use lsp_core::{feature::code_action::Label as CodeActionLabel, prelude::*};
-    use test_utils::{create_file, setup_world, TestClient};
+    use swls_core::{feature::code_action::Label as CodeActionLabel, prelude::*};
+    use swls_test_utils::{create_file, setup_world, TestClient};
 
     use super::*;
 

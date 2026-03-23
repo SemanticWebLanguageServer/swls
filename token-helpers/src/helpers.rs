@@ -1,5 +1,5 @@
 use chumsky::{chain::Chain, prelude::*, Parser};
-use lsp_core::util::token::{StringStyle, Token};
+use swls_core::util::token::{StringStyle, Token};
 
 #[macro_export]
 macro_rules! t {

@@ -1,5 +1,5 @@
 use bevy_ecs::{schedule::IntoScheduleConfigs as _, world::World};
-use lsp_core::prelude::*;
+use swls_core::prelude::*;
 mod highlight;
 pub use highlight::*;
 
@@ -8,7 +8,7 @@ use parse::derive_triples;
 pub use parse::{parse_jsonld_system, parse_source};
 
 pub fn setup_parse(world: &mut World) {
-    use lsp_core::prelude::parse::*;
+    use swls_core::prelude::parse::*;
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_source,
@@ -25,9 +25,9 @@ pub fn setup_parse(world: &mut World) {
 mod tests {
     use completion::CompletionRequest;
     use futures::executor::block_on;
-    use lsp_core::{components::*, prelude::*, util::lsp_range_to_range, Tasks};
+    use swls_core::{components::*, prelude::*, util::lsp_range_to_range, Tasks};
     use ropey::Rope;
-    use test_utils::{create_file, setup_world, TestClient};
+    use swls_test_utils::{create_file, setup_world, TestClient};
     use tracing::info;
 
     use crate::JsonLd;
@@ -74,7 +74,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 3,
                 character: 6,
             }),
@@ -94,7 +94,7 @@ mod tests {
 
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 3,
                 character: 22,
             }),
@@ -131,7 +131,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 6,
                 character: 6,
             }),
@@ -153,7 +153,7 @@ mod tests {
     #[test_log::test]
     fn current_triple_works_corrupt() {
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        lang_turtle::setup_world::<TestClient>(&mut world);
+        swls_lang_turtle::setup_world::<TestClient>(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
@@ -178,7 +178,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 3,
                 character: 6,
             }),
@@ -218,7 +218,7 @@ mod tests {
     #[test_log::test]
     fn current_triple_works_corrupt_bn() {
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        lang_turtle::setup_world::<TestClient>(&mut world);
+        swls_lang_turtle::setup_world::<TestClient>(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" }
@@ -241,7 +241,7 @@ mod tests {
         // start call completion
         world.entity_mut(entity).insert((
             CompletionRequest(vec![]),
-            PositionComponent(lsp_core::lsp_types::Position {
+            PositionComponent(swls_core::lsp_types::Position {
                 line: 2,
                 character: 6,
             }),

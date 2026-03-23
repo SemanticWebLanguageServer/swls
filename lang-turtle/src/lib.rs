@@ -11,7 +11,7 @@ use bevy_ecs::{
     world::World,
 };
 use chumsky::prelude::Simple;
-use lsp_core::{
+use swls_core::{
     feature::diagnostics::publish_diagnostics,
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
@@ -66,11 +66,11 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
         }
     });
 
-    world.schedule_scope(lsp_core::feature::DiagnosticsLabel, |_, schedule| {
+    world.schedule_scope(swls_core::feature::DiagnosticsLabel, |_, schedule| {
         schedule.add_systems(publish_diagnostics::<TurtleLang>);
     });
 
-    world.schedule_scope(lsp_core::Startup, |_, schedule| {
+    world.schedule_scope(swls_core::Startup, |_, schedule| {
         schedule.add_systems((
             extract_known_prefixes_from_config::<C>,
             extract_known_shapes_from_config::<C>,
@@ -98,7 +98,7 @@ impl Lang for TurtleLang {
     const CODE_ACTION: bool = true;
     const HOVER: bool = true;
 
-    const LEGEND_TYPES: &'static [lsp_core::lsp_types::SemanticTokenType] = &[
+    const LEGEND_TYPES: &'static [swls_core::lsp_types::SemanticTokenType] = &[
         semantic_token::BOOLEAN,
         semantic_token::LANG_TAG,
         SemanticTokenType::COMMENT,

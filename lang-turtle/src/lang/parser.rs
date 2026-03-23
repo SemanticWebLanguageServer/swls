@@ -1,5 +1,5 @@
 use chumsky::prelude::*;
-use lsp_core::{prelude::*, util::token::PToken};
+use swls_core::{prelude::*, util::token::PToken};
 use tracing::info;
 
 use super::context::{ContextKind, Ctx};
@@ -538,7 +538,7 @@ enum Statement {
 }
 
 pub fn turtle<'a>(
-    location: &'a lsp_core::lsp_types::Url,
+    location: &'a swls_core::lsp_types::Url,
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, Turtle, Error = Simple<PToken>> + 'a {
     let base = base().map_with_span(spanned).map(|b| Statement::Base(b));
@@ -570,7 +570,7 @@ pub fn turtle<'a>(
 }
 
 pub fn parse_turtle(
-    location: &lsp_core::lsp_types::Url,
+    location: &swls_core::lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     len: usize,
     ctx: Ctx<'_>,
@@ -606,7 +606,7 @@ pub mod turtle_tests {
     use std::str::FromStr;
 
     use chumsky::{prelude::Simple, Parser, Stream};
-    use lsp_core::prelude::{PToken, Spanned};
+    use swls_core::prelude::{PToken, Spanned};
 
     use super::literal;
     use crate::lang::{
@@ -761,7 +761,7 @@ pub mod turtle_tests {
         let context = Context::new();
         let ctx = context.ctx();
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> <b> <c>";
         let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
@@ -778,7 +778,7 @@ pub mod turtle_tests {
         let context = Context::new();
         let ctx = context.ctx();
 
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<b> <c> .";
         let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
@@ -794,7 +794,7 @@ pub mod turtle_tests {
     fn parse_triple_with_recovery_unfinished_object() {
         let context = Context::new();
         let ctx = context.ctx();
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> <b> <c>; <d> .";
         let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
@@ -810,7 +810,7 @@ pub mod turtle_tests {
     fn parse_triple_with_invalid_token_predicate() {
         let context = Context::new();
         let ctx = context.ctx();
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> foa";
         let (output, errors) = parse_it_recovery(txt, turtle(&url, ctx));
 
@@ -829,7 +829,7 @@ pub mod turtle_tests {
     fn parse_triple_with_invalid_token_subject() {
         let context = Context::new();
         let ctx = context.ctx();
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "foa";
         let (output, errors) = parse_it_recovery(txt, turtle(&url, ctx));
 
@@ -858,7 +858,7 @@ pub mod turtle_tests {
 <a> <b> <c>.
 #This is a very nice comment!
             "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
         assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
         assert_eq!(output.triples.len(), 1, "triples are parsed");
@@ -873,7 +873,7 @@ pub mod turtle_tests {
 [
             "#;
 
-        let url = lsp_core::lsp_types::Url::from_str(
+        let url = swls_core::lsp_types::Url::from_str(
             "file:///home/silvius/Projects/jsonld-lsp/examples/test.ttl",
         )
         .unwrap();
@@ -908,7 +908,7 @@ foaf: foaf:name "Arthur".
 <a> foaf: foaf:Person;
     foaf:name "Arthur".
             "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
         let triples = output.get_simple_triples().expect("triples");
         for t in &triples.triples {
@@ -920,7 +920,7 @@ foaf: foaf:name "Arthur".
 
     #[test]
     fn turtle_remembers_subject_context_for_triples() {
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let mut context = Context::new();
         let t1 = r#"
 <a> <b> <c>.
@@ -980,7 +980,7 @@ foaf: foaf:name "Arthur".
 
     #[test]
     fn turtle_remembers_subject_context_in_triple() {
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let mut context = Context::new();
         let t1 = r#"<a> <b> <c>."#;
         let t2 = r#"<a> <x> <b> <c>."#;
@@ -1051,7 +1051,7 @@ foaf: foaf:name "Arthur".
 [ ] foaf:knows [ foaf:name "Arthur" ];
   foaf:name "Arthur".
             "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
 
         let tokens_2 = parse_tokens_str_safe(txt).unwrap();
 
@@ -1087,7 +1087,7 @@ foaf: foaf:name "Arthur".
 [ ] a rml:Field;
     rml.
 "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
 
         let tokens = parse_tokens_str(txt).0;
 
@@ -1126,7 +1126,7 @@ foaf: foaf:name "Arthur".
 [ ] a rml:Field;
     rml:
     "#;
-        let url = lsp_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
 
         let tokens_2 = parse_tokens_str(txt).0;
         context.setup_current_to_prev(

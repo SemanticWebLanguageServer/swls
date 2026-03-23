@@ -4,7 +4,7 @@ use std::{
 };
 
 use bevy_ecs::component::Component;
-use lsp_core::{prelude::Token, util::Spanned};
+use swls_core::{prelude::Token, util::Spanned};
 use similar::ChangeTag;
 
 pub struct TokenIdx<'a> {

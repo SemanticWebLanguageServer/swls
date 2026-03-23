@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use std::{collections::HashSet, str::FromStr as _};
 
-use lang_turtle::lang::{
+use swls_lang_turtle::lang::{
     model::{Term, Triple, Turtle},
     parse_source,
     // parser2::parse_source as parse_source2,
@@ -22,7 +22,7 @@ fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
 }
 
 pub fn test_syntax(location: &str, is_positive: bool) {
-    let url = lsp_core::lsp_types::Url::from_str(location).unwrap();
+    let url = swls_core::lsp_types::Url::from_str(location).unwrap();
     let path = url.to_file_path().expect("file path");
     let turtle_source = std::fs::read_to_string(&path).expect("Failed to turtle");
     let (turtle, errors) = parse_source(&url, &turtle_source);
@@ -86,7 +86,7 @@ fn check_triple(triple: &Triple, defined: &HashSet<String>) -> bool {
 
 fn check_term(term: &Term, defined: &HashSet<String>) -> bool {
     match term {
-        Term::BlankNode(lang_turtle::lang::model::BlankNode::Unnamed(pos, _, _)) => {
+        Term::BlankNode(swls_lang_turtle::lang::model::BlankNode::Unnamed(pos, _, _)) => {
             for po in pos {
                 if !check_term(&po.predicate, defined) {
                     return false;
@@ -98,7 +98,7 @@ fn check_term(term: &Term, defined: &HashSet<String>) -> bool {
             }
             true
         }
-        Term::NamedNode(lang_turtle::lang::model::NamedNode::Prefixed { prefix, .. }) => {
+        Term::NamedNode(swls_lang_turtle::lang::model::NamedNode::Prefixed { prefix, .. }) => {
             defined.contains(prefix)
         }
         Term::Collection(spanneds) => spanneds.iter().all(|t| check_term(t, defined)),

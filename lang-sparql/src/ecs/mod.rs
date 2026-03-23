@@ -5,13 +5,13 @@ use std::{
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
-use lang_turtle::lang::{
+use swls_lang_turtle::lang::{
     context::{Context, TokenIdx},
     model::TriplesBuilder,
 };
-use lov::LocalPrefix;
-use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
-use lsp_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
+use swls_lov::LocalPrefix;
+use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use swls_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
 use sophia_iri::resolve::BaseIri;
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub fn setup_parse(world: &mut World) {
-    use lsp_core::feature::parse::*;
+    use swls_core::feature::parse::*;
     world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
             parse_source,
@@ -34,7 +34,7 @@ pub fn setup_parse(world: &mut World) {
 }
 
 pub fn setup_completion(world: &mut World) {
-    use lsp_core::feature::completion::*;
+    use swls_core::feature::completion::*;
     world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
             sparql_lov_undefined_prefix_completion.after(get_current_token),
@@ -114,7 +114,7 @@ fn derive_triples(
             .iter()
             .flat_map(|prefix| {
                 let url = prefix.value.expand(query)?;
-                let url = lsp_core::lsp_types::Url::parse(&url).ok()?;
+                let url = swls_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
                     prefix: prefix.prefix.value().clone(),
@@ -154,7 +154,7 @@ pub fn variable_completion(
                 let completion = SimpleCompletion::new(
                     CompletionItemKind::VARIABLE,
                     t.clone(),
-                    lsp_core::lsp_types::TextEdit {
+                    swls_core::lsp_types::TextEdit {
                         range: token.range.clone(),
                         new_text: t,
                     },
@@ -183,13 +183,13 @@ pub fn sparql_lov_undefined_prefix_completion(
             start = Position::new(1, 0);
         }
 
-        use lsp_core::lsp_types::{Position, Range};
+        use swls_core::lsp_types::{Position, Range};
         prefix_completion_helper(
             word,
             prefixes,
             &mut req.0,
             |name, location| {
-                Some(vec![lsp_core::lsp_types::TextEdit {
+                Some(vec![swls_core::lsp_types::TextEdit {
                     range: Range::new(start.clone(), start),
                     new_text: format!("PREFIX {}: <{}>\n", name, location),
                 }])
