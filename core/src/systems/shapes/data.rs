@@ -7,7 +7,7 @@ use prefixmap::{error::PrefixMapError, PrefixMap};
 use rudof_rdf::rdf_core::{
     term::{
         self as r_term, literal::Literal, BlankNode, Iri, IriOrBlankNode, Term as Rudof_Term,
-        TermKind, Triple,
+        TermKind,
     },
     FocusRDF, Matcher, NeighsRDF, RDFError, SHACLPath,
 };

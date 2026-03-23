@@ -4,7 +4,7 @@ use bevy_ecs::prelude::*;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad as _,
-    term::{matcher::TermMatcher, Term as _},
+    term::matcher::TermMatcher,
 };
 use tracing::{debug, instrument};
 
@@ -13,7 +13,6 @@ use crate::{
     prelude::*,
     util::{fs::Fs, ns::rdfs},
 };
-
 
 #[derive(Component, Debug)]
 pub struct OntologyExtract;
