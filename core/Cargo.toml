@@ -13,7 +13,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["shapes"]
+default = ["shapes", "tokio"]
 shapes = []
 tokio = ["tower-lsp/runtime-tokio"]
 agnostic = ["tower-lsp/runtime-agnostic"]
@@ -34,7 +34,7 @@ tower-lsp.workspace = true
 dirs = "6"
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }
 lazy_static = "1.5.0"
-swls-lov = { path = "../lov/" }
+swls-lov.workspace = true
 
 oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=false }
 

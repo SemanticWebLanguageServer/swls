@@ -29,6 +29,13 @@ tracing = "0.1"
 tower-lsp = { version = "0.19.0", default-features = false, features = [
 ] }
 
+swls-lov           = { path = "lov",               version = "0.1.0" }
+swls-core          = { path = "core",              version = "0.1.0" }
+swls-token-helpers = { path = "swls-token-helpers", version = "0.1.0" }
+swls-lang-turtle   = { path = "lang-turtle",       version = "0.1.0" }
+swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.1.0" }
+swls-lang-sparql   = { path = "lang-sparql",       version = "0.1.0" }
+
 [workspace]
 default-members = [
   "core",
@@ -36,6 +43,7 @@ default-members = [
   "lang-turtle",
   "lang-jsonld",
   "lang-sparql",
+  "swls-token-helpers",
   "swls",
 ]
 members = [
@@ -46,7 +54,7 @@ members = [
   "lang-sparql",
   "swls",
   "test-utils",
-  "token-helpers",
+  "swls-token-helpers",
   "conformance",
 ]
 resolver = "2"

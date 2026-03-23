@@ -24,10 +24,10 @@ sophia_iri.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
 
-swls-lang-jsonld = { path = "../lang-jsonld/" }
-swls-lang-sparql = { path = "../lang-sparql/" }
-swls-lang-turtle = { path = "../lang-turtle/" }
-swls-core        = { path = "../core/" }
+swls-lang-jsonld.workspace = true
+swls-lang-sparql.workspace = true
+swls-lang-turtle.workspace = true
+swls-core.workspace        = true
 
 tokio = { version = "1.48.0", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["json"] }

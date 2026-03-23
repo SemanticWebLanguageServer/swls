@@ -26,9 +26,9 @@ sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
 
-swls-lov          = { path = "../lov/" }
-swls-token-helpers = { path = "../token-helpers/" }
-swls-core         = { path = "../core/" }
+swls-lov.workspace           = true
+swls-token-helpers.workspace = true
+swls-core.workspace          = true
 
 [dev-dependencies]
 test-log         = { version = "0.2.19", features = ["trace"] }

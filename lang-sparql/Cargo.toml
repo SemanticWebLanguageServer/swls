@@ -24,10 +24,10 @@ sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
 
-swls-lang-turtle  = { path = "../lang-turtle/" }
-swls-core         = { path = "../core/" }
-swls-token-helpers = { path = "../token-helpers/" }
-swls-lov          = { path = "../lov/" }
+swls-lang-turtle.workspace   = true
+swls-core.workspace          = true
+swls-token-helpers.workspace = true
+swls-lov.workspace           = true
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }

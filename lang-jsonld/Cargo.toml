@@ -22,7 +22,7 @@ sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
 
-swls-core = { path = "../core/" }
+swls-core.workspace = true
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }
