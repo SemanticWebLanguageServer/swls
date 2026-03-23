@@ -1,0 +1,12 @@
+@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix ex: <http://example.org/>.
+@prefix : <http://example.org/>.
+
+:MinInclusive a sh:NodeShape;
+  sh:targetClass :Node;
+  sh:property [
+    sh:path :p;
+    sh:minCount 2;
+  ].
+
