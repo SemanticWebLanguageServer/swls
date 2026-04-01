@@ -28,17 +28,16 @@ impl From<&TurtleParseError> for SimpleDiagnostic {
     }
 }
 
-type TurtleNode = rowan::SyntaxNode<Lang>;
+pub type TurtleNode = rowan::SyntaxNode<Lang>;
 
 /// Parse a Turtle document using the A* error-recovering parser.
 ///
-/// Returns the model, a list of parse errors with byte-range spans, and the
-/// incremental parse info to pass on the next call.
+/// Returns the model, parse errors, incremental parse state, and the syntax node.
 pub fn parse_new(
     source: &str,
     base_url: &str,
     prev: Option<&PrevParseInfo>,
-) -> (Turtle, Vec<TurtleParseError>, PrevParseInfo) {
+) -> (Turtle, Vec<TurtleParseError>, PrevParseInfo, TurtleNode) {
     let (parse, prev_info) = turtle::parse_incremental(
         Rule::new(SyntaxKind::TurtleDoc),
         source,
@@ -51,10 +50,10 @@ pub fn parse_new(
     model.set_base = Some(base_url.to_string());
 
     let errors = collect_errors(&node);
-    (model, errors, prev_info)
+    (model, errors, prev_info, node)
 }
 
-fn collect_errors(node: &TurtleNode) -> Vec<TurtleParseError> {
+pub fn collect_errors(node: &TurtleNode) -> Vec<TurtleParseError> {
     use rowan::NodeOrToken;
     let mut errors = Vec::new();
     let mut stack = vec![node.clone()];

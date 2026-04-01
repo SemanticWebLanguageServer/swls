@@ -9,26 +9,26 @@ pub use crate::{
     systems::{
         complete_class, complete_properties, keyword_complete, prefix::defined_prefix_completion,
     },
-    util::{token::get_current_token, triple::get_current_triple},
+    util::{token::get_current_cst_token, triple::get_current_triple},
 };
 
 /// [`ScheduleLabel`] related to the Completion schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
-/// [`Component`] indicating that the current document is currently handling a Completion request.
+/// [`Component`] indicating that the current document is handling a Completion request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 
 pub fn setup_schedule(world: &mut World) {
     let mut completion = Schedule::new(Label);
     completion.add_systems((
-        get_current_token,
-        keyword_complete.after(get_current_token),
-        get_current_triple.after(get_current_token),
+        get_current_cst_token,
+        keyword_complete.after(get_current_cst_token),
+        get_current_triple.after(get_current_cst_token),
         complete_class.after(get_current_triple),
         complete_properties.after(get_current_triple),
-        defined_prefix_completion.after(get_current_token),
+        defined_prefix_completion.after(get_current_cst_token),
     ));
     world.add_schedule(completion);
 }
@@ -68,7 +68,6 @@ impl SimpleCompletion {
                 description: None,
             });
         }
-
         self
     }
 
@@ -81,7 +80,6 @@ impl SimpleCompletion {
                 detail: None,
             });
         }
-
         self
     }
 

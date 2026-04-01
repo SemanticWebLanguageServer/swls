@@ -29,7 +29,6 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     });
 
     swls_lang_turtle::setup_world::<C>(&mut world);
-    swls_lang_jsonld::setup_world(&mut world);
     swls_lang_sparql::setup_world(&mut world);
 
     let (tx, mut rx) = unbounded();

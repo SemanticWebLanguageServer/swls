@@ -6,25 +6,19 @@ use tracing::debug;
 use crate::{lang::formatter::format_turtle, TurtleLang};
 
 pub fn format_turtle_system(
-    mut query: Query<(&RopeC, &Element<TurtleLang>, &Tokens, &mut FormatRequest), Without<Dirty>>,
+    mut query: Query<
+        (&RopeC, &Element<TurtleLang>, &Comments, &mut FormatRequest),
+        Without<Dirty>,
+    >,
 ) {
     debug!("Format turtle system");
 
-    for (source, turtle, tokens, mut request) in &mut query {
+    for (source, turtle, comments, mut request) in &mut query {
         if request.0.is_some() {
             debug!("Didn't format with the turtle format system, already formatted");
             continue;
         }
         debug!("Formatting with turtle format system");
-        let comments: Vec<_> = tokens
-            .iter()
-            .flat_map(|x| {
-                x.try_map_ref(|inner| match inner {
-                    Token::Comment(c) => Some(c.to_string()),
-                    _ => None,
-                })
-            })
-            .collect();
 
         let formatted = format_turtle(
             &turtle.0,
@@ -32,7 +26,7 @@ pub fn format_turtle_system(
                 tab_size: 2,
                 ..Default::default()
             },
-            &comments,
+            &comments.0,
             &source.0,
         );
 
@@ -55,7 +49,6 @@ mod test {
 
     use super::*;
 
-    // crate::setup_world::<TestClient>(&mut world);
     #[test]
     fn format_does_it() {
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);

@@ -3,6 +3,7 @@ use std::{borrow::Cow, collections::HashSet};
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
 use hover::HoverRequest;
+use sophia_api::term::{Term as _, TermKind};
 use tracing::{instrument, trace};
 
 use crate::{
@@ -65,20 +66,23 @@ pub fn complete_class(
 }
 
 pub fn hover_class(
-    mut query: Query<(&TokenComponent, &Prefixes, &mut HoverRequest)>,
+    mut query: Query<(&TripleComponent, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
 ) {
-    for (token, prefixes, mut request) in &mut query {
-        if let Some(target) = prefixes.expand(token.token.value()) {
-            for class in resource.classes.values() {
-                if class.term.value == target {
-                    request.0.push(format!(
-                        "## {}\n\n{}",
-                        class.full_title(),
-                        class.full_docs(&hierarchy, &prefixes)
-                    ));
-                }
+    for (triple, prefixes, mut request) in &mut query {
+        let Some(term) = triple.term() else { continue };
+        if term.kind() != TermKind::Iri {
+            continue;
+        }
+        let target = term.as_str();
+        for class in resource.classes.values() {
+            if class.term.value == target {
+                request.0.push(format!(
+                    "## {}\n\n{}",
+                    class.full_title(),
+                    class.full_docs(&hierarchy, &prefixes)
+                ));
             }
         }
     }
@@ -169,25 +173,23 @@ pub fn complete_properties(
 
 #[instrument(skip(query, resource))]
 pub fn hover_property(
-    mut query: Query<(
-        &TokenComponent,
-        &Prefixes,
-        &DocumentLinks,
-        &mut HoverRequest,
-    )>,
+    mut query: Query<(&TripleComponent, &Prefixes, &DocumentLinks, &mut HoverRequest)>,
     resource: Res<Ontologies>,
 ) {
-    for (token, prefixes, _links, mut request) in &mut query {
-        if let Some(target) = prefixes.expand(token.token.value()) {
-            for c in resource
-                .properties
-                .values()
-                .filter(|c| c.term.value == target)
-            {
-                request
-                    .0
-                    .push(format!("## {}\n\n{}", c.full_title(), c.full_docs(&prefixes)));
-            }
+    for (triple, prefixes, _links, mut request) in &mut query {
+        let Some(term) = triple.term() else { continue };
+        if term.kind() != TermKind::Iri {
+            continue;
+        }
+        let target = term.as_str();
+        for c in resource
+            .properties
+            .values()
+            .filter(|c| c.term.value == target)
+        {
+            request
+                .0
+                .push(format!("## {}\n\n{}", c.full_title(), c.full_docs(&prefixes)));
         }
     }
 }

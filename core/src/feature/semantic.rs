@@ -1,31 +1,27 @@
 use crate::lsp_types::{SemanticToken, SemanticTokenType};
 use bevy_ecs::{
     prelude::*,
-    schedule::{IntoScheduleConfigs, ScheduleLabel},
+    schedule::ScheduleLabel,
 };
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 
 use crate::prelude::*;
 
-/// [`Resource`] mapping a ['SemanticTokenType'] to their used index.
-///
-/// This index is important because with LSP, are retrieved during startup, then only indexes are
-/// used to indicate semantic token types.
+/// [`Resource`] mapping a [`SemanticTokenType`] to their used index.
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
 pub struct SemanticTokensDict(pub std::collections::HashMap<SemanticTokenType, usize>);
 
-/// [`Component`] indicating that the current document is currently handling a Hightlight request.
+/// [`Component`] indicating that the current document is handling a Highlight request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct HighlightRequest(pub Vec<SemanticToken>);
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
+
 pub fn setup_world(world: &mut World) {
+    // Each language registers its own basic_semantic_tokens::<L> in its own semantic schedule.
     let mut semantic_tokens = bevy_ecs::schedule::Schedule::new(Label);
-    semantic_tokens.add_systems((
-        basic_semantic_tokens,
-        semantic_tokens_system.after(basic_semantic_tokens),
-    ));
+    semantic_tokens.add_systems(semantic_tokens_system);
     world.add_schedule(semantic_tokens);
 }
 
@@ -36,18 +32,22 @@ struct TokenHelper {
 }
 
 pub type TokenTypesComponent = Wrapped<Vec<Spanned<SemanticTokenType>>>;
-pub fn basic_semantic_tokens(
-    mut query: Query<(Entity, &Tokens), With<HighlightRequest>>,
+
+/// Generic CST-based semantic token extraction.  Register this for each language via:
+/// `world.schedule_scope(semantic::Label, |_, sched| { sched.add_systems(basic_semantic_tokens::<L>); })`
+pub fn basic_semantic_tokens<L: Lang>(
+    mut query: Query<(Entity, &CstTokens), With<HighlightRequest>>,
     mut commands: Commands,
 ) {
-    for (e, tokens) in &mut query {
+    for (e, cst_tokens) in &mut query {
         let types: TokenTypesComponent = Wrapped(
-            tokens
+            cst_tokens
+                .0
                 .iter()
-                .flat_map(|token| {
-                    Token::span_tokens(token)
+                .flat_map(|Spanned(kind, span)| {
+                    L::semantic_token_spans(*kind, span.clone())
                         .into_iter()
-                        .map(|(x, y)| spanned(x, y))
+                        .map(|(t, s)| spanned(t, s))
                 })
                 .collect(),
         );

@@ -1,9 +1,4 @@
-use std::{hash::Hash, ops::Range};
-
 use crate::lsp_types::SemanticTokenType;
-use ropey::Rope;
-
-use crate::prelude::*;
 
 pub fn head() -> crate::lsp_types::Range {
     let start = crate::lsp_types::Position {
@@ -16,26 +11,13 @@ pub fn head() -> crate::lsp_types::Range {
     }
 }
 
-pub trait TokenTrait: Sized {
-    fn token(&self) -> Option<SemanticTokenType>;
-
-    fn span_tokens(Spanned(this, span): &Spanned<Self>) -> Vec<(SemanticTokenType, Range<usize>)> {
-        if let Some(x) = this.token() {
-            vec![(x, span.clone())]
-        } else {
-            Vec::new()
-        }
-    }
-}
-
 pub trait Lang: 'static {
-    /// Type of tokens after tokenization
-    type Token: PartialEq + Hash + Clone + Send + Sync + TokenTrait;
-    type TokenError: Into<SimpleDiagnostic> + Send + Sync + std::fmt::Debug;
-
-    /// Type of Element inside a ParentingSystem
+    /// Type of the parsed element.
     type Element: Send + Sync;
-    type ElementError: Into<SimpleDiagnostic> + Send + Sync + std::fmt::Debug;
+    type ElementError: Into<crate::feature::diagnostics::SimpleDiagnostic>
+        + Send
+        + Sync
+        + std::fmt::Debug;
 
     const CODE_ACTION: bool;
     const HOVER: bool;
@@ -43,18 +25,23 @@ pub trait Lang: 'static {
     const TRIGGERS: &'static [&'static str];
     const LEGEND_TYPES: &'static [SemanticTokenType];
     const PATTERN: Option<&'static str>;
+
+    /// Map a CST syntax kind to a semantic token type for highlighting.
+    fn semantic_token_type(_kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
+        None
+    }
+
+    /// Map a CST syntax kind + byte span to semantic token spans for highlighting.
+    fn semantic_token_spans(
+        kind: rowan::SyntaxKind,
+        span: std::ops::Range<usize>,
+    ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
+        Self::semantic_token_type(kind)
+            .map(|t| vec![(t, span)])
+            .unwrap_or_default()
+    }
 }
 
 pub trait LangHelper: std::fmt::Debug {
-    fn _get_relevant_text(&self, token: &Spanned<Token>, rope: &Rope) -> String {
-        rope.slice(token.span().clone()).to_string()
-    }
-    fn get_relevant_text(
-        &self,
-        token: &Spanned<Token>,
-        rope: &Rope,
-    ) -> (String, std::ops::Range<usize>) {
-        (self._get_relevant_text(token, rope), token.span().clone())
-    }
     fn keyword(&self) -> &[&'static str];
 }

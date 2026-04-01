@@ -5,21 +5,20 @@ use bevy_ecs::{
     world::World,
 };
 
-pub use crate::util::{token::get_current_token, triple::get_current_triple};
+pub use crate::util::triple::get_current_triple;
 
-/// [`Component`] indicating that the current document is currently handling a References request.
+/// [`Component`] indicating that the current document is handling a References request.
 #[derive(Component, Debug, Default)]
 pub struct ReferencesRequest(pub Vec<Location>);
 
-/// [`ScheduleLabel`] related to the Parse schedule
+/// [`ScheduleLabel`] related to the References schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
     let mut references = Schedule::new(Label);
     references.add_systems((
-        get_current_token,
-        get_current_triple.after(get_current_token),
+        get_current_triple,
         system::add_references.after(get_current_triple),
     ));
     world.add_schedule(references);
@@ -28,43 +27,45 @@ pub fn setup_schedule(world: &mut World) {
 mod system {
     use bevy_ecs::prelude::*;
     use references::ReferencesRequest;
-    use sophia_api::term::TermKind;
+    use sophia_api::{quad::Quad as _, term::TermKind};
 
     use crate::{prelude::*, util::token_to_location};
 
     pub fn add_references(
         mut query: Query<(
-            &TokenComponent,
             &TripleComponent,
-            &Tokens,
+            &Triples,
             &Label,
             &RopeC,
-            &Prefixes,
             &mut ReferencesRequest,
         )>,
-        project: Query<(&Tokens, &RopeC, &Label, &Prefixes)>,
+        project: Query<(&Triples, &RopeC, &Label)>,
     ) {
-        for (token, triple, tokens, label, rope, prefixes, mut req) in &mut query {
+        for (triple, triples, label, rope, mut req) in &mut query {
             let target = triple.kind();
-            tracing::info!("Found {} with kind {:?}", token.text, target);
-            let expanded = prefixes.expand(&token.token);
+            let Some(term) = triple.term() else { continue };
+            tracing::info!("Found term '{}' with kind {:?}", term.value, target);
+
             if target == TermKind::Iri {
-                for (tokens, rope, label, prefixes) in &project {
+                for (proj_triples, proj_rope, proj_label) in &project {
                     req.0.extend(
-                        tokens
+                        proj_triples
+                            .0
                             .iter()
-                            .filter(|x| prefixes.expand(&x) == expanded)
-                            .flat_map(|t| token_to_location(t.span(), label, &rope)),
+                            .flat_map(|q| [q.s(), q.p(), q.o()])
+                            .filter(|t| t == &term)
+                            .flat_map(|t| token_to_location(&t.span, proj_label, proj_rope)),
                     );
                 }
-            } else if target == TermKind::BlankNode {
-                // Blank node is constrained to current
-                // document
+            } else if target == TermKind::BlankNode || target == TermKind::Variable {
+                // Blank nodes and variables are document-local
                 req.0.extend(
-                    tokens
+                    triples
+                        .0
                         .iter()
-                        .filter(|x| x.value() == token.token.value())
-                        .flat_map(|t| token_to_location(t.span(), label, &rope)),
+                        .flat_map(|q| [q.s(), q.p(), q.o()])
+                        .filter(|t| t == &term)
+                        .flat_map(|t| token_to_location(&t.span, label, rope)),
                 );
             }
         }

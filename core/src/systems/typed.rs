@@ -5,6 +5,7 @@ use sophia_api::{
     ns::rdf,
     prelude::{Any, Dataset},
     quad::Quad as _,
+    term::Term as _,
 };
 
 use tracing::{debug, error, instrument, trace};
@@ -152,15 +153,17 @@ pub fn infer_current_type(
 
 #[instrument(skip(query, hierarchy))]
 pub fn hover_types(
-    mut query: Query<(&TokenComponent, &Types, &Prefixes, &mut HoverRequest)>,
+    mut query: Query<(&TripleComponent, &Types, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy<'static>>,
 ) {
-    for (token, types, pref, mut hover) in &mut query {
-        let Some(expaned) = pref.expand(&token.token) else {
+    for (triple, types, pref, mut hover) in &mut query {
+        let Some(term) = triple.term() else { continue };
+        if term.kind() != sophia_api::term::TermKind::Iri {
             continue;
-        };
+        }
+        let expanded = term.as_str();
 
-        let Some(types) = types.get(expaned.as_str()) else {
+        let Some(types) = types.get(expanded) else {
             continue;
         };
 

@@ -78,3 +78,7 @@ pub struct PositionComponent(pub Position);
 /// [`Component`] containing the typical keywords for the current language.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct KeyWords(pub Vec<&'static str>);
+
+/// [`Component`] containing comment text extracted from the CST (stripped of `#` prefix).
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
+pub struct Comments(pub Vec<crate::util::Spanned<String>>);

@@ -15,13 +15,16 @@ pub use crate::{
         semantic::{HighlightRequest, SemanticTokensDict},
         *,
     },
-    lang::{Lang, LangHelper, TokenTrait},
+    lang::{Lang, LangHelper},
     setup_schedule_labels, systems,
     systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
     util::{
         fs::*, lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,
-        range_to_range, spanned, token::*, triple::*, Spanned,
+        range_to_range, spanned,
+        token::{get_current_cst_token, semantic_token, CstTokens, TokenComponent},
+        triple::*,
+        Spanned,
     },
     CreateEvent,
 };

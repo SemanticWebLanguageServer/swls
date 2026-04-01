@@ -13,7 +13,6 @@ homepage.workspace = true
 [dependencies]
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
-chumsky.workspace   = true
 sophia_turtle = "0.9.0"
 
 swls-lang-turtle = { path = "../lang-turtle/" }

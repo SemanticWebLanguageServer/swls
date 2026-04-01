@@ -4,21 +4,20 @@ use bevy_ecs::{
     world::World,
 };
 
-pub use crate::util::{token::get_current_token, triple::get_current_triple};
+pub use crate::util::triple::get_current_triple;
 
-/// [`Component`] indicating that the current document is currently handling a GotoImplementation request.
+/// [`Component`] indicating that the current document is handling a GotoDefinition request.
 #[derive(Component, Debug, Default)]
 pub struct GotoDefinitionRequest(pub Vec<crate::lsp_types::Location>);
 
-/// [`ScheduleLabel`] related to the GotoImplementation schedule
+/// [`ScheduleLabel`] related to the GotoDefinition schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
     let mut references = Schedule::new(Label);
     references.add_systems((
-        get_current_token,
-        get_current_triple.after(get_current_token),
+        get_current_triple,
         system::goto_definition.after(get_current_triple),
     ));
     world.add_schedule(references);
@@ -48,11 +47,11 @@ mod system {
             let Some(term) = triple.term() else {
                 continue;
             };
-            let _span = tracing::debug_span!("goto_definition", term=%term.value).entered();
+            let _span =
+                tracing::debug_span!("goto_definition", term = %term.value).entered();
 
             tracing::debug!("kind {:?}", target);
             if target == TermKind::Iri {
-                // This is a named node, we should look project wide
                 for (triples, rope, label) in &project {
                     tracing::info!("Looking into buffer {}", label.as_str());
                     let subs: HashSet<_> = triples
@@ -67,7 +66,6 @@ mod system {
                     );
                 }
             } else if target == TermKind::BlankNode {
-                // Blank node is constrained to current document
                 let subs: HashSet<_> = triples
                     .iter()
                     .map(|x| x.s())

@@ -14,10 +14,8 @@ homepage.workspace = true
 [dependencies]
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
-chumsky.workspace      = true
 futures.workspace      = true
 lazy_static.workspace  = true
-logos.workspace = true
 ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
@@ -28,7 +26,6 @@ rowan = "0.16.1"
 turtle = { path = "../turtle" }
 swls-lang-turtle.workspace   = true
 swls-core = { workspace = true, features = ["shapes"] }
-swls-token-helpers.workspace = true
 swls-lov.workspace           = true
 
 [dev-dependencies]

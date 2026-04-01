@@ -1,21 +1,22 @@
-use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
+use std::{collections::HashMap, hash::Hash, ops::Range};
 
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
-use chumsky::prelude::Simple;
 use futures::channel::mpsc;
-/// [`ScheduleLabel`] related to the PrepareRename schedule
-pub use systems::prefix::{undefined_prefix, unused_prefix};
 
 use crate::{
     lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url},
     prelude::*,
 };
+
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
     let mut diagnostics = Schedule::new(Label);
-    diagnostics.add_systems((undefined_prefix, unused_prefix));
+    // Prefix diagnostics are disabled pending CST-based reimplementation.
+    // Parse-error diagnostics are still published via publish_diagnostics::<L> added
+    // by each language's setup_world.
+    diagnostics.add_systems(|| {});
     world.add_schedule(diagnostics);
 }
 
@@ -83,78 +84,6 @@ impl SimpleDiagnostic {
     }
 }
 
-impl<T: Display + Eq + Hash> From<Simple<T>> for SimpleDiagnostic {
-    fn from(e: Simple<T>) -> Self {
-        let msg = if let chumsky::error::SimpleReason::Custom(msg) = e.reason() {
-            msg.clone()
-        } else {
-            format!(
-                "{}{}, expected {}",
-                if e.found().is_some() {
-                    "Unexpected token"
-                } else {
-                    "Unexpected end of input"
-                },
-                if let Some(label) = e.label() {
-                    format!(" while parsing {}", label)
-                } else {
-                    String::new()
-                },
-                if e.expected().len() == 0 {
-                    "something else".to_string()
-                } else {
-                    e.expected()
-                        .map(|expected| match expected {
-                            Some(expected) => format!("'{}'", expected),
-                            None => "end of input".to_string(),
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" or ")
-                },
-            )
-        };
-
-        SimpleDiagnostic::new(e.span(), msg)
-    }
-}
-
-impl<T: Display + Eq + Hash> From<(usize, Simple<T>)> for SimpleDiagnostic {
-    fn from(this: (usize, Simple<T>)) -> Self {
-        let (len, e) = this;
-        let msg = if let chumsky::error::SimpleReason::Custom(msg) = e.reason() {
-            msg.clone()
-        } else {
-            format!(
-                "{}{}, expected {}",
-                if e.found().is_some() {
-                    "Unexpected token"
-                } else {
-                    "Unexpected end of input"
-                },
-                if let Some(label) = e.label() {
-                    format!(" while parsing {}", label)
-                } else {
-                    String::new()
-                },
-                if e.expected().len() == 0 {
-                    "something else".to_string()
-                } else {
-                    e.expected()
-                        .map(|expected| match expected {
-                            Some(expected) => format!("'{}'", expected),
-                            None => "end of input".to_string(),
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" or ")
-                },
-            )
-        };
-
-        let range = (len - e.span().end)..(len - e.span().start);
-        SimpleDiagnostic::new(range, msg)
-    }
-}
-
 #[derive(Clone)]
 pub struct DiagnosticSender {
     tx: mpsc::UnboundedSender<Vec<SimpleDiagnostic>>,
@@ -166,10 +95,10 @@ pub struct DiagnosticItem {
     pub uri: Url,
     pub version: Option<i32>,
 }
+
 impl DiagnosticSender {
     pub fn push(&self, diagnostic: SimpleDiagnostic) -> Option<()> {
-        let out = self.tx.unbounded_send(vec![diagnostic]).ok();
-        out
+        self.tx.unbounded_send(vec![diagnostic]).ok()
     }
 
     pub fn push_all(&self, diagnostics: Vec<SimpleDiagnostic>) -> Option<()> {
@@ -180,40 +109,24 @@ impl DiagnosticSender {
 pub fn publish_diagnostics<L: Lang>(
     query: Query<
         (
-            &Errors<L::TokenError>,
             &Errors<L::ElementError>,
             &Wrapped<TextDocumentItem>,
             &RopeC,
             &crate::components::Label,
         ),
-        (
-            Or<(
-                Changed<Errors<L::TokenError>>,
-                Changed<Errors<L::ElementError>>,
-            )>,
-            With<Open>,
-        ),
+        (Changed<Errors<L::ElementError>>, With<Open>),
     >,
     mut client: ResMut<DiagnosticPublisher>,
 ) where
-    L::TokenError: 'static + Clone,
     L::ElementError: 'static + Clone,
 {
-    for (token_errors, element_errors, params, rope, label) in &query {
+    for (element_errors, params, rope, label) in &query {
         tracing::debug!("Publish diagnostics for {}", label.0);
-        use std::iter::Iterator as _;
-        let token_iter = token_errors
+        let diagnostics: Vec<_> = element_errors
             .0
             .iter()
             .cloned()
-            .map(|x| Into::<SimpleDiagnostic>::into(x));
-        let turtle_iter = element_errors
-            .0
-            .iter()
-            .cloned()
-            .map(|x| Into::<SimpleDiagnostic>::into(x));
-
-        let diagnostics: Vec<_> = Iterator::chain(token_iter, turtle_iter)
+            .map(|x| Into::<SimpleDiagnostic>::into(x))
             .flat_map(|item| {
                 let (span, message) = (item.range, item.msg);
                 let start_position = offset_to_position(span.start, &rope.0)?;

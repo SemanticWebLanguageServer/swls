@@ -10,7 +10,6 @@ use bevy_ecs::{
     system::Commands,
     world::World,
 };
-use chumsky::prelude::Simple;
 use swls_core::{
     feature::diagnostics::publish_diagnostics,
     lang::{Lang, LangHelper},
@@ -77,6 +76,15 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
         ));
     });
 
+    // Register CST-based semantic highlighting for Turtle.
+    world.schedule_scope(swls_core::feature::SemanticLabel, |_, schedule| {
+        use bevy_ecs::schedule::IntoScheduleConfigs;
+        schedule.add_systems(
+            swls_core::feature::semantic::basic_semantic_tokens::<TurtleLang>
+                .before(swls_core::feature::semantic::semantic_tokens_system),
+        );
+    });
+
     setup_parsing(world);
     setup_completion(world);
     setup_formatting(world);
@@ -84,16 +92,10 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
 }
 
 impl Lang for TurtleLang {
-    type Token = Token;
-
-    type TokenError = Simple<char>;
-
     type Element = turtle::model::Turtle;
-
     type ElementError = crate::lang::parser::TurtleParseError;
 
     const LANG: &'static str = "turtle";
-
     const TRIGGERS: &'static [&'static str] = &[":"];
     const CODE_ACTION: bool = true;
     const HOVER: bool = true;
@@ -113,4 +115,72 @@ impl Lang for TurtleLang {
     ];
 
     const PATTERN: Option<&'static str> = None;
+
+    fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
+        use turtle::turtle::SyntaxKind as SK;
+        // Convert rowan::SyntaxKind(u16) to turtle SyntaxKind via the raw discriminant.
+        let k = kind.0;
+        if k == SK::Comment as u16 {
+            Some(SemanticTokenType::COMMENT)
+        } else if k == SK::Iriref as u16 {
+            Some(SemanticTokenType::PROPERTY)
+        } else if k == SK::Integer as u16
+            || k == SK::Decimal as u16
+            || k == SK::Double as u16
+        {
+            Some(SemanticTokenType::NUMBER)
+        } else if k == SK::StringLiteralQuote as u16
+            || k == SK::StringLiteralSingleQuote as u16
+            || k == SK::StringLiteralLongQuote as u16
+            || k == SK::StringLiteralLongSingleQuote as u16
+        {
+            Some(SemanticTokenType::STRING)
+        } else if k == SK::Langtag as u16 {
+            Some(semantic_token::LANG_TAG)
+        } else if k == SK::TrueLit as u16 || k == SK::FalseLit as u16 {
+            Some(semantic_token::BOOLEAN)
+        } else if k == SK::BaseToken as u16
+            || k == SK::PrefixToken as u16
+            || k == SK::SparqlBaseToken as u16
+            || k == SK::SparqlPrefixToken as u16
+            || k == SK::Alit as u16
+        {
+            Some(SemanticTokenType::KEYWORD)
+        } else if k == SK::BlankNodeLabel as u16 {
+            None // handled by semantic_token_spans
+        } else if k == SK::PnameLn as u16 || k == SK::PnameNs as u16 {
+            None // handled by semantic_token_spans
+        } else {
+            None
+        }
+    }
+
+    fn semantic_token_spans(
+        kind: rowan::SyntaxKind,
+        span: std::ops::Range<usize>,
+    ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
+        use turtle::turtle::SyntaxKind as SK;
+        let k = kind.0;
+        if k == SK::PnameLn as u16 {
+            // PnameLn = "prefix:local" — emit NAMESPACE for "prefix:" and ENUM_MEMBER for "local"
+            // We'd need source text to split precisely; emit PROPERTY for whole span.
+            vec![(SemanticTokenType::PROPERTY, span)]
+        } else if k == SK::PnameNs as u16 {
+            vec![(SemanticTokenType::NAMESPACE, span)]
+        } else if k == SK::BlankNodeLabel as u16 {
+            // "_:label" — "_:" is NAMESPACE, label is PROPERTY
+            if span.len() > 2 {
+                vec![
+                    (SemanticTokenType::NAMESPACE, span.start..span.start + 2),
+                    (SemanticTokenType::PROPERTY, span.start + 2..span.end),
+                ]
+            } else {
+                vec![(SemanticTokenType::NAMESPACE, span)]
+            }
+        } else {
+            Self::semantic_token_type(kind)
+                .map(|t| vec![(t, span)])
+                .unwrap_or_default()
+        }
+    }
 }
