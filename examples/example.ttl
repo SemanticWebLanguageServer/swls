@@ -1,28 +1,9 @@
-@prefix ex: <http://example.com/>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
-@prefix map: <http://mapping.example.com/>.
 @prefix rml: <http://w3id.org/rml/>.
-@prefix sh: <http://www.w3.org/ns/shacl#>.
 
-map:map_person_000 rml:logicalSource map:source_000;
-  rml:subjectMap [
-    rml:template "http://example.com/{firstname}";
-    rml:class foaf:Person;
-  ];
-  rml:predicateObjectMap [
-    rml:predicate ex:name;
-    rml:objectMap [ rml:reference "firstname" ];
-  ].
+[ ] a rml:FunctionMap;
+    rml:constant <>;
+    rml:template [].
 
-map:source_000 rml:iterator "$.persons[*]";
-  rml:referenceFormulation rml:JSONPath;
-  rml:source map:source_000_fp.
-
-map:source_000_fp a rml:RelativePathSource;
-  rml:path "data.json".
-
-[ ] a rml:Field;
-  rml:fieldName "".
-
-[ ] sh:property [ sh:name "" ].
-
+<abc> a rml:Field;
+    rml:fieldName [].

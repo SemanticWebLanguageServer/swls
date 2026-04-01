@@ -6,7 +6,7 @@ use swls_core::systems::PrefixEntry;
 use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use tracing::debug;
 
-use crate::{lang::model::NamedNode, TurtleLang};
+use crate::{lang::model::{NamedNode, NamedNodeExt, TurtleExt}, TurtleLang};
 
 pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(

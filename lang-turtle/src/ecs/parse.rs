@@ -3,11 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use bevy_ecs::prelude::*;
 use swls_core::prelude::*;
 use tracing::{info, instrument};
+use turtle::PrevParseInfo;
 
 use crate::{
     lang::{
-        context::{Context, TokenIdx},
-        parser::parse_turtle,
+        parser::parse_new,
         tokenizer::parse_tokens_str,
     },
     TurtleLang,
@@ -20,87 +20,74 @@ pub fn parse_source(
 ) {
     for (entity, source) in &query {
         let (tok, es) = parse_tokens_str(source.0.as_str());
-        let t = Tokens(tok);
-        commands.entity(entity).insert(t);
+        commands.entity(entity).insert(Tokens(tok));
         commands.entity(entity).insert(Errors(es));
     }
 }
 
-#[instrument(skip(query, commands, old, config), name = "parse_turtle")]
+#[instrument(skip(query, commands, prev_infos, config), name = "parse_turtle")]
 pub fn parse_turtle_system(
     query: Query<
-        (Entity, &Source, &Tokens, &Label, Option<&Open>),
-        (Changed<Tokens>, With<TurtleLang>),
+        (Entity, &Source, &Label, Option<&Open>),
+        (Changed<Source>, With<TurtleLang>),
     >,
     mut commands: Commands,
-    mut old: Local<HashMap<String, (Vec<Spanned<Token>>, Context)>>,
+    mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
     config: Res<ServerConfig>,
 ) {
     if !config.config.turtle.unwrap_or(true) {
         return;
     }
-    for (entity, source, tokens, label, open) in &query {
+    for (entity, source, label, open) in &query {
         let span = tracing::info_span!("parse_turtle", label = label.to_string());
         let _enter = span.enter();
 
-        let tokens = tokens.iter().filter(|x| !x.is_invalid()).cloned().collect();
-        let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
-        context.setup_current_to_prev(
-            TokenIdx { tokens: &tokens },
-            tokens.len(),
-            TokenIdx {
-                tokens: &old_tokens,
-            },
-            old_tokens.len(),
-        );
-        // First parse it without context
-        // This assures that if the model is correct, the parser will parse it correctly
-        let empty = Context::new();
-        let (turtle, es) = parse_turtle(&label.0, tokens.clone(), source.0.len(), empty.ctx());
-        // If that didn't work, retry with the context
-        let (turtle, es) = es.is_empty().then_some((turtle, es)).unwrap_or_else(|| {
-            parse_turtle(&label.0, tokens.clone(), source.0.len(), context.ctx())
-        });
-
-        let es: Vec<_> = es.into_iter().map(|e| e.map(|PToken(t, _)| t)).collect();
+        // For open (user-edited) documents, don't reuse incremental state.
+        // Incremental bias can cause worse error recovery on incomplete documents,
+        // producing incorrect triple structures and breaking completion detection.
+        let prev = if open.is_none() { prev_infos.get(label.as_str()) } else { None };
+        let (turtle, errors, new_prev) = parse_new(source.0.as_str(), label.as_str(), prev);
 
         info!(
-            "{} triples ({} errors)",
-            turtle.value().triples.len(),
-            es.len()
+            "{} triples ({} parse errors)",
+            turtle.triples.len(),
+            errors.len()
         );
         if open.is_some() {
-            for e in &es {
-                info!("Error {:?}", e);
+            for e in &errors {
+                info!("Parse error {:?}: {}", e.range, e.msg);
             }
         }
 
-        *old_tokens = tokens;
-        context.clear();
-        turtle.set_context(context);
+        prev_infos.insert(label.to_string(), new_prev);
 
-        if es.is_empty() {
-            let element = Element::<TurtleLang>(turtle);
+        let span = 0..source.0.len();
+        let element = Element::<TurtleLang>(swls_core::prelude::spanned(turtle, span));
+        if errors.is_empty() {
             commands
                 .entity(entity)
-                .insert((element, Errors(es)))
+                .insert((element, Errors(errors)))
                 .remove::<Dirty>();
         } else {
-            let element = Element::<TurtleLang>(turtle);
-            commands.entity(entity).insert((Errors(es), element, Dirty));
+            commands.entity(entity).insert((element, Errors(errors), Dirty));
         }
     }
 }
 
-// #[instrument(skip(query, commands), name = "derive_triples")]
 pub fn derive_triples(
-    query: Query<(Entity, &Element<TurtleLang>), (Changed<Element<TurtleLang>>, With<TurtleLang>)>,
+    query: Query<(Entity, &Label, &Element<TurtleLang>), (Changed<Element<TurtleLang>>, With<TurtleLang>)>,
     mut commands: Commands,
 ) {
-    for (entity, turtle) in &query {
-        if let Ok(tripl) = turtle.0.get_simple_triples() {
-            let triples: Vec<_> = tripl.iter().map(|x| x.to_owned()).collect();
-            commands.entity(entity).insert(Triples(Arc::new(triples)));
+    for (entity, label, turtle) in &query {
+        use crate::lang::model::TurtleExt;
+        match turtle.0.get_simple_triples() {
+            Ok(tripl) => {
+                let triples: Vec<_> = tripl.iter().map(|x| x.to_owned()).collect();
+                commands.entity(entity).insert(Triples(Arc::new(triples)));
+            }
+            Err(e) => {
+                info!("derive_triples: error for {}: {:?}", label.as_str(), e);
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ use format::format_turtle_system;
 use swls_core::prelude::*;
 use parse::{derive_triples, parse_source, parse_turtle_system};
 
-use crate::TurtleLang;
+use crate::{lang::model::NamedNodeExt, TurtleLang};
 
 mod code_action;
 mod completion;
@@ -55,7 +55,7 @@ fn derive_prefixes(
             .prefixes
             .iter()
             .flat_map(|prefix| {
-                let url = prefix.value.expand(turtle.value())?;
+                let url = prefix.value.value().expand(turtle.value())?;
                 let url = swls_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
@@ -69,6 +69,7 @@ fn derive_prefixes(
             .as_ref()
             .and_then(|b| {
                 b.0 .1
+                    .value()
                     .expand(turtle.value())
                     .and_then(|x| swls_core::lsp_types::Url::parse(&x).ok())
             })

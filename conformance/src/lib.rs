@@ -25,8 +25,7 @@ pub fn test_syntax(location: &str, is_positive: bool) {
     let url = swls_core::lsp_types::Url::from_str(location).unwrap();
     let path = url.to_file_path().expect("file path");
     let turtle_source = std::fs::read_to_string(&path).expect("Failed to turtle");
-    let (turtle, errors) = parse_source(&url, &turtle_source);
-    // let turtle2 = parse_source2(&url, &turtle_source);
+    let (turtle, errors): (Option<Turtle>, Vec<String>) = parse_source(&url, &turtle_source);
 
     let combinator = errors.is_empty() && turtle.is_some();
     // let new = turtle2.is_some();

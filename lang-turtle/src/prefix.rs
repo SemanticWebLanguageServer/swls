@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::lang::{context::Context, model::Turtle, parser::parse_turtle, tokenizer::parse_tokens_str};
+use crate::lang::{model::{Turtle, NamedNodeExt, TurtleExt}};
 use swls_core::{lsp_types::Url, prelude::*, util::fs::File};
 
 /// Finds a resource.
@@ -128,9 +128,9 @@ pub fn prefix_from_source(
     url: &Url,
     source: &str,
 ) -> Option<(Cow<'static, str>, Cow<'static, str>)> {
-    let (tok, _) = parse_tokens_str(source);
-    let empty = Context::new();
-    let (turtle, _) = parse_turtle(&url, tok, source.len(), empty.ctx());
+    use crate::lang::parser::parse_new;
+    use crate::lang::model::TurtleExt;
+    let (turtle, _, _) = parse_new(source, url.as_str(), None);
 
     let triples = turtle.get_simple_triples().ok()?;
 

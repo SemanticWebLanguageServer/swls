@@ -28,7 +28,9 @@ tracing.workspace      = true
 
 swls-lov.workspace           = true
 swls-token-helpers.workspace = true
-swls-core.workspace          = true
+swls-core = { workspace = true, features = ["shapes", "tokio"] }
+turtle = { path = "../turtle" }
+rowan   = "0.16.1"
 
 [dev-dependencies]
 test-log         = { version = "0.2.19", features = ["trace"] }

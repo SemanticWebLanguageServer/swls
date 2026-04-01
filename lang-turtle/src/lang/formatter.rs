@@ -472,27 +472,15 @@ mod tests {
     use ropey::Rope;
 
     use crate::lang::{
-        context::Context, formatter::format_turtle, model::Turtle, parser as parser2,
+        formatter::format_turtle, model::Turtle, parser::parse_new,
         tokenizer::parse_tokens_str_safe,
     };
-
-    #[derive(Debug)]
-    pub enum Err {
-        Tokenizing,
-        Parsing,
-    }
 
     fn parse_turtle(
         inp: &str,
         url: &swls_core::lsp_types::Url,
-    ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
-        let context = Context::new();
-        let ctx = context.ctx();
-        let tokens = parse_tokens_str_safe(inp).map_err(|e| {
-            println!("Error {:?}", e);
-            Err::Tokenizing
-        })?;
-
+    ) -> (Turtle, Vec<Spanned<String>>) {
+        let tokens = parse_tokens_str_safe(inp).unwrap_or_default();
         let mut comments: Vec<_> = tokens
             .iter()
             .flat_map(|x| {
@@ -504,12 +492,12 @@ mod tests {
             .collect();
         comments.sort_by_key(|x| x.1.start);
 
-        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len(), ctx);
-        for e in errs {
-            println!("Error {:?}", e);
+        let (turtle, errs, _) = parse_new(inp, url.as_str(), None);
+        for e in &errs {
+            println!("Parse error: {:?}", e);
         }
 
-        Ok((turtle.into_value(), comments))
+        (turtle, comments)
     }
 
     #[test]
@@ -533,7 +521,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -562,7 +550,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -599,7 +587,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -628,7 +616,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -653,7 +641,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -683,7 +671,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -717,7 +705,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         println!("OUtput {:?}", output);
         let formatted = format_turtle(
             &output,
@@ -752,7 +740,7 @@ mod tests {
 #trailing comments
 "#;
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {
@@ -798,7 +786,7 @@ mod tests {
 "#;
 
         let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        let (output, comments) = parse_turtle(txt, &url);
         let formatted = format_turtle(
             &output,
             swls_core::lsp_types::FormattingOptions {

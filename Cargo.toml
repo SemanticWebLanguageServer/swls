@@ -30,7 +30,7 @@ tower-lsp = { version = "0.19.0", default-features = false, features = [
 ] }
 
 swls-lov           = { path = "lov",               version = "0.1.0" }
-swls-core          = { path = "core",              version = "0.1.0" }
+swls-core          = { path = "core",              version = "0.1.0", default-features = false }
 swls-token-helpers = { path = "swls-token-helpers", version = "0.1.0" }
 swls-lang-turtle   = { path = "lang-turtle",       version = "0.1.0" }
 swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.1.0" }
@@ -58,4 +58,5 @@ members = [
   "conformance",
 ]
 resolver = "2"
+exclude = ["turtle"]
 

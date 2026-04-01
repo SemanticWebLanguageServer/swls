@@ -23,9 +23,11 @@ serde_json.workspace   = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
+rowan = "0.16.1"
 
+turtle = { path = "../turtle" }
 swls-lang-turtle.workspace   = true
-swls-core.workspace          = true
+swls-core = { workspace = true, features = ["shapes"] }
 swls-token-helpers.workspace = true
 swls-lov.workspace           = true
 

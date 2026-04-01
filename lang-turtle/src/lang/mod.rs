@@ -1,41 +1,16 @@
-use chumsky::{Parser as _, Stream};
-use context::Context;
-use swls_core::lsp_types::Url;
-use swls_core::{prelude::PToken, util::Spanned};
-use model::Turtle;
-use tokenizer::parse_tokens_str_safe;
-
-pub mod context;
 pub mod formatter;
 pub mod model;
 pub mod parser;
 pub mod tokenizer;
+pub mod context;
 
+use swls_core::lsp_types::Url;
+use model::Turtle;
+
+/// Compatibility shim for conformance tests and other callers expecting the old parse_source API.
+/// Returns `(Some(Turtle), errors)` — the new parser always recovers so Turtle is always Some.
 pub fn parse_source(url: &Url, string: &str) -> (Option<Turtle>, Vec<String>) {
-    let context = Context::new();
-    let ctx = context.ctx();
-
-    let parser = parser::turtle(url, ctx);
-
-    let tokens = match parse_tokens_str_safe(string) {
-        Ok(t) => t,
-        Err(e) => {
-            return (None, e.into_iter().map(|x| x.to_string()).collect());
-        }
-    };
-
-    let end = string.len()..string.len();
-    let stream = Stream::from_iter(
-        end,
-        tokens
-            .into_iter()
-            .enumerate()
-            .filter(|(_, x)| !x.is_comment())
-            .map(|(i, t)| t.map(|x| PToken(x, i)))
-            // .rev()
-            .map(|Spanned(x, y)| (x, y)),
-    );
-
-    let (t, es) = parser.parse_recovery(stream);
-    (t, es.into_iter().map(|x| x.to_string()).collect())
+    let (turtle, errors, _prev) = parser::parse_new(string, url.as_str(), None);
+    let error_strings: Vec<String> = errors.iter().map(|e| e.msg.clone()).collect();
+    (Some(turtle), error_strings)
 }

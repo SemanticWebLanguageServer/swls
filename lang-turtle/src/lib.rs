@@ -88,9 +88,9 @@ impl Lang for TurtleLang {
 
     type TokenError = Simple<char>;
 
-    type Element = crate::lang::model::Turtle;
+    type Element = turtle::model::Turtle;
 
-    type ElementError = Simple<Token>;
+    type ElementError = crate::lang::parser::TurtleParseError;
 
     const LANG: &'static str = "turtle";
 

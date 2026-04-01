@@ -2,16 +2,12 @@
 extern crate tracing;
 
 use bevy_ecs::prelude::*;
-use chumsky::error::Simple;
 use swls_core::{lsp_types::SemanticTokenType, prelude::*};
+use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
 use crate::ecs::{setup_completion, setup_parse};
 pub mod lang;
-// pub mod model;
-// use crate::model::Query;
-// pub mod parsing;
-// pub mod tokenizer;
 
 pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
@@ -60,11 +56,11 @@ pub struct Sparql;
 impl Lang for Sparql {
     type Token = Token;
 
-    type TokenError = Simple<char>;
+    type TokenError = chumsky::error::Simple<char>;
 
-    type Element = crate::lang::model::Query;
+    type Element = turtle::model::Turtle;
 
-    type ElementError = Simple<Token>;
+    type ElementError = TurtleParseError;
 
     const PATTERN: Option<&'static str> = None;
 
@@ -87,7 +83,6 @@ lazy_static::lazy_static! {
     static ref KWDS: Vec<&'static str> = {
         let mut m = Vec::new();
 
-        // swls_core::token::SparqlCall::ITEMS.iter().for_each(|x| m.push(x.complete()));
         SparqlKeyword::ITEMS.iter().for_each(|x| m.push(x.complete()));
         SparqlAggregate::ITEMS.iter().for_each(|x| m.push(x.complete()));
 

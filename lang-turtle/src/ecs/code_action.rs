@@ -6,6 +6,7 @@ use swls_core::{
     prelude::*,
 };
 use swls_core::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
+use crate::lang::model::NamedNodeExt;
 
 use crate::TurtleLang;
 
@@ -28,7 +29,7 @@ pub fn organize_imports(
             .iter()
             .filter_map(|sp| {
                 let p = sp.value();
-                let url = p.value.expand(turtle.value())?;
+                let url = p.value.value().expand(turtle.value())?;
                 Some((p.prefix.value().clone(), url))
             })
             .collect();

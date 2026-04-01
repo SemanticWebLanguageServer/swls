@@ -5,17 +5,14 @@ use std::{
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
-use swls_lang_turtle::lang::{
-    context::{Context, TokenIdx},
-    model::TriplesBuilder,
-};
+use swls_lang_turtle::lang::model::{NamedNodeExt, TurtleExt};
 use swls_lov::LocalPrefix;
 use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use swls_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
-use sophia_iri::resolve::BaseIri;
+use turtle::{PrevParseInfo, IncrementalBias};
 
 use crate::{
-    lang::{parsing::parse, tokenizer::parse_tokens_str},
+    lang::tokenizer::parse_tokens_str,
     Sparql,
 };
 
@@ -50,55 +47,88 @@ fn parse_source(
 ) {
     for (entity, source) in &query {
         let (tok, es) = parse_tokens_str(source.0.as_str());
-        info!("tokenized  {} tokens ({} errors)", tok.len(), es.len());
         commands.entity(entity).insert((Tokens(tok), Errors(es)));
     }
 }
 
-#[instrument(skip(query, commands))]
+#[instrument(skip(query, commands, prev_infos, config))]
 fn parse_sparql_system(
-    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<Sparql>)>,
+    query: Query<(Entity, &Source, &Label), (Changed<Source>, With<Sparql>)>,
     mut commands: Commands,
-    mut old: Local<HashMap<String, (Vec<Spanned<Token>>, Context)>>,
+    mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
     config: Res<ServerConfig>,
 ) {
     if !config.config.sparql.unwrap_or(true) {
         return;
     }
-    for (entity, source, tokens, label) in &query {
-        let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
+    for (entity, source, label) in &query {
+        use turtle::sparql::parser::{Rule, SyntaxKind, Lang};
+        use turtle::sparql::convert::convert;
 
-        context.setup_current_to_prev(
-            TokenIdx { tokens: &tokens },
-            tokens.len(),
-            TokenIdx {
-                tokens: &old_tokens,
-            },
-            old_tokens.len(),
+        let prev = prev_infos.get(label.as_str());
+        let (parse, new_prev) = turtle::parse_incremental(
+            Rule::new(SyntaxKind::QueryUnit),
+            source.0.as_str(),
+            prev,
+            IncrementalBias::default(),
         );
-        let ctx = context.ctx();
+        prev_infos.insert(label.to_string(), new_prev);
 
-        let (jsonld, es) = parse(source.as_str(), label.0.clone(), tokens.0.clone(), ctx);
+        let syntax = parse.syntax::<Lang>();
+        let errors = collect_errors(&syntax);
+        let mut turtle_model = convert(&syntax);
+        turtle_model.set_base = Some(label.to_string());
 
-        *old_tokens = tokens.0.clone();
-        context.clear();
+        let span = 0..source.0.len();
+        let element = Element::<Sparql>(swls_core::prelude::spanned(turtle_model, span));
 
-        jsonld.add_to_context(context);
-
-        // turtle.set_context(context);
-        info!("{} triples ({} errors)", label.0, es.len());
-
-        if es.is_empty() {
-            let element = Element::<Sparql>(jsonld);
+        if errors.is_empty() {
             commands
                 .entity(entity)
-                .insert((element, Errors(es)))
+                .insert((element, Errors(errors)))
                 .remove::<Dirty>();
         } else {
-            let element = Element::<Sparql>(jsonld);
-            commands.entity(entity).insert((Errors(es), element, Dirty));
+            commands.entity(entity).insert((element, Errors(errors), Dirty));
         }
     }
+}
+
+fn collect_errors(node: &rowan::SyntaxNode<turtle::sparql::parser::Lang>)
+    -> Vec<swls_lang_turtle::lang::parser::TurtleParseError>
+{
+    use rowan::NodeOrToken;
+    use swls_lang_turtle::lang::parser::TurtleParseError;
+    use turtle::sparql::parser::SyntaxKind;
+
+    let mut errors = Vec::new();
+    let mut stack = vec![node.clone()];
+    while let Some(current) = stack.pop() {
+        for child in current.children_with_tokens() {
+            match child {
+                NodeOrToken::Node(n) => {
+                    if n.kind() == SyntaxKind::Error {
+                        let r = n.text_range();
+                        errors.push(TurtleParseError {
+                            range: r.start().into()..r.end().into(),
+                            msg: format!("Unexpected: {}", n.text()),
+                        });
+                    } else {
+                        stack.push(n);
+                    }
+                }
+                NodeOrToken::Token(t) => {
+                    if t.kind() == SyntaxKind::Error {
+                        let r = t.text_range();
+                        errors.push(TurtleParseError {
+                            range: r.start().into()..r.end().into(),
+                            msg: format!("Unexpected: {}", t.text()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+    errors
 }
 
 #[instrument(skip(query, commands))]
@@ -106,35 +136,37 @@ fn derive_triples(
     query: Query<(Entity, &Label, &Element<Sparql>), Changed<Element<Sparql>>>,
     mut commands: Commands,
 ) {
-    for (e, l, el) in &query {
-        let query = el.0.value();
+    for (entity, label, el) in &query {
+        let turtle = el.0.value();
 
-        let prefixes: Vec<_> = query
+        let prefixes: Vec<_> = turtle
             .prefixes
             .iter()
             .flat_map(|prefix| {
-                let url = prefix.value.expand(query)?;
+                let url = prefix.value().value.expand(turtle)?;
                 let url = swls_core::lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,
-                    prefix: prefix.prefix.value().clone(),
+                    prefix: prefix.value().prefix.value().clone(),
                 })
             })
             .collect();
 
-        commands.entity(e).insert(Prefixes(prefixes, l.0.clone()));
+        commands.entity(entity).insert(Prefixes(prefixes, label.0.clone()));
 
-        if let Ok(base) = BaseIri::new(query.base.to_string()) {
-            let mut builder = TriplesBuilder::new(query, base);
-            let _ = query.ingest_triples(&mut builder);
-            let triples: Vec<_> = builder.triples.into_iter().map(|x| x.to_owned()).collect();
-
-            commands.entity(e).insert(Triples(Arc::new(triples)));
+        match el.0.get_simple_triples() {
+            Ok(triples) => {
+                let triples: Vec<_> = triples.iter().map(|x| x.to_owned()).collect();
+                commands.entity(entity).insert(Triples(Arc::new(triples)));
+            }
+            Err(e) => {
+                info!("derive_triples error for {}: {:?}", label.as_str(), e);
+            }
         }
     }
 }
 
-#[instrument(skip(query,))]
+#[instrument(skip(query))]
 pub fn variable_completion(
     mut query: Query<(&Tokens, &TokenComponent, &mut CompletionRequest), With<Sparql>>,
 ) {
@@ -176,14 +208,14 @@ pub fn sparql_lov_undefined_prefix_completion(
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
-    for (word, turtle, prefixes, mut req) in &mut query {
-        let mut start = Position::new(0, 0);
-
-        if turtle.base_statement.is_some() {
-            start = Position::new(1, 0);
+    for (word, el, prefixes, mut req) in &mut query {
+        let turtle = el.0.value();
+        let mut start = swls_core::lsp_types::Position::new(0, 0);
+        if turtle.base.is_some() {
+            start = swls_core::lsp_types::Position::new(1, 0);
         }
 
-        use swls_core::lsp_types::{Position, Range};
+        use swls_core::lsp_types::Range;
         prefix_completion_helper(
             word,
             prefixes,
