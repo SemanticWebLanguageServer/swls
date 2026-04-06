@@ -3482,6 +3482,7 @@ dependencies = [
  "sophia_iri",
  "swls-core",
  "swls-lang-sparql",
+ "swls-lang-trig",
  "swls-lang-turtle",
  "tokio",
  "tower-lsp",
@@ -3534,6 +3535,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "swls-lang-rdf-base"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "swls-core",
+ "tracing",
+]
+
+[[package]]
 name = "swls-lang-sparql"
 version = "0.1.0"
 dependencies = [
@@ -3547,6 +3557,27 @@ dependencies = [
  "sophia_api",
  "sophia_iri",
  "swls-core",
+ "swls-lang-rdf-base",
+ "swls-lang-turtle",
+ "swls-lov",
+ "swls-test-utils",
+ "test-log",
+ "tracing",
+ "turtle",
+]
+
+[[package]]
+name = "swls-lang-trig"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "futures",
+ "ropey",
+ "rowan",
+ "sophia_iri",
+ "swls-core",
+ "swls-lang-rdf-base",
  "swls-lang-turtle",
  "swls-lov",
  "swls-test-utils",
@@ -3571,6 +3602,7 @@ dependencies = [
  "sophia_api",
  "sophia_iri",
  "swls-core",
+ "swls-lang-rdf-base",
  "swls-lov",
  "swls-test-utils",
  "test-log",

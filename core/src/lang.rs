@@ -35,6 +35,7 @@ pub trait Lang: 'static {
     fn semantic_token_spans(
         kind: rowan::SyntaxKind,
         span: std::ops::Range<usize>,
+        text: &str,
     ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
         Self::semantic_token_type(kind)
             .map(|t| vec![(t, span)])

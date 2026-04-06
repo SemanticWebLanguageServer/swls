@@ -37,7 +37,13 @@ pub fn parse_new(
     source: &str,
     base_url: &str,
     prev: Option<&PrevParseInfo>,
-) -> (Turtle, Vec<TurtleParseError>, PrevParseInfo, TurtleNode) {
+) -> (
+    Turtle,
+    Vec<TurtleParseError>,
+    PrevParseInfo,
+    TurtleNode,
+    rowan::GreenNode,
+) {
     let (parse, prev_info) = turtle::parse_incremental(
         Rule::new(SyntaxKind::TurtleDoc),
         source,
@@ -50,7 +56,7 @@ pub fn parse_new(
     model.set_base = Some(base_url.to_string());
 
     let errors = collect_errors(&node);
-    (model, errors, prev_info, node)
+    (model, errors, prev_info, node, parse.green_node)
 }
 
 pub fn collect_errors(node: &TurtleNode) -> Vec<TurtleParseError> {
@@ -62,11 +68,12 @@ pub fn collect_errors(node: &TurtleNode) -> Vec<TurtleParseError> {
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let range = n.text_range();
-                        errors.push(TurtleParseError {
-                            range: range.start().into()..range.end().into(),
-                            msg: format!("Unexpected: {}", n.text()),
-                        });
+                        let range = turtle::effective_error_span::<Lang>(&n);
+                        let msg = n
+                            .parent()
+                            .map(|p| format!("Expected: {:?}", p.kind()))
+                            .unwrap_or_else(|| format!("Unexpected: {}", n.text()));
+                        errors.push(TurtleParseError { range, msg });
                     } else {
                         stack.push(n);
                     }

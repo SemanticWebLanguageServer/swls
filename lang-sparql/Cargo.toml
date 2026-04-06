@@ -25,6 +25,7 @@ rowan = "0.16.1"
 
 turtle = { path = "../turtle" }
 swls-lang-turtle.workspace   = true
+swls-lang-rdf-base.workspace = true
 swls-core = { workspace = true, features = ["shapes"] }
 swls-lov.workspace           = true
 

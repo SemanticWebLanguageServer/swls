@@ -1,10 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
 use tracing::{info, instrument};
-use turtle::{PrevParseInfo, turtle::SyntaxKind};
+use turtle::{turtle::SyntaxKind, PrevParseInfo};
 
 use crate::{
     lang::parser::{parse_new, TurtleNode},
@@ -48,10 +48,7 @@ fn extract_cst_tokens(
 
 #[instrument(skip(query, commands, prev_infos, config), name = "parse_turtle")]
 pub fn parse_turtle_system(
-    query: Query<
-        (Entity, &Source, &Label, Option<&Open>),
-        (Changed<Source>, With<TurtleLang>),
-    >,
+    query: Query<(Entity, &Source, &Label, Option<&Open>), (Changed<Source>, With<TurtleLang>)>,
     mut commands: Commands,
     mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
     config: Res<ServerConfig>,
@@ -69,7 +66,7 @@ pub fn parse_turtle_system(
         } else {
             None
         };
-        let (turtle, errors, new_prev, syntax) =
+        let (turtle, errors, new_prev, syntax, node) =
             parse_new(source.0.as_str(), label.as_str(), prev);
 
         info!(
@@ -98,6 +95,7 @@ pub fn parse_turtle_system(
                     CstTokens(cst_tokens),
                     Comments(cst_comments),
                 ))
+                .insert(Wrapped(node))
                 .remove::<Dirty>();
         } else {
             commands.entity(entity).insert((
@@ -111,16 +109,22 @@ pub fn parse_turtle_system(
     }
 }
 
-pub fn derive_triples(
-    query: Query<
-        (Entity, &Label, &Element<TurtleLang>),
-        (Changed<Element<TurtleLang>>, With<TurtleLang>),
-    >,
+/// Generic ECS system that extracts RDF triples from any language whose element
+/// implements [`TurtleExt`] (i.e. uses `turtle::model::Turtle` as its parsed model).
+///
+/// Register this in your language crate's `setup_parsing()` after the parse system,
+/// using `.before(swls_core::feature::parse::triples)`.
+pub fn derive_triples_system<L>(
+    query: Query<(Entity, &Label, &Element<L>), (Changed<Element<L>>, With<L>)>,
     mut commands: Commands,
-) {
-    for (entity, label, turtle) in &query {
-        use crate::lang::model::TurtleExt;
-        match turtle.0.get_simple_triples() {
+) where
+    L: swls_core::lang::Lang + Component,
+    L::Element: crate::lang::model::TurtleExt,
+{
+    use std::sync::Arc;
+    use crate::lang::model::TurtleExt;
+    for (entity, label, element) in &query {
+        match element.0.value().get_simple_triples() {
             Ok(tripl) => {
                 let triples: Vec<_> = tripl.iter().map(|x| x.to_owned()).collect();
                 commands.entity(entity).insert(Triples(Arc::new(triples)));

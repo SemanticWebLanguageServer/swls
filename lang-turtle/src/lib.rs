@@ -2,21 +2,14 @@
     html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
     html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
 )]
-use bevy_ecs::{
-    component::Component,
-    event::EntityEvent,
-    observer::On,
-    resource::Resource,
-    system::Commands,
-    world::World,
-};
+use bevy_ecs::{component::Component, resource::Resource, world::World};
 use swls_core::{
-    feature::diagnostics::publish_diagnostics,
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
     prelude::*,
-    CreateEvent,
 };
+
+use swls_lang_rdf_base::register_rdf_lang;
 
 pub mod config;
 pub mod ecs;
@@ -26,10 +19,10 @@ pub mod prefix;
 use crate::config::{extract_known_prefixes_from_config, extract_known_shapes_from_config};
 use crate::ecs::{setup_code_action, setup_completion, setup_formatting, setup_parsing};
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct TurtleLang;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TurtleHelper;
 impl LangHelper for TurtleHelper {
     fn keyword(&self) -> &[&'static str] {
@@ -38,51 +31,13 @@ impl LangHelper for TurtleHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
-    TurtleLang::LEGEND_TYPES.iter().for_each(|lt| {
-        if !semantic_token_dict.contains_key(lt) {
-            let l = semantic_token_dict.0.len();
-            semantic_token_dict.insert(lt.clone(), l);
-        }
-    });
-
-    world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
-        let e = &trigger.event();
-        match &e.language_id {
-            Some(x) if x == "turtle" => {
-                commands
-                    .entity(e.event_target())
-                    .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
-                return;
-            }
-            _ => {}
-        }
-        if trigger.event().url.as_str().ends_with(".ttl") {
-            commands
-                .entity(e.event_target())
-                .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
-            return;
-        }
-    });
-
-    world.schedule_scope(swls_core::feature::DiagnosticsLabel, |_, schedule| {
-        schedule.add_systems(publish_diagnostics::<TurtleLang>);
-    });
+    register_rdf_lang::<TurtleLang, TurtleHelper>(world, "turtle", &[".ttl"]);
 
     world.schedule_scope(swls_core::Startup, |_, schedule| {
         schedule.add_systems((
             extract_known_prefixes_from_config::<C>,
             extract_known_shapes_from_config::<C>,
         ));
-    });
-
-    // Register CST-based semantic highlighting for Turtle.
-    world.schedule_scope(swls_core::feature::SemanticLabel, |_, schedule| {
-        use bevy_ecs::schedule::IntoScheduleConfigs;
-        schedule.add_systems(
-            swls_core::feature::semantic::basic_semantic_tokens::<TurtleLang>
-                .before(swls_core::feature::semantic::semantic_tokens_system),
-        );
     });
 
     setup_parsing(world);
@@ -118,16 +73,14 @@ impl Lang for TurtleLang {
 
     fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
         use turtle::turtle::SyntaxKind as SK;
+
         // Convert rowan::SyntaxKind(u16) to turtle SyntaxKind via the raw discriminant.
         let k = kind.0;
         if k == SK::Comment as u16 {
             Some(SemanticTokenType::COMMENT)
         } else if k == SK::Iriref as u16 {
             Some(SemanticTokenType::PROPERTY)
-        } else if k == SK::Integer as u16
-            || k == SK::Decimal as u16
-            || k == SK::Double as u16
-        {
+        } else if k == SK::Integer as u16 || k == SK::Decimal as u16 || k == SK::Double as u16 {
             Some(SemanticTokenType::NUMBER)
         } else if k == SK::StringLiteralQuote as u16
             || k == SK::StringLiteralSingleQuote as u16
@@ -146,10 +99,6 @@ impl Lang for TurtleLang {
             || k == SK::Alit as u16
         {
             Some(SemanticTokenType::KEYWORD)
-        } else if k == SK::BlankNodeLabel as u16 {
-            None // handled by semantic_token_spans
-        } else if k == SK::PnameLn as u16 || k == SK::PnameNs as u16 {
-            None // handled by semantic_token_spans
         } else {
             None
         }
@@ -158,13 +107,22 @@ impl Lang for TurtleLang {
     fn semantic_token_spans(
         kind: rowan::SyntaxKind,
         span: std::ops::Range<usize>,
+        text: &str,
     ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
         use turtle::turtle::SyntaxKind as SK;
         let k = kind.0;
+        let this_kind = SK::from(kind);
         if k == SK::PnameLn as u16 {
             // PnameLn = "prefix:local" — emit NAMESPACE for "prefix:" and ENUM_MEMBER for "local"
-            // We'd need source text to split precisely; emit PROPERTY for whole span.
-            vec![(SemanticTokenType::PROPERTY, span)]
+            if let Some((a, _)) = text.split_once(':') {
+                let (start, end) = (span.start, span.end);
+                vec![
+                    (SemanticTokenType::NAMESPACE, start..start + a.len() + 1),
+                    (SemanticTokenType::PROPERTY, start + 1 + a.len()..end),
+                ]
+            } else {
+                vec![(SemanticTokenType::PROPERTY, span)]
+            }
         } else if k == SK::PnameNs as u16 {
             vec![(SemanticTokenType::NAMESPACE, span)]
         } else if k == SK::BlankNodeLabel as u16 {
@@ -178,9 +136,11 @@ impl Lang for TurtleLang {
                 vec![(SemanticTokenType::NAMESPACE, span)]
             }
         } else {
-            Self::semantic_token_type(kind)
-                .map(|t| vec![(t, span)])
-                .unwrap_or_default()
+            let output = Self::semantic_token_type(kind)
+                .map(|t| vec![(t, span.clone())])
+                .unwrap_or_default();
+            tracing::info!("token kind {:?} {:?} {:?}", this_kind, span, output);
+            output
         }
     }
 }

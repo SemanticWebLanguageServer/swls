@@ -1,9 +1,0 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-@prefix rml: <http://w3id.org/rml/>.
-
-[ ] a rml:FunctionMap;
-    rml:constant <>;
-    rml:template [].
-
-<abc> a rml:Field;
-    rml:fieldName [].

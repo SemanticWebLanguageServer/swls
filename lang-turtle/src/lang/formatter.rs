@@ -341,7 +341,7 @@ mod tests {
         inp: &str,
         url: &swls_core::lsp_types::Url,
     ) -> (Turtle, Vec<Spanned<String>>) {
-        let (turtle, errs, _, syntax) = parse_new(inp, url.as_str(), None);
+        let (turtle, errs, _, syntax, _) = parse_new(inp, url.as_str(), None);
         for e in &errs {
             println!("Parse error: {:?}", e);
         }

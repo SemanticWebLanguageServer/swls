@@ -27,6 +27,8 @@ pub struct Config {
     pub log: String,
     /// Enable turtle
     pub turtle: Option<bool>,
+    /// Enable trig
+    pub trig: Option<bool>,
     /// Enable jsonld
     pub jsonld: Option<bool>,
     /// Enable sparql
@@ -205,6 +207,7 @@ impl Default for Config {
         Self {
             log: "debug".to_string(),
             turtle: None,
+            trig: None,
             jsonld: None,
             sparql: None,
             local: LocalConfig::default(),

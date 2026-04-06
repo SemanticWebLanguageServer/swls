@@ -117,11 +117,13 @@ fn collect_errors(
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let r = n.text_range();
-                        errors.push(TurtleParseError {
-                            range: r.start().into()..r.end().into(),
-                            msg: format!("Unexpected: {}", n.text()),
-                        });
+                        let range =
+                            turtle::effective_error_span::<turtle::sparql::parser::Lang>(&n);
+                        let msg = n
+                            .parent()
+                            .map(|p| format!("Expected: {:?}", p.kind()))
+                            .unwrap_or_else(|| format!("Unexpected: {}", n.text()));
+                        errors.push(TurtleParseError { range, msg });
                     } else {
                         stack.push(n);
                     }

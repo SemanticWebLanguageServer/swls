@@ -6,7 +6,7 @@
 
 ## What Is This Project?
 
-**swls** is a Language Server Protocol (LSP) server for Semantic Web languages, providing IDE-like features (completion, hover, diagnostics, formatting, rename, etc.) for **Turtle**, **JSON-LD**, and **SPARQL** in any LSP-compatible editor (VS Code, NeoVim, JetBrains).
+**swls** is a Language Server Protocol (LSP) server for Semantic Web languages, providing IDE-like features (completion, hover, diagnostics, formatting, rename, etc.) for **Turtle** and **SPARQL** in any LSP-compatible editor (VS Code, NeoVim, JetBrains).
 
 The server binary communicates over stdio using the LSP protocol (via `tower-lsp`). It also compiles to WASM for browser/VS Code extension use.
 
@@ -22,10 +22,8 @@ The server binary communicates over stdio using the LSP protocol (via `tower-lsp
 swls/                        ← workspace root
 ├── core/                    ← swls-core: ECS framework, all shared types, backend, features
 ├── swls/                    ← swls: native binary (main.rs) and TowerClient
-├── swls-token-helpers/      ← shared tokenizer/parser helpers (chumsky combinators, token defs)
 ├── lang-turtle/             ← swls-lang-turtle: Turtle (.ttl) language support
 ├── lang-sparql/             ← swls-lang-sparql: SPARQL (.sq/.rq/.sparql) language support
-├── lang-jsonld/             ← swls-lang-jsonld: JSON-LD (.jsonld) language support
 ├── lov/                     ← swls-lov: bundled prefix/ontology metadata (LocalPrefix)
 ├── test-utils/              ← shared test harness (TestClient, TestFs, setup_world, create_file)
 ├── conformance/             ← W3C conformance tests for Turtle parser (generated via build.rs)
@@ -127,7 +125,8 @@ All defined in `core/src/feature/`:
 - `RopeC(Rope)` — efficient rope representation for edits
 - `Label(Url)` — document URL, used as entity identity key
 - `Element<L>` — parsed semantic element (language-specific AST root)
-- `Tokens` — tokenization output
+- `CstTokens(Vec<Spanned<rowan::SyntaxKind>>)` — CST leaf tokens extracted from the A* parse tree
+- `Comments(Vec<Spanned<String>>)` — comments extracted from CST (used by formatter)
 - `Triples` — parsed RDF triples (sophia_api quads)
 - `Prefixes` — prefix/namespace map for the document
 - `Open` — marker: document is currently open in the editor
@@ -137,7 +136,8 @@ All defined in `core/src/feature/`:
 - `DynLang(Box<dyn LangHelper>)` — language-specific helper (keywords, text extraction)
 - `DefinedClass`, `DefinedClasses`, `DefinedProperty`, `DefinedProperties` — derived ontology info
 - `CompletionRequest`, `HoverRequest`, `FormatRequest`, etc. — per-request response accumulators
-- `TokenComponent`, `TripleComponent` — cursor-specific context injected during request handling
+- `TokenComponent` — cursor-specific token context (`text`, `range`, `source_span`, `is_error`); no longer wraps a typed `Token`
+- `TripleComponent` — cursor-specific triple context; provides `term()` returning `MyTerm` with fully-expanded IRI
 
 ### Key Resources
 
@@ -158,23 +158,25 @@ Each language implements two traits (in `core/src/lang.rs`):
 
 ### `Lang` trait
 
-Implemented by `TurtleLang`, `JsonLd`, `Sparql`:
+Implemented by `TurtleLang`, `Sparql`:
 
 ```rust
 pub trait Lang: 'static {
-    type Token: PartialEq + Hash + Clone + Send + Sync + TokenTrait;
-    type TokenError: Into<SimpleDiagnostic> + ...;
-    type Element: Send + Sync;        // parsed AST root
+    type Element: Send + Sync;        // parsed AST root (turtle::model::Turtle for both Turtle and SPARQL)
     type ElementError: Into<SimpleDiagnostic> + ...;
 
     const CODE_ACTION: bool;
     const HOVER: bool;
-    const LANG: &'static str;        // e.g. "turtle", "sparql", "jsonld"
+    const LANG: &'static str;        // e.g. "turtle", "sparql"
     const TRIGGERS: &'static [&'static str];  // completion trigger chars
     const LEGEND_TYPES: &'static [SemanticTokenType];
     const PATTERN: Option<&'static str>;
+
+    fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> { None }
 }
 ```
+
+> **Note:** `type Token` and `type TokenError` have been removed. There is no longer a typed token layer — the A* CST (`CstTokens`) is used directly. Semantic systems (hover, rename, references) work via `TripleComponent`.
 
 ### `LangHelper` trait
 
@@ -186,6 +188,7 @@ Provides runtime language-specific behavior: keywords list and text extraction f
 2. Define a marker component (`struct MyLang`) and implement `Lang` and `LangHelper`.
 3. Register a `CreateEvent` observer that matches by `language_id` or file extension.
 4. Implement `setup_world(world: &mut World)` and call it from `swls/src/main.rs`.
+5. Use the `turtle/` A* parser (Turtle or SPARQL grammar) — no separate tokenizer is needed.
 
 ---
 
@@ -200,9 +203,9 @@ The backbone. Contains:
 - `systems/` — generic systems: `spawn_or_insert`, `handle_tasks`, `derive_classes`, `derive_ontologies`, `complete_properties`, `complete_class`, `fetch_lov_properties`, `open_imports`, etc.
   - `shapes/` — **SHACL shape validation** (feature-gated with `shapes` feature flag); uses `shacl_validation`, `shacl_ir`, `shacl_ast` crates; supports multi-file shape compilation and global shapes
 - `store.rs` — Oxigraph RDF 1.2 store wrapper (used for SPARQL queries and SHACL validation)
-- `lang.rs` — `Lang` and `LangHelper` traits, `TokenTrait`.
+- `lang.rs` — `Lang` and `LangHelper` traits. Typed token layer removed (`TokenTrait` gone).
 - `client.rs` — `Client` (async) and `ClientSync` traits; platform abstraction.
-- `util/` — range conversions, `Spanned<T>`, token types, triple utilities.
+- `util/` — range conversions, `Spanned<T>`, triple utilities. `get_current_cst_token` replaces old `get_current_token`; `CstTokens`/`Comments` components defined here.
 - `store.rs` — document store utilities.
 - `prelude.rs` — everything commonly needed; use `swls_core::prelude::*`.
 
@@ -215,15 +218,14 @@ The backbone. Contains:
 
 ### `lang-turtle` (`swls-lang-turtle`)
 
-Uses the **A\* error-recovering parser** from the `turtle/` crate (not chumsky).
+Uses the **A\* error-recovering parser** from the `turtle/` crate. No separate tokenizer.
 
-- `lang/parser.rs` — wraps `turtle::parse_incremental` (Turtle grammar); defines `TurtleParseError`, `PrevParseInfo`; `parse_new(source, base_url, prev) -> (Turtle, Vec<TurtleParseError>, PrevParseInfo)`. `collect_errors` walks the CST via `children_with_tokens()` to catch both Error nodes and Error tokens.
+- `lang/parser.rs` — wraps `turtle::parse_incremental` (Turtle grammar); defines `TurtleParseError`, `PrevParseInfo`; `parse_new(source, base_url, prev) -> (Turtle, Vec<TurtleParseError>, PrevParseInfo, SyntaxNode)`. `collect_errors` walks the CST via `children_with_tokens()` to catch both Error nodes and Error tokens.
 - `lang/model.rs` — extension-trait layer over `turtle::model::*`: `TurtleExt` (get_simple_triples, get_prefixes, get_base), `TriplesBuilder` (subject/predicate/object expansion), `NamedNodeExt`, `TurtlePrefixExt`, `Based`. `get_simple_triples()` is the main entry point → `Vec<MyQuad>`.
-- `lang/tokenizer.rs` — logos-based tokenizer (still used for semantic tokens/formatting).
-- `lang/formatter.rs` — document formatter.
-- `lang/context.rs` — cursor-context helpers (still present, used by SPARQL tokenizer).
+- `lang/formatter.rs` — document formatter; receives `Comments` from the ECS.
 - `lang/mod.rs` — exports all submodules; provides `parse_source` compatibility shim for conformance tests.
-- `ecs/parse.rs` — `parse_turtle_system`: calls `parse_new`, open docs skip incremental state (`prev=None`) to avoid A* bias; `derive_triples` calls `TurtleExt::get_simple_triples()`.
+- `ecs/parse.rs` — `parse_turtle_system`: calls `parse_new`, extracts `CstTokens` + `Comments` from the CST; open docs skip incremental state (`prev=None`) to avoid A* bias; `derive_triples` calls `TurtleExt::get_simple_triples()`.
+- `ecs/format.rs` — `format_turtle_system`: reads `Comments` component and passes to `format_turtle`.
 - `ecs/` — completion, formatting, code actions, hover, semantic tokens systems.
 - `config.rs`, `prefix.rs` — prefix/config helpers.
 - Supports: diagnostics, completion (prefixes, properties, classes), formatting, code actions, hover, semantic tokens.
@@ -240,30 +242,12 @@ Uses the **A\* error-recovering parser** from the `turtle/` crate (not chumsky).
 
 ### `lang-sparql` (`swls-lang-sparql`)
 
-Uses the **A\* SPARQL parser** from `turtle::sparql` and models SPARQL as `turtle::model::Turtle` (triples + prefixes). No rich SPARQL AST — sufficient for all current LSP features.
+Uses the **A\* SPARQL parser** from `turtle::sparql` and models SPARQL as `turtle::model::Turtle` (triples + prefixes). No rich SPARQL AST — sufficient for all current LSP features. No separate tokenizer.
 
-- `ecs/mod.rs` — `parse_sparql_system`: calls `turtle::parse_incremental` with `SyntaxKind::QueryUnit`, then `turtle::sparql::convert::convert()` to get a `Turtle` model. `collect_errors` walks CST via `children_with_tokens()`. `derive_triples` calls `TurtleExt::get_simple_triples()`.
-- `lang/tokenizer.rs` — logos+chumsky tokenizer for variable completion (detects `Token::Variable`). Chumsky remains as a dep for this reason only.
-- `lang/mod.rs` — only exposes `tokenizer`; old `model.rs` and `parsing.rs` are deleted.
+- `ecs/mod.rs` — `parse_sparql_system`: calls `turtle::parse_incremental` with `SyntaxKind::QueryUnit`, then `turtle::sparql::convert::convert()` to get a `Turtle` model; extracts `CstTokens` from CST. `collect_errors` walks CST via `children_with_tokens()`. `derive_triples` calls `TurtleExt::get_simple_triples()`. `variable_completion` uses `Triples` component.
+- `lang/mod.rs` — minimal; SPARQL keywords defined as `SPARQL_KEYWORDS` static slice.
 - `type Element = turtle::model::Turtle`, `type ElementError = TurtleParseError`
 - Note: `CODE_ACTION = false`, no formatting. Recognized by `language_id == "sparql"` or `.sq`/`.rq` extension.
-
-### `lang-jsonld` (`swls-lang-jsonld`)
-
-- `lang/` — JSON tokenizer and `Json` AST parser.
-- `ecs/` — parse, keyword highlight, named-node highlight.
-- Completion triggers: `@` and `"`.
-- Recognized by `language_id == "jsonld"` or `.jsonld` extension.
-- `JsonLdHelper` overrides `get_relevant_text` to strip string quotes.
-
-### `swls-token-helpers`
-
-Shared `chumsky` parser combinators for tokenizing:
-- `tokens()` — common tokens (brackets, delimiters, `a`, booleans, etc.)
-- `keywords()` — `@prefix`, `@base`, `PREFIX`, `BASE`
-- `comment()` — `# ...` comments
-- `tok()` — helper to map a literal string to a token
-- `t!` macro — shorthand for `impl Parser<char, T, Error = Simple<char>>`
 
 ### `lov` (`swls-lov`)
 
@@ -293,8 +277,6 @@ W3C Turtle conformance test suite runner. `build.rs` generates test functions fr
 | `tower-lsp` | LSP protocol server implementation |
 | `turtle` (path dep) | A* error-recovering parser for Turtle + SPARQL; provides `turtle::model::*`, `parse_incremental`, `Spanned<T>` |
 | `rowan` | CST (concrete syntax tree) underlying the A* parser output |
-| `chumsky` (0.9) | Parser combinator; still used for SPARQL variable tokenizer in lang-sparql |
-| `logos` (0.15) | Lexer/tokenizer generator |
 | `ropey` | Rope data structure for efficient text edits |
 | `sophia_api` / `sophia_iri` / `sophia_turtle` | RDF data model and quad iterators |
 | `oxigraph` (0.5.3) | RDF 1.2 store with embedded SPARQL engine (used for SHACL/store) |
@@ -386,8 +368,7 @@ The server accepts `initializationOptions`:
 ```json
 {
   "turtle": true,
-  "sparql": false,
-  "jsonld": true
+  "sparql": false
 }
 ```
 
@@ -396,7 +377,6 @@ Each key enables/disables the corresponding language plugin.
 NeoVim file type detection:
 - `*.ttl` → `turtle`
 - `*.sq`, `*.rq`, `*.sparql` → `sparql`
-- `*.jsonld` → `jsonld`
 
 ---
 
@@ -405,7 +385,7 @@ NeoVim file type detection:
 - **`prelude::*`** — almost all code does `use swls_core::prelude::*`; check `core/src/prelude.rs` to see what's exported.
 - **Feature schedules** — to add a new system to a feature, use `world.schedule_scope(FeatureLabel, |_, schedule| { schedule.add_systems(...) })`.
 - **Entity = document** — never think of entities as anything else in this codebase.
-- **`Changed<T>` queries** — systems typically use `Changed<Triples>` or `Changed<Tokens>` to avoid redundant recomputation.
+- **`Changed<T>` queries** — systems typically use `Changed<Triples>` or `Changed<CstTokens>` to avoid redundant recomputation.
 - **`Without<Dirty>`** — always guard derived-data systems with `Without<Dirty>` to skip documents that haven't finished parsing.
 - **`shapes` feature flag** — SHACL validation in `swls-core` is gated behind `features = ["shapes"]`; not enabled by default.
 - **Error handling** — errors are `SimpleDiagnostic` converted from parser errors via `Into<SimpleDiagnostic>`.

@@ -2,22 +2,25 @@ use bevy_ecs::{prelude::*, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use format::format_turtle_system;
 use swls_core::prelude::*;
-use parse::{derive_triples, parse_turtle_system};
 
 use crate::{lang::model::NamedNodeExt, TurtleLang};
 
 mod code_action;
 mod completion;
 mod format;
-mod parse;
+pub mod parse;
 
 pub fn setup_parsing(world: &mut World) {
     use swls_core::feature::parse::*;
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
-            parse_turtle_system,
-            derive_prefixes.after(parse_turtle_system).before(prefixes),
-            derive_triples.after(parse_turtle_system).before(triples),
+            parse::parse_turtle_system,
+            derive_prefixes
+                .after(parse::parse_turtle_system)
+                .before(prefixes),
+            parse::derive_triples_system::<TurtleLang>
+                .after(parse::parse_turtle_system)
+                .before(triples),
         ));
     });
 }

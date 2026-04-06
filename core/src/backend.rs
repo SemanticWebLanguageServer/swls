@@ -133,6 +133,7 @@ impl LanguageServer for Backend {
         let document_selectors: Vec<_> = [
             ("sparql", server_config.config.sparql.unwrap_or(true)),
             ("turtle", server_config.config.turtle.unwrap_or(true)),
+            ("trig", server_config.config.trig.unwrap_or(true)),
             ("jsonld", server_config.config.jsonld.unwrap_or(true)),
         ]
         .into_iter()

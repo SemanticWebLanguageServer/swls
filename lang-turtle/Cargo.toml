@@ -25,6 +25,7 @@ sophia_iri.workspace   = true
 tracing.workspace      = true
 
 swls-lov.workspace           = true
+swls-lang-rdf-base.workspace = true
 swls-core = { workspace = true, features = ["shapes", "tokio"] }
 turtle = { path = "../turtle" }
 rowan   = "0.16.1"

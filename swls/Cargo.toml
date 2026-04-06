@@ -26,6 +26,7 @@ tracing.workspace      = true
 
 swls-lang-sparql.workspace = true
 swls-lang-turtle.workspace = true
+swls-lang-trig.workspace   = true
 swls-core = { workspace = true, features = ["shapes", "tokio"] }
 
 tokio = { version = "1.48.0", features = ["full"] }
