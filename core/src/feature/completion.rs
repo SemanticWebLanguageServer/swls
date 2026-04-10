@@ -41,6 +41,7 @@ pub fn generate_completions() {}
 pub struct SimpleCompletion {
     pub kind: CompletionItemKind,
     pub label: String,
+    pub _is_snippet: bool,
     pub _label_details: Option<CompletionItemLabelDetails>,
     pub _documentation: Option<String>,
     pub _sort_text: Option<String>,
@@ -55,12 +56,17 @@ impl SimpleCompletion {
             kind,
             label,
             edits: vec![edit],
+            _is_snippet: false,
             _label_details: None,
             _documentation: None,
             _sort_text: None,
             _filter_text: None,
             _commit_char: None,
         }
+    }
+    pub fn as_snippet(mut self) -> Self {
+        self._is_snippet = true;
+        self
     }
 
     pub fn label_detail(mut self, detail: impl Into<String>) -> Self {
@@ -121,6 +127,7 @@ impl SimpleCompletion {
 impl Into<CompletionItem> for SimpleCompletion {
     fn into(self) -> CompletionItem {
         let SimpleCompletion {
+            _is_snippet: is_snippet,
             _filter_text: filter_text,
             _sort_text: sort_text,
             label,
@@ -142,7 +149,7 @@ impl Into<CompletionItem> for SimpleCompletion {
             label,
             kind: Some(kind),
             sort_text,
-            insert_text_format: (kind == CompletionItemKind::SNIPPET)
+            insert_text_format: (kind == CompletionItemKind::SNIPPET || is_snippet)
                 .then_some(InsertTextFormat::SNIPPET),
             filter_text,
             label_details: _label_details,

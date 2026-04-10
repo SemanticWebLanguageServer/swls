@@ -12,12 +12,13 @@ pub fn trig_lov_undefined_prefix_completion(
         &Element<TriGLang>,
         &Prefixes,
         &mut CompletionRequest,
+        &DynLang,
     )>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
-    for (word, turtle, prefixes, mut req) in &mut query {
+    for (word, turtle, prefixes, mut req, lang) in &mut query {
         let mut start = swls_core::lsp_types::Position::new(0, 0);
 
         if turtle.base.is_some() {
@@ -38,6 +39,7 @@ pub fn trig_lov_undefined_prefix_completion(
             lovs.iter(),
             prefix_cc.iter(),
             &config.config.local,
+            lang,
         );
     }
 }

@@ -1,4 +1,4 @@
-use crate::lsp_types::SemanticTokenType;
+use crate::{lsp_types::SemanticTokenType, prelude::TripleTarget};
 
 pub fn head() -> crate::lsp_types::Range {
     let start = crate::lsp_types::Position {
@@ -35,7 +35,7 @@ pub trait Lang: 'static {
     fn semantic_token_spans(
         kind: rowan::SyntaxKind,
         span: std::ops::Range<usize>,
-        text: &str,
+        _text: &str,
     ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
         Self::semantic_token_type(kind)
             .map(|t| vec![(t, span)])
@@ -45,4 +45,18 @@ pub trait Lang: 'static {
 
 pub trait LangHelper: std::fmt::Debug {
     fn keyword(&self) -> &[&'static str];
+    fn default_position(&self) -> TripleTarget {
+        TripleTarget::Subject
+    }
+    fn unquote<'a>(&self, inp: &'a str) -> &'a str {
+        inp
+    }
+    fn quote(&self, inp: &str) -> String {
+        format!("{}", inp)
+    }
+    /// Return `true` if this language provides its own prefix completion and
+    /// the generic [`defined_prefix_completion`] system should be skipped.
+    fn handles_prefix_completion(&self) -> bool {
+        false
+    }
 }

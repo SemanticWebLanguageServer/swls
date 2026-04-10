@@ -97,14 +97,16 @@ pub fn complete_properties(
         &Label,
         &Types,
         &mut CompletionRequest,
+        &DynLang,
     )>,
     hierarchy: Res<TypeHierarchy<'static>>,
     resource: Res<Ontologies>,
     config: Res<ServerConfig>,
 ) {
-    for (token, triple, prefixes, _this_label, types, mut request) in &mut query {
+    for (token, triple, prefixes, _this_label, types, mut request, lang) in &mut query {
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
+            let bare_text = lang.unquote(&token.text);
 
             if let Some(tts) = tts.as_ref() {
                 trace!("Types for {}", triple.triple.subject.value);
@@ -147,13 +149,13 @@ pub fn complete_properties(
                     .map(|x| Cow::Owned(x))
                     .unwrap_or(property.term.value.clone());
 
-                if to_beat.starts_with(&token.text) {
+                if to_beat.starts_with(&bare_text) {
                     let mut completion = SimpleCompletion::new(
                         CompletionItemKind::ENUM_MEMBER,
-                        format!("{}", to_beat),
+                        to_beat.to_string(),
                         TextEdit {
                             range: token.range.clone(),
-                            new_text: to_beat.to_string(),
+                            new_text: lang.quote(&to_beat),
                         },
                     )
                     .label_description(&property.full_title())
@@ -173,7 +175,12 @@ pub fn complete_properties(
 
 #[instrument(skip(query, resource))]
 pub fn hover_property(
-    mut query: Query<(&TripleComponent, &Prefixes, &DocumentLinks, &mut HoverRequest)>,
+    mut query: Query<(
+        &TripleComponent,
+        &Prefixes,
+        &DocumentLinks,
+        &mut HoverRequest,
+    )>,
     resource: Res<Ontologies>,
 ) {
     for (triple, prefixes, _links, mut request) in &mut query {
@@ -187,9 +194,11 @@ pub fn hover_property(
             .values()
             .filter(|c| c.term.value == target)
         {
-            request
-                .0
-                .push(format!("## {}\n\n{}", c.full_title(), c.full_docs(&prefixes)));
+            request.0.push(format!(
+                "## {}\n\n{}",
+                c.full_title(),
+                c.full_docs(&prefixes)
+            ));
         }
     }
 }

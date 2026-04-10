@@ -49,6 +49,7 @@ pub fn prefix_completion_helper<'a>(
     lovs: impl Iterator<Item = &'a LocalPrefix>,
     prefix_cc: impl Iterator<Item = &'a PrefixEntry>,
     config: &LocalConfig,
+    lang: &DynLang,
 ) {
     // Only suggest when the typed text could be a prefix name (remove gate for Token::Invalid).
     let mut defined = HashSet::new();
@@ -64,21 +65,23 @@ pub fn prefix_completion_helper<'a>(
                 if suggested.contains(&lov.namespace) {
                     return None;
                 }
-                let new_text = format!("{}:", lov.name);
+                let mut new_text = format!("{}:", lov.name);
                 let filter_text = new_text.clone();
                 if new_text != word.text {
+                    new_text += "$0";
                     let extra_edit = extra_edits(&lov.name, &lov.namespace)?;
                     let completion = SimpleCompletion::new(
                         CompletionItemKind::MODULE,
                         format!("{}", lov.name),
                         crate::lsp_types::TextEdit {
-                            new_text,
+                            new_text: lang.quote(&new_text),
                             range: word.range.clone(),
                         },
                     )
                     .label_description(lov.title.as_ref())
                     .documentation(lov.namespace.as_ref())
-                    .filter_text(filter_text);
+                    .filter_text(filter_text)
+                    .as_snippet();
 
                     let completion = extra_edit
                         .into_iter()
@@ -137,10 +140,13 @@ pub fn prefix_completion_helper<'a>(
 
 #[instrument(skip(query))]
 pub fn defined_prefix_completion(
-    mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest)>,
+    mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest, &DynLang)>,
 ) {
-    for (word, prefixes, mut req) in &mut query {
-        let st = &word.text;
+    for (word, prefixes, mut req, lang) in &mut query {
+        if lang.handles_prefix_completion() {
+            continue;
+        }
+        let st = lang.unquote(&word.text);
         let pref = if let Some(idx) = st.find(':') {
             &st[..idx]
         } else {
@@ -154,18 +160,22 @@ pub fn defined_prefix_completion(
             .iter()
             .filter(|p| p.prefix.as_str().starts_with(pref))
             .flat_map(|x| {
-                let new_text = format!("{}:", x.prefix.as_str());
+                let mut new_text = format!("{}:", x.prefix.as_str());
                 if new_text != word.text {
+                    new_text += "$0";
+                    let nt = lang.quote(&new_text);
+
                     Some(
                         SimpleCompletion::new(
                             CompletionItemKind::MODULE,
-                            format!("{}", x.prefix.as_str()),
+                            x.prefix.to_string(),
                             crate::lsp_types::TextEdit {
-                                new_text,
+                                new_text: nt,
                                 range: word.range.clone(),
                             },
                         )
-                        .documentation(x.url.as_str()),
+                        .documentation(x.url.as_str())
+                        .as_snippet(),
                     )
                 } else {
                     None

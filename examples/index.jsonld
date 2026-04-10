@@ -1,6 +1,5 @@
 {
-  "@context": "./context.jsonld",
-  "@id": "me",
-  "@type": "foaf:Agent",
-  "foaf:": "foaf:Document"
+    "@context": {"rml":"http://w3id.org/rml/"},
+  "@id": "me"
+  "rml:$0"
 }

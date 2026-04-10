@@ -7,6 +7,7 @@ use std::{
 
 use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
+use rudof_rdf::rdf_core::term::Triple;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
@@ -17,6 +18,7 @@ use tracing::{debug, instrument};
 
 use crate::{
     components::{PositionComponent, RopeC},
+    prelude::DynLang,
     util::{
         ns::{owl, rdfs},
         position_to_offset,
@@ -109,10 +111,10 @@ impl Triples {
 
 #[instrument(skip(query, commands))]
 pub fn get_current_triple(
-    query: Query<(Entity, &PositionComponent, &Triples, &RopeC)>,
+    query: Query<(Entity, &PositionComponent, &Triples, &RopeC, &DynLang)>,
     mut commands: Commands,
 ) {
-    for (e, position, triples, rope) in &query {
+    for (e, position, triples, rope, lang) in &query {
         commands.entity(e).remove::<TripleComponent>();
 
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
@@ -120,46 +122,62 @@ pub fn get_current_triple(
             continue;
         };
 
+        for t in triples.iter() {
+            tracing::info!(
+                "{} {:?} {} {:?} {} {:?} {}",
+                t.subject,
+                t.subject.span,
+                t.predicate,
+                t.predicate.span,
+                t.object,
+                t.object.span,
+                offset
+            );
+        }
+
         // First try: find the narrowest triple whose span inclusively contains the cursor.
         // Using inclusive end (<=) so the cursor at exactly span.end (e.g. after a partially
         // written predicate or object) still matches.
-        let found = triples
-            .0
+
+        if let Some((target, _, t)) = triples
             .iter()
-            .filter(|triple| triple.span.start <= offset && offset <= triple.span.end)
-            .min_by_key(|x| x.span.end - x.span.start);
-
-        // Fallback: if no triple spans the cursor, use the closest preceding triple
-        // (the one whose span.end is greatest but still ≤ offset). This handles the case
-        // where the cursor is in predicate or object position but the parser only emitted
-        // the preceding complete triple (e.g. after writing a new subject on a new line).
-        let t = found.or_else(|| {
-            triples
-                .0
-                .iter()
-                .filter(|triple| triple.span.end <= offset)
-                .max_by_key(|x| x.span.end)
-        });
-
-        if let Some(t) = t {
-            // Use exclusive end for term-span matching: cursor at exactly span.end is
-            // past that token (in whitespace), so it should fall through to the
-            // inference logic below rather than being attributed to the preceding term.
-            let target = [
-                (TripleTarget::Subject, &t.subject.span),
-                (TripleTarget::Predicate, &t.predicate.span),
-                (TripleTarget::Object, &t.object.span),
-            ]
+            .flat_map(|t| {
+                [
+                    (TripleTarget::Subject, &t.subject.span, t),
+                    (TripleTarget::Predicate, &t.predicate.span, t),
+                    (TripleTarget::Object, &t.object.span, t),
+                ]
+            })
             .into_iter()
             .filter(|x| x.1.contains(&offset))
             .min_by_key(|x| x.1.end - x.1.start)
-            .map(|x| x.0)
-            .unwrap_or_else(|| {
-                // No term span covers the cursor. Determine position from what has been
-                // written so far: a non-empty span (start < end) means the term exists.
+        {
+            tracing::info!("Triple Component {:?}", target);
+            commands.entity(e).insert(TripleComponent {
+                triple: t.clone(),
+                target,
+            });
+        } else {
+            let found = triples
+                .0
+                .iter()
+                .filter(|triple| triple.span.start <= offset && offset <= triple.span.end)
+                .min_by_key(|x| x.span.end - x.span.start);
+
+            // Fallback: if no triple spans the cursor, use the closest preceding triple
+            // (the one whose span.end is greatest but still ≤ offset). This handles the case
+            // where the cursor is in predicate or object position but the parser only emitted
+            // the preceding complete triple (e.g. after writing a new subject on a new line).
+            if let Some(t) = found.or_else(|| {
+                triples
+                    .0
+                    .iter()
+                    .filter(|triple| triple.span.end <= offset)
+                    .max_by_key(|x| x.span.end)
+            }) {
                 let object_written = t.object.span.start < t.object.span.end;
                 let predicate_written = t.predicate.span.start < t.predicate.span.end;
-                if object_written && offset > t.object.span.end {
+                let target = if object_written && offset > t.object.span.end {
                     // Cursor is past the object – likely after `;`, starting a new predicate.
                     TripleTarget::Predicate
                 } else if predicate_written && offset >= t.predicate.span.end {
@@ -167,17 +185,16 @@ pub fn get_current_triple(
                 } else if offset >= t.subject.span.end {
                     TripleTarget::Predicate
                 } else {
-                    TripleTarget::Subject
-                }
-            });
-
-            debug!("Current triple {} {:?}", t, target);
-            commands.entity(e).insert(TripleComponent {
-                triple: t.clone(),
-                target,
-            });
-        } else {
-            debug!("No current triple found");
+                    lang.default_position()
+                };
+                tracing::info!("Triple Component {:?}", target);
+                commands.entity(e).insert(TripleComponent {
+                    triple: t.clone(),
+                    target,
+                });
+            } else {
+                debug!("No current triple found");
+            }
         }
     }
 }

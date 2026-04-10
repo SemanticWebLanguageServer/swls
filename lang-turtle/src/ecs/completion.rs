@@ -1,13 +1,16 @@
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
-use swls_lov::LocalPrefix;
 use swls_core::lsp_types::CompletionItemKind;
 use swls_core::systems::PrefixEntry;
 use swls_core::util::triple::{MyQuad, MyTerm, TripleComponent, TripleTarget};
 use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use swls_lov::LocalPrefix;
 use tracing::debug;
 
-use crate::{lang::model::{NamedNodeExt, TurtleExt}, TurtleLang};
+use crate::{
+    lang::model::{NamedNodeExt, TurtleExt},
+    TurtleLang,
+};
 
 pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(
@@ -15,12 +18,13 @@ pub fn turtle_lov_undefined_prefix_completion(
         &Element<TurtleLang>,
         &Prefixes,
         &mut CompletionRequest,
+        &DynLang,
     )>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
-    for (word, turtle, prefixes, mut req) in &mut query {
+    for (word, turtle, prefixes, mut req, lang) in &mut query {
         let mut start = swls_core::lsp_types::Position::new(0, 0);
 
         if turtle.base.is_some() {
@@ -41,6 +45,7 @@ pub fn turtle_lov_undefined_prefix_completion(
             lovs.iter(),
             prefix_cc.iter(),
             &config.config.local,
+            lang,
         );
     }
 }
@@ -162,8 +167,8 @@ pub fn infer_predicate_position_from_cst(
         let subj_text = &source.0[subj_span.clone()];
 
         // Attempt to expand the subject to a full IRI for type-aware completions.
-        let subj_value = expand_subject_iri(subj_text, turtle)
-            .unwrap_or_else(|| subj_text.to_string());
+        let subj_value =
+            expand_subject_iri(subj_text, turtle).unwrap_or_else(|| subj_text.to_string());
 
         debug!(
             "Inferred Predicate position from CST: subject='{}' offset={}",
@@ -182,10 +187,7 @@ pub fn infer_predicate_position_from_cst(
     }
 }
 
-fn expand_subject_iri(
-    text: &str,
-    turtle: &rdf_parsers::model::Turtle,
-) -> Option<String> {
+fn expand_subject_iri(text: &str, turtle: &rdf_parsers::model::Turtle) -> Option<String> {
     use rdf_parsers::model::NamedNode;
 
     if text.starts_with('<') && text.ends_with('>') {
@@ -197,7 +199,11 @@ fn expand_subject_iri(
     if let Some(colon_pos) = text.find(':') {
         let prefix = text[..colon_pos].to_string();
         let value = text[colon_pos + 1..].to_string();
-        let nn = NamedNode::Prefixed { prefix, value, idx: 0 };
+        let nn = NamedNode::Prefixed {
+            prefix,
+            value,
+            idx: 0,
+        };
         return NamedNodeExt::expand(&nn, turtle);
     }
 
@@ -209,10 +215,16 @@ mod tests {
 
     use completion::CompletionRequest;
     use futures::executor::block_on;
-    use swls_core::{components::*, lang::LangHelper, prelude::*, util::triple::{TripleComponent, TripleTarget}, Tasks};
     use ropey::Rope;
-    use test_log::test;
+    use swls_core::{
+        components::*,
+        lang::LangHelper,
+        prelude::*,
+        util::triple::{TripleComponent, TripleTarget},
+        Tasks,
+    };
     use swls_test_utils::{create_file, setup_world, TestClient};
+    use test_log::test;
     use tracing::info;
 
     use crate::TurtleHelper;
@@ -387,9 +399,15 @@ foaf:me foaf:friend <#me>.
         world.run_schedule(CompletionLabel);
 
         let triple_comp = world.entity(entity).get::<TripleComponent>();
-        assert!(triple_comp.is_some(), "TripleComponent must be set when cursor is on a predicate");
+        assert!(
+            triple_comp.is_some(),
+            "TripleComponent must be set when cursor is on a predicate"
+        );
         let triple_comp = triple_comp.unwrap();
-        println!("target: {:?}  predicate: {}", triple_comp.target, triple_comp.triple.predicate.value);
+        println!(
+            "target: {:?}  predicate: {}",
+            triple_comp.target, triple_comp.triple.predicate.value
+        );
         assert_eq!(
             triple_comp.target,
             TripleTarget::Predicate,
@@ -421,9 +439,15 @@ foaf:me foaf:friend <#me>.
         world.run_schedule(CompletionLabel);
 
         let triple_comp = world.entity(entity).get::<TripleComponent>();
-        assert!(triple_comp.is_some(), "TripleComponent must be set when cursor is on an object");
+        assert!(
+            triple_comp.is_some(),
+            "TripleComponent must be set when cursor is on an object"
+        );
         let triple_comp = triple_comp.unwrap();
-        println!("target: {:?}  object: {}", triple_comp.target, triple_comp.triple.object.value);
+        println!(
+            "target: {:?}  object: {}",
+            triple_comp.target, triple_comp.triple.object.value
+        );
         assert_eq!(
             triple_comp.target,
             TripleTarget::Object,
@@ -455,9 +479,15 @@ foaf:me foaf:friend <#me>.
         world.run_schedule(CompletionLabel);
 
         let triple_comp = world.entity(entity).get::<TripleComponent>();
-        assert!(triple_comp.is_some(), "TripleComponent must be set when cursor is on a subject");
+        assert!(
+            triple_comp.is_some(),
+            "TripleComponent must be set when cursor is on a subject"
+        );
         let triple_comp = triple_comp.unwrap();
-        println!("target: {:?}  subject: {}", triple_comp.target, triple_comp.triple.subject.value);
+        println!(
+            "target: {:?}  subject: {}",
+            triple_comp.target, triple_comp.triple.subject.value
+        );
         assert_eq!(
             triple_comp.target,
             TripleTarget::Subject,

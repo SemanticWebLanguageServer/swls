@@ -12,7 +12,7 @@ use swls_lang_rdf_base::register_rdf_lang;
 use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
-use crate::ecs::{setup_parsing, ContextCache};
+use crate::ecs::{setup_completion, setup_parsing, ContextCache};
 
 #[derive(Component, Default)]
 pub struct JsonLdLang;
@@ -38,12 +38,28 @@ impl LangHelper for JsonLdHelper {
             "@container",
         ]
     }
+
+    fn default_position(&self) -> TripleTarget {
+        TripleTarget::Predicate
+    }
+
+    fn unquote<'a>(&self, text: &'a str) -> &'a str {
+        let s = text.strip_prefix('"').unwrap_or(text);
+        s.strip_suffix('"').unwrap_or(s)
+    }
+    fn quote(&self, inp: &str) -> String {
+        format!("\"{}\"", inp)
+    }
+    fn handles_prefix_completion(&self) -> bool {
+        true
+    }
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
     register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, "jsonld", &[".jsonld"]);
     world.insert_resource(ContextCache::default());
     setup_parsing::<C>(world);
+    setup_completion(world);
 }
 
 impl Lang for JsonLdLang {

@@ -6,7 +6,7 @@ use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 use bevy_ecs::error::info;
 use bevy_ecs::prelude::*;
 use bevy_ecs::world::CommandQueue;
-use rdf_parsers::jsonld::convert::{convert_with_loader, ContextLoader};
+use rdf_parsers::jsonld::convert::{convert_with_loader, ActiveContext, ContextLoader};
 use rdf_parsers::jsonld::parser::{Lang, Rule, SyntaxKind};
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
@@ -17,9 +17,19 @@ use tracing::{info, instrument};
 
 use crate::JsonLdLang;
 
+pub mod completion;
+pub use completion::setup_completion;
+
 /// Caches remotely-fetched `@context` documents so they survive across parse ticks.
 #[derive(Resource, Default)]
 pub struct ContextCache(pub HashMap<String, String>);
+
+/// ECS component that carries the accumulated JSON-LD active context for a document.
+///
+/// Populated by [`parse_jsonld_system`] and consumed by JSON-LD-specific
+/// completion systems to offer term-alias and prefix-based completions.
+#[derive(Component, Debug, Default, Clone)]
+pub struct JsonLdActiveContext(pub ActiveContext);
 
 /// Drives a `future::ready`-only async future synchronously using a noop waker.
 ///
@@ -71,6 +81,9 @@ pub fn setup_parsing<C: Client + Resource + Clone>(world: &mut World) {
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_jsonld_system::<C>,
+            derive_jsonld_prefixes
+                .after(parse_jsonld_system::<C>)
+                .before(prefixes),
             derive_triples_system::<JsonLdLang>
                 .after(parse_jsonld_system::<C>)
                 .before(triples),
@@ -193,12 +206,12 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
         if errors.is_empty() {
             commands
                 .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens)))
+                .insert((element, Errors(errors), CstTokens(cst_tokens), JsonLdActiveContext(ctx)))
                 .remove::<Dirty>();
         } else {
             commands
                 .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens), Dirty));
+                .insert((element, Errors(errors), CstTokens(cst_tokens), JsonLdActiveContext(ctx), Dirty));
         }
 
         // For any @context URLs not yet available, fetch them asynchronously.
@@ -223,5 +236,46 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
                 }
             });
         }
+    }
+}
+
+/// Derives a [`Prefixes`] component for a JSON-LD document from the prefixes
+/// declared in its `@context` (e.g. `"foaf": "http://xmlns.com/foaf/0.1/"`).
+///
+/// This mirrors the equivalent system in `lang-turtle` and is required so that
+/// generic completion and hover systems that rely on [`Prefixes`] work for
+/// JSON-LD documents.
+fn derive_jsonld_prefixes(
+    query: Query<(Entity, &Label, &Element<JsonLdLang>), Changed<Element<JsonLdLang>>>,
+    mut commands: Commands,
+) {
+    use swls_lang_turtle::lang::model::NamedNodeExt;
+
+    for (entity, url, turtle) in &query {
+        let prefixes: Vec<_> = turtle
+            .prefixes
+            .iter()
+            .flat_map(|prefix| {
+                let expanded = prefix.value.value().expand(turtle.value())?;
+                let parsed_url = swls_core::lsp_types::Url::parse(&expanded).ok()?;
+                Some(Prefix {
+                    url: parsed_url,
+                    prefix: prefix.prefix.value().clone(),
+                })
+            })
+            .collect();
+
+        let base = turtle
+            .base
+            .as_ref()
+            .and_then(|b| {
+                b.0 .1
+                    .value()
+                    .expand(turtle.value())
+                    .and_then(|x| swls_core::lsp_types::Url::parse(&x).ok())
+            })
+            .unwrap_or_else(|| url.0.clone());
+
+        commands.entity(entity).insert(Prefixes(prefixes, base));
     }
 }

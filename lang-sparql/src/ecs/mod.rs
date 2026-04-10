@@ -220,12 +220,13 @@ pub fn sparql_lov_undefined_prefix_completion(
         &Element<Sparql>,
         &Prefixes,
         &mut CompletionRequest,
+        &DynLang,
     )>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
-    for (word, el, prefixes, mut req) in &mut query {
+    for (word, el, prefixes, mut req, lang) in &mut query {
         let turtle = el.0.value();
         let mut start = swls_core::lsp_types::Position::new(0, 0);
         if turtle.base.is_some() {
@@ -246,6 +247,7 @@ pub fn sparql_lov_undefined_prefix_completion(
             lovs.iter(),
             prefix_cc.iter(),
             &config.config.local,
+            lang,
         );
     }
 }

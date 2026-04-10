@@ -3500,6 +3500,7 @@ dependencies = [
  "swls-core",
  "swls-lang-rdf-base",
  "swls-lang-turtle",
+ "swls-lov",
  "swls-test-utils",
  "test-log",
  "tracing",

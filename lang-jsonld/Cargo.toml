@@ -22,6 +22,7 @@ tracing.workspace        = true
 swls-core          = { workspace = true, features = ["shapes"] }
 swls-lang-rdf-base = { workspace = true }
 swls-lang-turtle   = { workspace = true }
+swls-lov           = { workspace = true }
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }
