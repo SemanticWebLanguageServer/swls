@@ -24,14 +24,18 @@ pub fn setup_schedule(world: &mut World) {
     let mut completion = Schedule::new(Label);
     completion.add_systems((
         get_current_cst_token,
-        keyword_complete.after(get_current_cst_token),
-        get_current_triple.after(get_current_cst_token),
-        complete_class.after(get_current_triple),
-        complete_properties.after(get_current_triple),
-        defined_prefix_completion.after(get_current_cst_token),
+        get_current_triple
+            .after(get_current_cst_token)
+            .before(generate_completions),
+        keyword_complete.after(generate_completions),
+        complete_class.after(generate_completions),
+        complete_properties.after(generate_completions),
+        defined_prefix_completion.after(generate_completions),
     ));
     world.add_schedule(completion);
 }
+
+pub fn generate_completions() {}
 
 #[derive(Debug)]
 pub struct SimpleCompletion {

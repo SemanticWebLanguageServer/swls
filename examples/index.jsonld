@@ -1,8 +1,6 @@
 {
-  "@context": {
-    "foaf": "http://xmlns.com/foaf/0.1/"
-  },
+  "@context": "./context.jsonld",
   "@id": "me",
   "@type": "foaf:Agent",
-  "foaf:topic": "foaf:Document"
+  "foaf:": "foaf:Document"
 }

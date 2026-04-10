@@ -3,9 +3,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
+use bevy_ecs::error::info;
 use bevy_ecs::prelude::*;
 use bevy_ecs::world::CommandQueue;
-use rdf_parsers::jsonld::convert::{ContextLoader, convert_with_loader};
+use rdf_parsers::jsonld::convert::{convert_with_loader, ContextLoader};
 use rdf_parsers::jsonld::parser::{Lang, Rule, SyntaxKind};
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
@@ -51,10 +52,8 @@ struct WorldContextLoader<'a> {
 }
 
 impl ContextLoader for WorldContextLoader<'_> {
-    fn load<'a>(
-        &'a mut self,
-        url: &'a str,
-    ) -> Pin<Box<dyn Future<Output = Option<String>> + 'a>> {
+    fn load<'a>(&'a mut self, url: &'a str) -> Pin<Box<dyn Future<Output = Option<String>> + 'a>> {
+        info!("context loader load {}", url);
         let result = self
             .world_sources
             .get(url)
@@ -127,7 +126,15 @@ fn collect_errors(node: &rowan::SyntaxNode<Lang>) -> Vec<TurtleParseError> {
     errors
 }
 
-#[instrument(skip(query, all_sources, prev_infos, context_cache, sender, client, commands))]
+#[instrument(skip(
+    query,
+    all_sources,
+    prev_infos,
+    context_cache,
+    sender,
+    client,
+    commands
+))]
 fn parse_jsonld_system<C: Client + Resource + Clone>(
     query: Query<(Entity, &Source, &Label), (Changed<Source>, With<JsonLdLang>)>,
     all_sources: Query<(&Label, &Source)>,
@@ -162,13 +169,23 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
             fetched: &context_cache.0,
             missing: Vec::new(),
         };
-        let jsonld_model = poll_sync(convert_with_loader(&syntax, &mut loader));
+
+        let (jsonld_model, ctx) = poll_sync(convert_with_loader(
+            &syntax,
+            &mut loader,
+            Some(label.0.to_string()),
+        ));
 
         info!(
             "{} triples ({} parse errors)",
             jsonld_model.triples.len(),
             errors.len()
         );
+
+        info!("active context {:?}", ctx);
+        for p in &jsonld_model.prefixes {
+            info!("prefix {:?}", p.value());
+        }
 
         let span = 0..source.0.len();
         let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
@@ -191,10 +208,7 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
             let client_clone = client.as_ref().clone();
             let source_text = source.0.clone();
             client.spawn(async move {
-                if let Ok(resp) = client_clone
-                    .fetch(&missing_url, &HashMap::new())
-                    .await
-                {
+                if let Ok(resp) = client_clone.fetch(&missing_url, &HashMap::new()).await {
                     let mut cq = CommandQueue::default();
                     cq.push(move |world: &mut World| {
                         world

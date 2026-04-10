@@ -44,9 +44,9 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
-            turtle_lov_undefined_prefix_completion.after(get_current_cst_token),
-            subject_completion.after(get_current_cst_token),
-            infer_predicate_position_from_cst.after(get_current_triple),
+            turtle_lov_undefined_prefix_completion.after(generate_completions),
+            subject_completion.after(generate_completions),
+            infer_predicate_position_from_cst.after(generate_completions),
         ));
     });
 }
@@ -87,13 +87,13 @@ fn derive_prefixes(
 #[cfg(test)]
 mod tests {
     use futures::executor::block_on;
+    use ropey::Rope;
     use swls_core::{
         components::*,
         prelude::{diagnostics::DiagnosticItem, *},
     };
-    use ropey::Rope;
-    use test_log::test;
     use swls_test_utils::{create_file, setup_world, TestClient};
+    use test_log::test;
 
     #[test]
     fn diagnostics_work() {
@@ -109,7 +109,11 @@ mod tests {
             while let Ok(Some(x)) = rx.try_next() {
                 items.push(x);
             }
-            items.into_iter().last().map(|i| i.diagnostics).unwrap_or_default()
+            items
+                .into_iter()
+                .last()
+                .map(|i| i.diagnostics)
+                .unwrap_or_default()
         };
 
         let entity = create_file(&mut world, t2, "http://example.com/ns#", "turtle", Open);
@@ -118,7 +122,10 @@ mod tests {
 
         // t2: foaf IS used (foaf:foaf is a subject), but it's missing predicate+object → syntax errors
         let diags = last_diags();
-        assert!(!diags.is_empty(), "t2: expected syntax errors for incomplete triple");
+        assert!(
+            !diags.is_empty(),
+            "t2: expected syntax errors for incomplete triple"
+        );
 
         // t3: 'foa' is an invalid token → syntax errors
         world
@@ -128,7 +135,10 @@ mod tests {
         world.run_schedule(DiagnosticsLabel);
 
         let diags = last_diags();
-        assert!(!diags.is_empty(), "t3: expected syntax errors for invalid token");
+        assert!(
+            !diags.is_empty(),
+            "t3: expected syntax errors for invalid token"
+        );
     }
 
     #[test_log::test]

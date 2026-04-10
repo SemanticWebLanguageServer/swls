@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
+use swls_lang_turtle::ecs::parse::derive_triples_system;
 use swls_lang_turtle::lang::model::NamedNodeExt;
 use swls_lang_turtle::lang::parser::TurtleParseError;
-use swls_lang_turtle::ecs::parse::derive_triples_system;
 use tracing::{info, instrument};
-use rdf_parsers::{IncrementalBias, PrevParseInfo};
 
 use crate::TriGLang;
 
@@ -30,7 +30,7 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems(
-            completion::trig_lov_undefined_prefix_completion.after(get_current_cst_token),
+            completion::trig_lov_undefined_prefix_completion.after(generate_completions),
         );
     });
 }
@@ -65,8 +65,9 @@ fn collect_errors(
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let range =
-                            rdf_parsers::effective_error_span::<rdf_parsers::trig::parser::Lang>(&n);
+                        let range = rdf_parsers::effective_error_span::<
+                            rdf_parsers::trig::parser::Lang,
+                        >(&n);
                         let msg = n
                             .parent()
                             .map(|p| format!("Expected: {:?}", p.kind()))
@@ -102,8 +103,8 @@ fn parse_trig_system(
         return;
     }
     for (entity, source, label) in &query {
-        use rdf_parsers::trig::parser::{Lang, Rule, SyntaxKind};
         use rdf_parsers::trig::convert::convert;
+        use rdf_parsers::trig::parser::{Lang, Rule, SyntaxKind};
 
         let prev = prev_infos.get(label.as_str());
         let (parse, new_prev) = rdf_parsers::parse_incremental(

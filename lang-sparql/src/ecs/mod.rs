@@ -5,14 +5,14 @@ use std::{
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
+use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
-use swls_lang_turtle::lang::model::{NamedNodeExt, TurtleExt};
-use swls_lov::LocalPrefix;
+use sophia_api::quad::Quad as _;
+use sophia_api::term::{Term as _, TermKind};
 use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use swls_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
-use sophia_api::term::{Term as _, TermKind};
-use sophia_api::quad::Quad as _;
-use rdf_parsers::{PrevParseInfo, IncrementalBias};
+use swls_lang_turtle::lang::model::{NamedNodeExt, TurtleExt};
+use swls_lov::LocalPrefix;
 
 use crate::Sparql;
 
@@ -33,8 +33,8 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
-            sparql_lov_undefined_prefix_completion.after(get_current_cst_token),
-            variable_completion.after(get_current_cst_token),
+            sparql_lov_undefined_prefix_completion.after(generate_completions),
+            variable_completion.after(generate_completions),
         ));
     });
 }
@@ -52,7 +52,10 @@ fn extract_sparql_cst_tokens(
             }
             let range = t.text_range();
             let span = usize::from(range.start())..usize::from(range.end());
-            tokens.push(swls_core::prelude::spanned(rowan::SyntaxKind(kind as u16), span));
+            tokens.push(swls_core::prelude::spanned(
+                rowan::SyntaxKind(kind as u16),
+                span,
+            ));
         }
     }
     tokens
@@ -69,8 +72,8 @@ fn parse_sparql_system(
         return;
     }
     for (entity, source, label) in &query {
-        use rdf_parsers::sparql::parser::{Rule, SyntaxKind, Lang};
         use rdf_parsers::sparql::convert::convert;
+        use rdf_parsers::sparql::parser::{Lang, Rule, SyntaxKind};
 
         let prev = prev_infos.get(label.as_str());
         let (parse, new_prev) = rdf_parsers::parse_incremental(
@@ -107,8 +110,8 @@ fn parse_sparql_system(
 fn collect_errors(
     node: &rowan::SyntaxNode<rdf_parsers::sparql::parser::Lang>,
 ) -> Vec<swls_lang_turtle::lang::parser::TurtleParseError> {
-    use swls_lang_turtle::lang::parser::TurtleParseError;
     use rdf_parsers::sparql::parser::SyntaxKind;
+    use swls_lang_turtle::lang::parser::TurtleParseError;
 
     let mut errors = Vec::new();
     let mut stack = vec![node.clone()];
@@ -117,8 +120,9 @@ fn collect_errors(
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let range =
-                            rdf_parsers::effective_error_span::<rdf_parsers::sparql::parser::Lang>(&n);
+                        let range = rdf_parsers::effective_error_span::<
+                            rdf_parsers::sparql::parser::Lang,
+                        >(&n);
                         let msg = n
                             .parent()
                             .map(|p| format!("Expected: {:?}", p.kind()))

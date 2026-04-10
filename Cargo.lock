@@ -2501,11 +2501,10 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a894944ce9bd04f688ae7f194dbb74dfd2663173f50d7c62a1074e0ef7bd31a0"
+version = "0.1.8"
 dependencies = [
  "logos",
+ "oxiri",
  "rowan",
  "similar",
 ]
