@@ -1,7 +1,7 @@
 [package]
-name = "swls-lang-sparql"
-description = "SPARQL language support for the Semantic Web Language Server"
-keywords = ["lsp", "semantic-web", "sparql", "rdf", "query"]
+name = "swls-lang-trig"
+description = "TriG language support for the Semantic Web Language Server"
+keywords = ["lsp", "semantic-web", "rdf", "trig"]
 categories = ["development-tools", "parser-implementations"]
 
 version.workspace = true
@@ -15,10 +15,7 @@ homepage.workspace = true
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 futures.workspace      = true
-lazy_static.workspace  = true
 ropey.workspace        = true
-serde_json.workspace   = true
-sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
 rowan = "0.16.1"

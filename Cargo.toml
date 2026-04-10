@@ -19,6 +19,7 @@ lazy_static = "1.5"
 logos = "0.15.1"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 ropey = "1.6.1"
+rdf-parsers = "0.1.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 similar = "2.7"
@@ -34,6 +35,7 @@ swls-core          = { path = "core",              version = "0.1.0", default-fe
 swls-token-helpers = { path = "swls-token-helpers", version = "0.1.0" }
 swls-lang-rdf-base = { path = "lang-rdf-base",     version = "0.1.0" }
 swls-lang-turtle   = { path = "lang-turtle",       version = "0.1.0" }
+swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.1.0" }
 swls-lang-sparql   = { path = "lang-sparql",       version = "0.1.0" }
 swls-lang-trig     = { path = "lang-trig",         version = "0.1.0" }
 
@@ -45,6 +47,7 @@ default-members = [
   "lang-turtle",
   "lang-sparql",
   "lang-trig",
+  "lang-jsonld",
   "swls",
 ]
 members = [
@@ -54,6 +57,7 @@ members = [
   "lang-turtle",
   "lang-sparql",
   "lang-trig",
+  "lang-jsonld",
   "swls",
   "test-utils",
   "conformance",

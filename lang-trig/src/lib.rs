@@ -1,61 +1,44 @@
-#![doc(
-    html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
-    html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
-)]
 use bevy_ecs::{component::Component, resource::Resource, world::World};
 use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
     prelude::*,
 };
-
 use swls_lang_rdf_base::register_rdf_lang;
+use swls_lang_turtle::lang::parser::TurtleParseError;
 
-pub mod config;
 pub mod ecs;
-pub mod lang;
-pub mod prefix;
-
-use crate::config::{extract_known_prefixes_from_config, extract_known_shapes_from_config};
-use crate::ecs::{setup_code_action, setup_completion, setup_formatting, setup_parsing};
+use crate::ecs::{setup_completion, setup_parsing};
 
 #[derive(Component, Default)]
-pub struct TurtleLang;
+pub struct TriGLang;
 
 #[derive(Debug, Default)]
-pub struct TurtleHelper;
-impl LangHelper for TurtleHelper {
+pub struct TriGHelper;
+
+impl LangHelper for TriGHelper {
     fn keyword(&self) -> &[&'static str] {
-        &["@prefix", "@base", "a"]
+        &["@prefix", "@base", "a", "GRAPH"]
     }
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<TurtleLang, TurtleHelper>(world, "turtle", &[".ttl"]);
-
-    world.schedule_scope(swls_core::Startup, |_, schedule| {
-        schedule.add_systems((
-            extract_known_prefixes_from_config::<C>,
-            extract_known_shapes_from_config::<C>,
-        ));
-    });
-
+    register_rdf_lang::<TriGLang, TriGHelper>(world, "trig", &[".trig"]);
     setup_parsing(world);
     setup_completion(world);
-    setup_formatting(world);
-    setup_code_action(world);
 }
 
-impl Lang for TurtleLang {
+impl Lang for TriGLang {
     type Element = rdf_parsers::model::Turtle;
-    type ElementError = crate::lang::parser::TurtleParseError;
+    type ElementError = TurtleParseError;
 
-    const LANG: &'static str = "turtle";
+    const LANG: &'static str = "trig";
     const TRIGGERS: &'static [&'static str] = &[":"];
-    const CODE_ACTION: bool = true;
+    const CODE_ACTION: bool = false;
     const HOVER: bool = true;
+    const PATTERN: Option<&'static str> = None;
 
-    const LEGEND_TYPES: &'static [swls_core::lsp_types::SemanticTokenType] = &[
+    const LEGEND_TYPES: &'static [SemanticTokenType] = &[
         semantic_token::BOOLEAN,
         semantic_token::LANG_TAG,
         SemanticTokenType::COMMENT,
@@ -69,12 +52,8 @@ impl Lang for TurtleLang {
         SemanticTokenType::VARIABLE,
     ];
 
-    const PATTERN: Option<&'static str> = None;
-
     fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
-        use rdf_parsers::turtle::SyntaxKind as SK;
-
-        // Convert rowan::SyntaxKind(u16) to turtle SyntaxKind via the raw discriminant.
+        use rdf_parsers::trig::parser::SyntaxKind as SK;
         let k = kind.0;
         if k == SK::Comment as u16 {
             Some(SemanticTokenType::COMMENT)
@@ -97,6 +76,7 @@ impl Lang for TurtleLang {
             || k == SK::SparqlBaseToken as u16
             || k == SK::SparqlPrefixToken as u16
             || k == SK::Alit as u16
+            || k == SK::GraphToken as u16
         {
             Some(SemanticTokenType::KEYWORD)
         } else {
@@ -109,19 +89,15 @@ impl Lang for TurtleLang {
         span: std::ops::Range<usize>,
         text: &str,
     ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
-        use rdf_parsers::turtle::SyntaxKind as SK;
+        use rdf_parsers::trig::parser::SyntaxKind as SK;
         let k = kind.0;
-        let this_kind = SK::from(kind);
         if k == SK::PnameLn as u16 {
-            // PnameLn = "prefix:local" — emit NAMESPACE for "prefix:" and PROPERTY for "local".
-            // Slice to just the token text so split_once finds the colon within the token,
-            // not the first colon in the whole document.
-            let token_text = text.get(span.clone()).unwrap_or("");
-            if let Some((a, _)) = token_text.split_once(':') {
+            // "prefix:local" → NAMESPACE for "prefix:" and PROPERTY for "local"
+            if let Some((a, _)) = text.get(span.clone()).and_then(|s| s.split_once(':')) {
                 let (start, end) = (span.start, span.end);
                 vec![
                     (SemanticTokenType::NAMESPACE, start..start + a.len() + 1),
-                    (SemanticTokenType::PROPERTY, start + a.len() + 1..end),
+                    (SemanticTokenType::PROPERTY, start + 1 + a.len()..end),
                 ]
             } else {
                 vec![(SemanticTokenType::PROPERTY, span)]
@@ -129,7 +105,7 @@ impl Lang for TurtleLang {
         } else if k == SK::PnameNs as u16 {
             vec![(SemanticTokenType::NAMESPACE, span)]
         } else if k == SK::BlankNodeLabel as u16 {
-            // "_:label" — "_:" is NAMESPACE, label is PROPERTY
+            // "_:label" → "_:" as NAMESPACE, label as PROPERTY
             if span.len() > 2 {
                 vec![
                     (SemanticTokenType::NAMESPACE, span.start..span.start + 2),
@@ -139,11 +115,9 @@ impl Lang for TurtleLang {
                 vec![(SemanticTokenType::NAMESPACE, span)]
             }
         } else {
-            let output = Self::semantic_token_type(kind)
-                .map(|t| vec![(t, span.clone())])
-                .unwrap_or_default();
-            tracing::info!("token kind {:?} {:?} {:?}", this_kind, span, output);
-            output
+            Self::semantic_token_type(kind)
+                .map(|t| vec![(t, span)])
+                .unwrap_or_default()
         }
     }
 }

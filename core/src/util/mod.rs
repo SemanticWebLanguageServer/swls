@@ -11,7 +11,7 @@ pub mod ns;
 pub mod token;
 pub mod triple;
 
-pub use turtle::{spanned, Spanned};
+pub use rdf_parsers::{spanned, Spanned};
 
 // /// Maps http:// and https:// urls to virtual:// urls
 // /// This enables the editor to show them
@@ -47,17 +47,19 @@ pub fn lsp_range_to_range(
 }
 
 pub fn offset_to_position(offset: usize, rope: &Rope) -> Option<Position> {
-    let line = rope.try_char_to_line(offset).ok()?;
-    let first_char = rope.try_line_to_char(line).ok()?;
-    let column = offset - first_char;
+    let line = rope.try_byte_to_line(offset).ok()?;
+    let line_start = rope.line_to_byte(line);
+    let column = offset - line_start;
     Some(Position::new(line as u32, column as u32))
 }
 pub fn position_to_offset(position: Position, rope: &Rope) -> Option<usize> {
-    let line_offset = rope.try_line_to_char(position.line as usize).ok()?;
-    let line_length = rope.get_line(position.line as usize)?.len_chars();
+    let line_start = rope.try_line_to_byte(position.line as usize).ok()?;
+    let line_length = rope.get_line(position.line as usize)?.len_bytes();
 
-    if (position.character as usize) < line_length {
-        Some(line_offset + position.character as usize)
+    // Allow cursor at exactly line_length (end of line / end of file). This is a
+    // valid LSP position that editors send when the cursor is after the last character.
+    if (position.character as usize) <= line_length {
+        Some(line_start + position.character as usize)
     } else {
         None
     }

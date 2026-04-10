@@ -1,281 +1,213 @@
-use bevy_ecs::{schedule::IntoScheduleConfigs as _, world::World};
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+
+use bevy_ecs::prelude::*;
+use bevy_ecs::world::CommandQueue;
+use rdf_parsers::jsonld::convert::{ContextLoader, convert_with_loader};
+use rdf_parsers::jsonld::parser::{Lang, Rule, SyntaxKind};
+use rdf_parsers::{IncrementalBias, PrevParseInfo};
+use rowan::NodeOrToken;
 use swls_core::prelude::*;
-mod highlight;
-pub use highlight::*;
+use swls_lang_turtle::ecs::parse::derive_triples_system;
+use swls_lang_turtle::lang::parser::TurtleParseError;
+use tracing::{info, instrument};
 
-mod parse;
-use parse::derive_triples;
-pub use parse::{parse_jsonld_system, parse_source};
+use crate::JsonLdLang;
 
-pub fn setup_parse(world: &mut World) {
-    use swls_core::prelude::parse::*;
+/// Caches remotely-fetched `@context` documents so they survive across parse ticks.
+#[derive(Resource, Default)]
+pub struct ContextCache(pub HashMap<String, String>);
+
+/// Drives a `future::ready`-only async future synchronously using a noop waker.
+///
+/// This mirrors the approach used inside `rdf_parsers::jsonld::convert::convert`.
+/// Panics if the future does not resolve in a single poll — which can only happen
+/// if a [`ContextLoader`] implementation does real async I/O (ours never does).
+fn poll_sync<F: Future>(fut: F) -> F::Output {
+    fn noop_clone(p: *const ()) -> RawWaker {
+        RawWaker::new(p, &NOOP_VTABLE)
+    }
+    fn noop(_: *const ()) {}
+    static NOOP_VTABLE: RawWakerVTable = RawWakerVTable::new(noop_clone, noop, noop, noop);
+    // SAFETY: The waker is never used to wake anything; the future must resolve
+    // in one poll (all ContextLoader::load calls return future::ready).
+    let waker = unsafe { Waker::from_raw(RawWaker::new(std::ptr::null(), &NOOP_VTABLE)) };
+    let mut cx = Context::from_waker(&waker);
+    match std::pin::pin!(fut).poll(&mut cx) {
+        Poll::Ready(v) => v,
+        Poll::Pending => panic!("WorldContextLoader must only return future::ready"),
+    }
+}
+
+/// Resolves `@context` URLs by first checking open documents in the ECS world,
+/// then falling back to the [`ContextCache`] of previously-fetched remote contexts.
+/// Missing URLs are recorded so the caller can fetch them asynchronously.
+struct WorldContextLoader<'a> {
+    world_sources: &'a HashMap<String, String>,
+    fetched: &'a HashMap<String, String>,
+    pub missing: Vec<String>,
+}
+
+impl ContextLoader for WorldContextLoader<'_> {
+    fn load<'a>(
+        &'a mut self,
+        url: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + 'a>> {
+        let result = self
+            .world_sources
+            .get(url)
+            .or_else(|| self.fetched.get(url))
+            .cloned();
+        if result.is_none() {
+            self.missing.push(url.to_string());
+        }
+        Box::pin(std::future::ready(result))
+    }
+}
+
+pub fn setup_parsing<C: Client + Resource + Clone>(world: &mut World) {
+    use swls_core::feature::parse::*;
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
-            parse_source,
-            parse_jsonld_system.after(parse_source),
-            derive_triples
-                .after(parse_jsonld_system)
-                .before(triples)
-                .before(prefixes),
+            parse_jsonld_system::<C>,
+            derive_triples_system::<JsonLdLang>
+                .after(parse_jsonld_system::<C>)
+                .before(triples),
         ));
     });
 }
 
-#[cfg(test)]
-mod tests {
-    use completion::CompletionRequest;
-    use futures::executor::block_on;
-    use swls_core::{components::*, prelude::*, util::lsp_range_to_range, Tasks};
-    use ropey::Rope;
-    use swls_test_utils::{create_file, setup_world, TestClient};
-    use tracing::info;
-
-    use crate::JsonLd;
-
-    #[test]
-    fn parse_works() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-
-        let t1 = r#"
-{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
-    "@id": "http://example.com/ns#me",
-    "foaf:friend": "http://example.com/ns#you"
-}"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
-
-        let tokens = world.entity(entity).get::<Tokens>().expect("tokens exists");
-        let jsonld = world
-            .entity(entity)
-            .get::<Element<JsonLd>>()
-            .expect("jsonld exists");
-
-        assert_eq!(tokens.0.len(), 17);
-
-        let triples = world
-            .entity(entity)
-            .get::<Triples>()
-            .expect("triples exists");
-
-        assert_eq!(triples.0.len(), 1);
+fn extract_jsonld_cst_tokens(node: &rowan::SyntaxNode<Lang>) -> Vec<Spanned<rowan::SyntaxKind>> {
+    let mut tokens = Vec::new();
+    for not in node.descendants_with_tokens() {
+        if let NodeOrToken::Token(t) = not {
+            if t.kind() == SyntaxKind::WhiteSpace {
+                continue;
+            }
+            let range = t.text_range();
+            let span = usize::from(range.start())..usize::from(range.end());
+            tokens.push(spanned(rowan::SyntaxKind(t.kind() as u16), span));
+        }
     }
-
-    #[test_log::test]
-    fn current_triple_works() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-
-        let t1 = r#"{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
-    "@id": "http://example.com/ns#me",
-    "foaf:friend": "http://example.com/ns#you"
-}"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
-
-        // start call completion
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position {
-                line: 3,
-                character: 6,
-            }),
-        ));
-        world.run_schedule(CompletionLabel);
-
-        let _ = world
-            .entity_mut(entity)
-            .take::<TokenComponent>()
-            .expect("token component");
-        let triple = world
-            .entity_mut(entity)
-            .take::<TripleComponent>()
-            .expect("triple component");
-
-        assert_eq!(triple.target, TripleTarget::Predicate);
-
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position {
-                line: 3,
-                character: 22,
-            }),
-        ));
-        world.run_schedule(CompletionLabel);
-
-        let _ = world
-            .entity_mut(entity)
-            .take::<TokenComponent>()
-            .expect("token component");
-        let triple = world
-            .entity_mut(entity)
-            .take::<TripleComponent>()
-            .expect("triple component");
-
-        assert_eq!(triple.target, TripleTarget::Object);
-    }
-
-    #[test_log::test]
-    fn current_triple_works_2() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-
-        let t1 = r#"{
-  "@context": {
-    "foaf": "http://xmlns.com/foaf/0.1/"
-  },
-  "@id": "meee",
-  "@type": "foaf:Document",
-  "foa:": "foaf:Document"
+    tokens
 }
-"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
 
-        // start call completion
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position {
-                line: 6,
-                character: 6,
-            }),
-        ));
-        world.run_schedule(CompletionLabel);
-
-        let _ = world
-            .entity_mut(entity)
-            .take::<TokenComponent>()
-            .expect("token component");
-        let triple = world
-            .entity_mut(entity)
-            .take::<TripleComponent>()
-            .expect("triple component");
-
-        assert_eq!(triple.target, TripleTarget::Predicate);
+fn collect_errors(node: &rowan::SyntaxNode<Lang>) -> Vec<TurtleParseError> {
+    let mut errors = Vec::new();
+    let mut stack = vec![node.clone()];
+    while let Some(current) = stack.pop() {
+        for child in current.children_with_tokens() {
+            match child {
+                NodeOrToken::Node(n) => {
+                    if n.kind() == SyntaxKind::Error {
+                        let range = rdf_parsers::effective_error_span::<Lang>(&n);
+                        let msg = n
+                            .parent()
+                            .map(|p| format!("Expected: {:?}", p.kind()))
+                            .unwrap_or_else(|| format!("Unexpected: {}", n.text()));
+                        errors.push(TurtleParseError { range, msg });
+                    } else {
+                        stack.push(n);
+                    }
+                }
+                NodeOrToken::Token(t) => {
+                    if t.kind() == SyntaxKind::Error {
+                        let r = t.text_range();
+                        errors.push(TurtleParseError {
+                            range: r.start().into()..r.end().into(),
+                            msg: format!("Unexpected: {}", t.text()),
+                        });
+                    }
+                }
+            }
+        }
     }
+    errors
+}
 
-    #[test_log::test]
-    fn current_triple_works_corrupt() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        swls_lang_turtle::setup_world::<TestClient>(&mut world);
+#[instrument(skip(query, all_sources, prev_infos, context_cache, sender, client, commands))]
+fn parse_jsonld_system<C: Client + Resource + Clone>(
+    query: Query<(Entity, &Source, &Label), (Changed<Source>, With<JsonLdLang>)>,
+    all_sources: Query<(&Label, &Source)>,
+    mut commands: Commands,
+    mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
+    context_cache: Res<ContextCache>,
+    sender: Res<CommandSender>,
+    client: Res<C>,
+) {
+    // Snapshot of all currently-open documents for context resolution.
+    let world_sources: HashMap<String, String> = all_sources
+        .iter()
+        .map(|(l, s)| (l.to_string(), s.0.clone()))
+        .collect();
 
-        let t1 = r#"{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
-    "@id": "http://example.com/ns#me"
-}"#;
+    for (entity, source, label) in &query {
+        let prev = prev_infos.get(label.as_str());
+        let (parse, new_prev) = rdf_parsers::parse_incremental(
+            Rule::new(SyntaxKind::JsonldDoc),
+            source.0.as_str(),
+            prev,
+            IncrementalBias::default(),
+        );
+        prev_infos.insert(label.to_string(), new_prev);
 
-        let t2 = r#"{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
-    "@id": "http://example.com/ns#me",
-    "foa"
-}"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
+        let syntax = parse.syntax::<Lang>();
+        let errors = collect_errors(&syntax);
+        let cst_tokens = extract_jsonld_cst_tokens(&syntax);
 
-        let c = world.resource::<TestClient>().clone();
-        block_on(c.await_futures(|| world.run_schedule(Tasks)));
+        let mut loader = WorldContextLoader {
+            world_sources: &world_sources,
+            fetched: &context_cache.0,
+            missing: Vec::new(),
+        };
+        let jsonld_model = poll_sync(convert_with_loader(&syntax, &mut loader));
 
-        world
-            .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-        world.run_schedule(ParseLabel);
+        info!(
+            "{} triples ({} parse errors)",
+            jsonld_model.triples.len(),
+            errors.len()
+        );
 
-        // start call completion
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position {
-                line: 3,
-                character: 6,
-            }),
-        ));
-        world.run_schedule(Tasks);
-        world.run_schedule(Tasks);
-        world.run_schedule(CompletionLabel);
+        let span = 0..source.0.len();
+        let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
 
-        let _ = world
-            .entity_mut(entity)
-            .take::<TokenComponent>()
-            .expect("token component");
-        let triple = world
-            .entity_mut(entity)
-            .take::<TripleComponent>()
-            .expect("triple component");
-
-        assert_eq!(triple.target, TripleTarget::Predicate);
-
-        let comppletions = world
-            .entity_mut(entity)
-            .take::<CompletionRequest>()
-            .expect("completion request")
-            .0;
-
-        let rope_c = world.entity(entity).get::<RopeC>().expect("rope component");
-
-        for comp in &comppletions {
-            let range = lsp_range_to_range(&comp.edits[0].range, &rope_c).expect("valid range");
-            let txt = rope_c.slice(range).to_string();
-            info!("comp {} {} -> {}", comp.label, txt, comp.edits[0].new_text);
+        if errors.is_empty() {
+            commands
+                .entity(entity)
+                .insert((element, Errors(errors), CstTokens(cst_tokens)))
+                .remove::<Dirty>();
+        } else {
+            commands
+                .entity(entity)
+                .insert((element, Errors(errors), CstTokens(cst_tokens), Dirty));
         }
 
-        assert_eq!(comppletions.len(), 63);
-    }
-
-    #[test_log::test]
-    fn current_triple_works_corrupt_bn() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
-        swls_lang_turtle::setup_world::<TestClient>(&mut world);
-
-        let t1 = r#"{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" }
-}"#;
-
-        let t2 = r#"{
-    "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
-    "foa"
-}"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
-
-        let c = world.resource::<TestClient>().clone();
-        block_on(c.await_futures(|| world.run_schedule(Tasks)));
-
-        world
-            .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-        world.run_schedule(ParseLabel);
-
-        // start call completion
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position {
-                line: 2,
-                character: 6,
-            }),
-        ));
-        world.run_schedule(Tasks);
-        world.run_schedule(Tasks);
-        world.run_schedule(CompletionLabel);
-
-        let _ = world
-            .entity_mut(entity)
-            .take::<TokenComponent>()
-            .expect("token component");
-
-        let triple = world
-            .entity_mut(entity)
-            .take::<TripleComponent>()
-            .expect("triple component");
-
-        assert_eq!(triple.target, TripleTarget::Predicate);
-
-        let comppletions = world
-            .entity_mut(entity)
-            .take::<CompletionRequest>()
-            .expect("completion request")
-            .0;
-
-        let rope_c = world.entity(entity).get::<RopeC>().expect("rope component");
-
-        for comp in &comppletions {
-            let range = lsp_range_to_range(&comp.edits[0].range, &rope_c).expect("valid range");
-            let txt = rope_c.slice(range).to_string();
-            info!("comp {} {} -> {}", comp.label, txt, comp.edits[0].new_text);
+        // For any @context URLs not yet available, fetch them asynchronously.
+        // When a fetch succeeds the source is re-inserted to trigger a re-parse.
+        for missing_url in loader.missing {
+            let sender = sender.0.clone();
+            let client_clone = client.as_ref().clone();
+            let source_text = source.0.clone();
+            client.spawn(async move {
+                if let Ok(resp) = client_clone
+                    .fetch(&missing_url, &HashMap::new())
+                    .await
+                {
+                    let mut cq = CommandQueue::default();
+                    cq.push(move |world: &mut World| {
+                        world
+                            .resource_mut::<ContextCache>()
+                            .0
+                            .insert(missing_url, resp.body);
+                        if let Ok(mut em) = world.get_entity_mut(entity) {
+                            em.insert(Source(source_text));
+                        }
+                    });
+                    let _ = sender.unbounded_send(cq);
+                }
+            });
         }
-
-        assert_eq!(comppletions.len(), 63);
     }
 }

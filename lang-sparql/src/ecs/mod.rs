@@ -12,7 +12,7 @@ use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_he
 use swls_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
 use sophia_api::term::{Term as _, TermKind};
 use sophia_api::quad::Quad as _;
-use turtle::{PrevParseInfo, IncrementalBias};
+use rdf_parsers::{PrevParseInfo, IncrementalBias};
 
 use crate::Sparql;
 
@@ -40,9 +40,9 @@ pub fn setup_completion(world: &mut World) {
 }
 
 fn extract_sparql_cst_tokens(
-    node: &rowan::SyntaxNode<turtle::sparql::parser::Lang>,
+    node: &rowan::SyntaxNode<rdf_parsers::sparql::parser::Lang>,
 ) -> Vec<swls_core::prelude::Spanned<rowan::SyntaxKind>> {
-    use turtle::sparql::parser::SyntaxKind;
+    use rdf_parsers::sparql::parser::SyntaxKind;
     let mut tokens = Vec::new();
     for node_or_token in node.descendants_with_tokens() {
         if let NodeOrToken::Token(t) = node_or_token {
@@ -69,11 +69,11 @@ fn parse_sparql_system(
         return;
     }
     for (entity, source, label) in &query {
-        use turtle::sparql::parser::{Rule, SyntaxKind, Lang};
-        use turtle::sparql::convert::convert;
+        use rdf_parsers::sparql::parser::{Rule, SyntaxKind, Lang};
+        use rdf_parsers::sparql::convert::convert;
 
         let prev = prev_infos.get(label.as_str());
-        let (parse, new_prev) = turtle::parse_incremental(
+        let (parse, new_prev) = rdf_parsers::parse_incremental(
             Rule::new(SyntaxKind::QueryUnit),
             source.0.as_str(),
             prev,
@@ -105,10 +105,10 @@ fn parse_sparql_system(
 }
 
 fn collect_errors(
-    node: &rowan::SyntaxNode<turtle::sparql::parser::Lang>,
+    node: &rowan::SyntaxNode<rdf_parsers::sparql::parser::Lang>,
 ) -> Vec<swls_lang_turtle::lang::parser::TurtleParseError> {
     use swls_lang_turtle::lang::parser::TurtleParseError;
-    use turtle::sparql::parser::SyntaxKind;
+    use rdf_parsers::sparql::parser::SyntaxKind;
 
     let mut errors = Vec::new();
     let mut stack = vec![node.clone()];
@@ -118,7 +118,7 @@ fn collect_errors(
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
                         let range =
-                            turtle::effective_error_span::<turtle::sparql::parser::Lang>(&n);
+                            rdf_parsers::effective_error_span::<rdf_parsers::sparql::parser::Lang>(&n);
                         let msg = n
                             .parent()
                             .map(|p| format!("Expected: {:?}", p.kind()))

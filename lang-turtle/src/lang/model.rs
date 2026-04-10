@@ -9,7 +9,7 @@ use tracing::warn;
 // Re-export canonical model types from the turtle crate.
 // NOTE: TurtleSimpleError is intentionally NOT re-exported — we define our own
 // below, adding a Parse(IriParseError) variant needed by TriplesBuilder.
-pub use turtle::model::{
+pub use rdf_parsers::model::{
     Base, BlankNode, Literal, NamedNode, PO, RDFLiteral, StringStyle, Term, Triple, Turtle,
     TurtlePrefix, Variable,
 };
@@ -177,12 +177,13 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         subject: MyTerm<'a>,
     ) -> Result<(), TurtleSimpleError> {
         if pos.is_empty() {
-            let predicate = MyTerm::named_node("TestPredicate", 0..0);
-            let object = MyTerm::named_node("TestObject", 0..0);
+            // Subject exists but has no predicate-object pairs (e.g. an incomplete statement).
+            // Push a placeholder triple so that TripleTarget::Subject is returned for any
+            // cursor position within this statement's span.
             self.triples.push(MyQuad {
                 subject: subject.clone(),
-                predicate,
-                object,
+                predicate: MyTerm::invalid(0..0),
+                object: MyTerm::invalid(0..0),
                 span: span.clone(),
             });
         }
@@ -399,12 +400,12 @@ mod test {
     use super::{Turtle, TurtleExt};
 
     fn parse_turtle(inp: &str, base_url: &str) -> Turtle {
-        use turtle::turtle::{convert::convert, Rule, SyntaxKind, Lang};
-        let (parse, _) = turtle::parse_incremental(
+        use rdf_parsers::turtle::{convert::convert, Rule, SyntaxKind, Lang};
+        let (parse, _) = rdf_parsers::parse_incremental(
             Rule::new(SyntaxKind::TurtleDoc),
             inp,
             None,
-            turtle::IncrementalBias::default(),
+            rdf_parsers::IncrementalBias::default(),
         );
         let mut t = convert(&parse.syntax::<Lang>());
         t.set_base = Some(base_url.to_string());
@@ -472,6 +473,36 @@ mod test {
         }
         assert_eq!(quads, expected_quads);
         assert_eq!(triples.triples.len(), 7);
+    }
+
+    #[test]
+    fn triple_spans_are_correct() {
+        // "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n<> foaf:name \"Arthur\"."
+        // Byte layout after the newline (offset 44):
+        //   44..46  "<>"
+        //   47..56  "foaf:name"
+        //   57..65  "\"Arthur\""
+        let txt = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n<> foaf:name \"Arthur\".";
+        let output = parse_turtle(txt, "http://example.com/");
+        let triples = output.get_simple_triples().expect("Triples found");
+        assert_eq!(triples.triples.len(), 1, "expected exactly one triple, got: {:#?}", triples.triples);
+        let t = &triples.triples[0];
+        println!("triple span:    {:?}", t.span);
+        println!("subject span:   {:?}", t.subject.span);
+        println!("predicate span: {:?}", t.predicate.span);
+        println!("object span:    {:?}", t.object.span);
+
+        // Subject "<>" is at bytes 44..46
+        assert!(t.subject.span.contains(&44), "cursor at start of subject should be in subject span, span={:?}", t.subject.span);
+        // Predicate "foaf:name" is at bytes 47..56
+        assert!(t.predicate.span.contains(&50), "cursor in middle of predicate should be in predicate span, span={:?}", t.predicate.span);
+        // Object "\"Arthur\"" is at bytes 57..65
+        assert!(t.object.span.contains(&60), "cursor in middle of object should be in object span, span={:?}", t.object.span);
+
+        // The triple outer span must contain all positions
+        assert!(t.span.contains(&44));
+        assert!(t.span.contains(&50));
+        assert!(t.span.contains(&60));
     }
 
     #[test]

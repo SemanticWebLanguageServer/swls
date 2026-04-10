@@ -1,5 +1,7 @@
 use bevy_ecs::{prelude::*, system::Query, world::World};
-use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
+use completion::{
+    infer_predicate_position_from_cst, subject_completion, turtle_lov_undefined_prefix_completion,
+};
 use format::format_turtle_system;
 use swls_core::prelude::*;
 
@@ -44,6 +46,7 @@ pub fn setup_completion(world: &mut World) {
         schedule.add_systems((
             turtle_lov_undefined_prefix_completion.after(get_current_cst_token),
             subject_completion.after(get_current_cst_token),
+            infer_predicate_position_from_cst.after(get_current_triple),
         ));
     });
 }

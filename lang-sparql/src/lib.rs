@@ -20,7 +20,7 @@ pub fn setup_world(world: &mut World) {
 pub struct Sparql;
 
 impl Lang for Sparql {
-    type Element = turtle::model::Turtle;
+    type Element = rdf_parsers::model::Turtle;
     type ElementError = TurtleParseError;
 
     const PATTERN: Option<&'static str> = None;
@@ -38,7 +38,7 @@ impl Lang for Sparql {
     ];
 
     fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
-        use turtle::sparql::parser::SyntaxKind as SK;
+        use rdf_parsers::sparql::parser::SyntaxKind as SK;
         let k = kind.0;
         if k == SK::Var as u16 {
             Some(SemanticTokenType::VARIABLE)

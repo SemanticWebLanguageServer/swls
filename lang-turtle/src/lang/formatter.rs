@@ -3,13 +3,12 @@ use std::{
     ops::Range,
 };
 
+use ropey::Rope;
 use swls_core::prelude::Spanned;
 use swls_core::{lsp_types::FormattingOptions, prelude::spanned};
-use ropey::Rope;
 use tracing::{info, trace, warn};
 
 use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
-
 
 type Buf = Cursor<Vec<u8>>;
 struct FormatState<'a> {
@@ -273,6 +272,10 @@ impl FormatState<'_> {
             Term::NamedNode(n) => write!(self.buf, "{}", n)?,
             _ => write!(self.buf, "invalid")?,
         }
+        if triple.po.is_empty() {
+            write!(self.buf, ".")?;
+            return Ok(());
+        }
         write!(self.buf, " ")?;
         self.write_po(&triple.po[0])?;
         if triple.po.len() == 1 {
@@ -328,19 +331,14 @@ mod tests {
 
     use std::str::FromStr;
 
-    use swls_core::prelude::Spanned;
-    use rowan::NodeOrToken;
     use ropey::Rope;
+    use rowan::NodeOrToken;
+    use swls_core::prelude::Spanned;
 
-    use crate::lang::{
-        formatter::format_turtle, model::Turtle, parser::parse_new,
-    };
-    use turtle::turtle::SyntaxKind;
+    use crate::lang::{formatter::format_turtle, model::Turtle, parser::parse_new};
+    use rdf_parsers::turtle::SyntaxKind;
 
-    fn parse_turtle(
-        inp: &str,
-        url: &swls_core::lsp_types::Url,
-    ) -> (Turtle, Vec<Spanned<String>>) {
+    fn parse_turtle(inp: &str, url: &swls_core::lsp_types::Url) -> (Turtle, Vec<Spanned<String>>) {
         let (turtle, errs, _, syntax, _) = parse_new(inp, url.as_str(), None);
         for e in &errs {
             println!("Parse error: {:?}", e);

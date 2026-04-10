@@ -1,9 +1,12 @@
 {
-  "@context": {
-    "name": "http://xmlns.com/foaf/0.1/name",
-    "knows": "http://xmlns.com/foaf/0.1/knows"
-  },
-  "@id": "Something cool!",
-  "name": "testing"
+  "@context": "https://schema.org/docs/jsonldcontext.json",
+  "@type": "Person",
+  "@id": "https://example.com/alice",
+  "name": "Alice",
+  "name": "Alice",
+  "url": "https://alice.example.com",
+  "knows": {
+    "@type": "Person",
+    "name": "Bob"
+  }
 }
-

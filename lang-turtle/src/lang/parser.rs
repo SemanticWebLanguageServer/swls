@@ -1,5 +1,5 @@
 use swls_core::prelude::SimpleDiagnostic;
-use turtle::{
+use rdf_parsers::{
     model::Turtle,
     turtle::{
         convert::convert,
@@ -44,7 +44,7 @@ pub fn parse_new(
     TurtleNode,
     rowan::GreenNode,
 ) {
-    let (parse, prev_info) = turtle::parse_incremental(
+    let (parse, prev_info) = rdf_parsers::parse_incremental(
         Rule::new(SyntaxKind::TurtleDoc),
         source,
         prev,
@@ -68,7 +68,7 @@ pub fn collect_errors(node: &TurtleNode) -> Vec<TurtleParseError> {
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let range = turtle::effective_error_span::<Lang>(&n);
+                        let range = rdf_parsers::effective_error_span::<Lang>(&n);
                         let msg = n
                             .parent()
                             .map(|p| format!("Expected: {:?}", p.kind()))

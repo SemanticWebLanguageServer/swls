@@ -4,7 +4,7 @@ use bevy_ecs::prelude::*;
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
 use tracing::{info, instrument};
-use turtle::{turtle::SyntaxKind, PrevParseInfo};
+use rdf_parsers::{turtle::SyntaxKind, PrevParseInfo};
 
 use crate::{
     lang::parser::{parse_new, TurtleNode},
@@ -110,7 +110,7 @@ pub fn parse_turtle_system(
 }
 
 /// Generic ECS system that extracts RDF triples from any language whose element
-/// implements [`TurtleExt`] (i.e. uses `turtle::model::Turtle` as its parsed model).
+/// implements [`TurtleExt`] (i.e. uses `rdf_parsers::model::Turtle` as its parsed model).
 ///
 /// Register this in your language crate's `setup_parsing()` after the parse system,
 /// using `.before(swls_core::feature::parse::triples)`.

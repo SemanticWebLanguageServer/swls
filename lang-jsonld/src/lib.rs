@@ -2,119 +2,99 @@
     html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
     html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
 )]
-use bevy_ecs::prelude::*;
-use chumsky::prelude::Simple;
+use bevy_ecs::{component::Component, resource::Resource, world::World};
 use swls_core::{
-    components::DynLang,
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
     prelude::*,
-    CreateEvent,
 };
-use ropey::Rope;
+use swls_lang_rdf_base::register_rdf_lang;
+use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
-pub mod lang;
-use crate::{
-    ecs::{highlight_named_nodes, keyword_highlight, setup_parse},
-    lang::parser::Json,
-};
+use crate::ecs::{setup_parsing, ContextCache};
 
-pub fn setup_world(world: &mut World) {
-    let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
-    JsonLd::LEGEND_TYPES.iter().for_each(|lt| {
-        if !semantic_token_dict.contains_key(lt) {
-            let l = semantic_token_dict.0.len();
-            semantic_token_dict.insert(lt.clone(), l);
-        }
-    });
-    world.add_observer(|trigger: On<CreateEvent>, mut commands: Commands| {
-        let e = trigger.event();
-        match &e.language_id {
-            Some(x) if x == "jsonld" => {
-                commands
-                    .entity(e.event_target())
-                    .insert(JsonLd)
-                    .insert(DynLang(Box::new(JsonLdHelper)));
-                return;
-            }
-            _ => {}
-        }
-        // pass
-        if trigger.event().url.as_str().ends_with(".jsonld") {
-            commands
-                .entity(e.event_target())
-                .insert(JsonLd)
-                .insert(DynLang(Box::new(JsonLdHelper)));
-            return;
-        }
-    });
+#[derive(Component, Default)]
+pub struct JsonLdLang;
 
-    world.schedule_scope(SemanticLabel, |_, schedule| {
-        use semantic::*;
-        schedule.add_systems((
-            highlight_named_nodes
-                .before(keyword_highlight)
-                .after(basic_semantic_tokens),
-            keyword_highlight
-                .before(semantic_tokens_system)
-                .after(basic_semantic_tokens),
-        ));
-    });
+#[derive(Debug, Default)]
+pub struct JsonLdHelper;
 
-    world.schedule_scope(DiagnosticsLabel, |_, schedule| {
-        use diagnostics::*;
-        schedule.add_systems(publish_diagnostics::<JsonLd>);
-    });
-
-    setup_parse(world);
+impl LangHelper for JsonLdHelper {
+    fn keyword(&self) -> &[&'static str] {
+        &[
+            "@context",
+            "@id",
+            "@type",
+            "@graph",
+            "@base",
+            "@vocab",
+            "@language",
+            "@value",
+            "@list",
+            "@set",
+            "@reverse",
+            "@index",
+            "@container",
+        ]
+    }
 }
 
-#[derive(Debug, Component)]
-pub struct JsonLd;
+pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
+    register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, "jsonld", &[".jsonld"]);
+    world.insert_resource(ContextCache::default());
+    setup_parsing::<C>(world);
+}
 
-impl Lang for JsonLd {
-    type Token = Token;
-
-    type TokenError = Simple<char>;
-
-    type Element = Json;
-
-    type ElementError = Simple<Token>;
-
-    const PATTERN: Option<&'static str> = None;
+impl Lang for JsonLdLang {
+    type Element = rdf_parsers::model::Turtle;
+    type ElementError = TurtleParseError;
 
     const LANG: &'static str = "jsonld";
+    const TRIGGERS: &'static [&'static str] = &["\"@", "\""];
     const CODE_ACTION: bool = false;
     const HOVER: bool = true;
+    const PATTERN: Option<&'static str> = None;
 
-    const TRIGGERS: &'static [&'static str] = &["@", "\""];
     const LEGEND_TYPES: &'static [SemanticTokenType] = &[
-        SemanticTokenType::VARIABLE,
-        SemanticTokenType::STRING,
-        SemanticTokenType::NUMBER,
+        semantic_token::BOOLEAN,
+        SemanticTokenType::COMMENT,
         SemanticTokenType::KEYWORD,
+        SemanticTokenType::NAMESPACE,
+        SemanticTokenType::NUMBER,
         SemanticTokenType::PROPERTY,
-        SemanticTokenType::ENUM_MEMBER,
+        SemanticTokenType::STRING,
     ];
-}
 
-#[derive(Debug)]
-pub struct JsonLdHelper;
-impl LangHelper for JsonLdHelper {
-    fn get_relevant_text(
-        &self,
-        token: &Spanned<Token>,
-        rope: &Rope,
-    ) -> (String, std::ops::Range<usize>) {
-        let r = token.span();
-        match token.value() {
-            Token::Str(st, _) => (st.clone(), r.start + 1..r.end - 1),
-            _ => (self._get_relevant_text(token, rope), r.clone()),
+    fn semantic_token_type(kind: rowan::SyntaxKind) -> Option<SemanticTokenType> {
+        use rdf_parsers::jsonld::parser::SyntaxKind as SK;
+        let k = kind.0;
+        if k == SK::Comment as u16 {
+            Some(SemanticTokenType::COMMENT)
+        } else if k == SK::StringToken as u16 {
+            Some(SemanticTokenType::STRING)
+        } else if k == SK::JsonNumber as u16 {
+            Some(SemanticTokenType::NUMBER)
+        } else if k == SK::TrueLit as u16 || k == SK::FalseLit as u16 || k == SK::NullLit as u16 {
+            Some(semantic_token::BOOLEAN)
+        } else {
+            None
         }
     }
 
-    fn keyword(&self) -> &[&'static str] {
-        &[]
+    fn semantic_token_spans(
+        kind: rowan::SyntaxKind,
+        span: std::ops::Range<usize>,
+        text: &str,
+    ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
+        if text.get(span.start + 1..span.start + 2) == Some("@") {
+            return vec![(SemanticTokenType::KEYWORD, span)];
+        }
+        if text.get(span.end..span.end + 1) == Some(":") {
+            return vec![(SemanticTokenType::NAMESPACE, span)];
+        }
+        Self::semantic_token_type(kind)
+            .map(|t| vec![(t, span)])
+            .unwrap_or_default()
     }
 }

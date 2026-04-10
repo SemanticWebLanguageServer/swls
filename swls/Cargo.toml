@@ -24,6 +24,7 @@ sophia_iri.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
 
+swls-lang-jsonld.workspace = true
 swls-lang-sparql.workspace = true
 swls-lang-turtle.workspace = true
 swls-lang-trig.workspace   = true

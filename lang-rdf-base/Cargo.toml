@@ -1,0 +1,17 @@
+[package]
+name = "swls-lang-rdf-base"
+description = "Shared setup helpers for RDF language support in swls"
+keywords = ["lsp", "semantic-web", "rdf"]
+categories = ["development-tools"]
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+bevy_ecs.workspace = true
+tracing.workspace = true
+swls-core = { workspace = true, features = ["shapes"] }

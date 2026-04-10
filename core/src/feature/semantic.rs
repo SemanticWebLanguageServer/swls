@@ -45,7 +45,7 @@ pub fn basic_semantic_tokens<L: Lang + Component>(
                 .0
                 .iter()
                 .flat_map(|Spanned(kind, span)| {
-                    L::semantic_token_spans(*kind, span.clone(), &text[span.clone()])
+                    L::semantic_token_spans(*kind, span.clone(), text)
                         .into_iter()
                         .map(|(t, s)| spanned(t, s))
                 })

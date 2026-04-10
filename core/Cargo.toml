@@ -35,7 +35,7 @@ dirs = "6"
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }
 lazy_static = "1.5.0"
 swls-lov.workspace = true
-turtle = { path = "../turtle" }
+rdf-parsers.workspace = true
 rowan = "0.16.1"
 
 oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=false }

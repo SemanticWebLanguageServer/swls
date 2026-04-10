@@ -52,6 +52,24 @@ pub fn get_current_cst_token(
             if span.start >= source.0.len() || span.end > source.0.len() {
                 continue;
             }
+            // Cursor is strictly past the token's end: it is in whitespace between tokens.
+            // Use an empty-text placeholder at the cursor position so completion filters
+            // (e.g. `to_beat.starts_with(&token.text)`) pass for all candidates.
+            if offset > span.end {
+                let empty_span = offset..offset;
+                let Some(range) = range_to_range(&empty_span, &rope.0) else {
+                    debug!("Failed to transform offset to range");
+                    continue;
+                };
+                debug!("Cursor in whitespace after token, inserting empty TokenComponent");
+                commands.entity(entity).insert(TokenComponent {
+                    text: String::new(),
+                    range,
+                    source_span: empty_span,
+                    is_error: false,
+                });
+                continue;
+            }
             let text = source.0[span.clone()].to_string();
             let Some(range) = range_to_range(&span, &rope.0) else {
                 debug!("Failed to transform span to range");
