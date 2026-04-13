@@ -1,10 +1,11 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use bevy_ecs::{resource::Resource, system::Res, world::{CommandQueue, World}};
-use swls_core::{
-    lsp_types::TextDocumentItem,
-    prelude::*,
+use bevy_ecs::{
+    resource::Resource,
+    system::Res,
+    world::{CommandQueue, World},
 };
+use swls_core::{lsp_types::TextDocumentItem, prelude::*};
 
 use crate::prefix::{find, prefix_from_source, prefix_from_url};
 

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use rdf_parsers::{turtle::SyntaxKind, PrevParseInfo};
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
 use tracing::{info, instrument};
-use rdf_parsers::{turtle::SyntaxKind, PrevParseInfo};
 
 use crate::{
     lang::parser::{parse_new, TurtleNode},
@@ -122,6 +122,7 @@ pub fn derive_triples_system<L>(
     L::Element: crate::lang::model::TurtleExt,
 {
     use std::sync::Arc;
+
     use crate::lang::model::TurtleExt;
     for (entity, label, element) in &query {
         match element.0.value().get_simple_triples() {

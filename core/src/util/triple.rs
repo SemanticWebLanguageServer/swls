@@ -280,8 +280,7 @@ impl<'a, 'b> TryFrom<&'b MyTerm<'a>> for oxigraph::model::Term {
     type Error = ();
 
     fn try_from(value: &'b MyTerm<'a>) -> std::result::Result<Self, Self::Error> {
-        use oxigraph::model as M;
-        use oxigraph::model::Term as T;
+        use oxigraph::{model as M, model::Term as T};
         let output = match &value.ty {
             Some(TermKind::Iri) => T::NamedNode(M::NamedNode::new(value.as_str()).map_err(|_| ())?),
             Some(TermKind::Literal) => {

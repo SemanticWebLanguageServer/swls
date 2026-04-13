@@ -2,15 +2,16 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 
-use crate::{prelude::*, store::Store, util::triple::MyTerm};
-
 use super::types::{DefinedClass, DefinedProperty};
+use crate::{prelude::*, store::Store, util::triple::MyTerm};
 
 pub fn find_classes(
     store: &oxigraph::store::Store,
 ) -> Option<HashMap<oxigraph::model::NamedNode, DefinedClass>> {
-    use oxigraph::model::{Literal, NamedNode};
-    use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+    use oxigraph::{
+        model::{Literal, NamedNode},
+        sparql::{QueryResults, SparqlEvaluator},
+    };
 
     let mut definitions = HashMap::new();
     if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
@@ -26,12 +27,8 @@ pub fn find_classes(
                 let title = solution.get("title");
                 let description = solution.get("description");
 
-                match (
-                    NamedNode::try_from(class.clone()),
-                ) {
-                    (
-                        Ok(class),
-                    ) => {
+                match (NamedNode::try_from(class.clone()),) {
+                    (Ok(class),) => {
                         let v = definitions
                             .entry(class.clone())
                             .or_insert_with(|| DefinedClass {
@@ -61,8 +58,10 @@ pub fn find_classes(
 }
 
 pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String, DefinedProperty>> {
-    use oxigraph::model::{Literal, NamedNode};
-    use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+    use oxigraph::{
+        model::{Literal, NamedNode},
+        sparql::{QueryResults, SparqlEvaluator},
+    };
 
     let mut definitions = HashMap::new();
     if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
@@ -87,12 +86,8 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
                     .and_then(|r| NamedNode::try_from(r.clone()).ok())
                     .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
 
-                match (
-                    NamedNode::try_from(class.clone()),
-                ) {
-                    (
-                        Ok(class),
-                    ) => {
+                match (NamedNode::try_from(class.clone()),) {
+                    (Ok(class),) => {
                         let v = definitions
                             .entry(class.as_str().to_string())
                             .or_insert_with(|| DefinedProperty {

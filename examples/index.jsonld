@@ -1,5 +1,5 @@
 {
-    "@context": {"rml":"http://w3id.org/rml/"},
-  "@id": "me"
-  "rml:$0"
+  "@context": { "rml": "http://w3id.org/rml/" },
+  "@type": "rml:source",
+  "rml:field": "test"
 }

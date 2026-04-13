@@ -5,10 +5,7 @@ use bevy_ecs::{
 };
 
 use crate::systems::infer_current_type;
-pub use crate::{
-    systems::infer_types,
-    util::triple::get_current_triple,
-};
+pub use crate::{systems::infer_types, util::triple::get_current_triple};
 
 /// [`Component`] indicating that the current document is handling a GotoType request.
 #[derive(Component, Debug, Default)]

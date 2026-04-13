@@ -2,11 +2,10 @@ use std::{borrow::Cow, collections::HashSet};
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
-use swls_core::systems::prefix::prefix_completion_helper;
-use swls_core::systems::PrefixEntry;
 use swls_core::{
     lsp_types::{CompletionItemKind, TextEdit},
     prelude::*,
+    systems::{prefix::prefix_completion_helper, PrefixEntry},
 };
 use swls_lov::LocalPrefix;
 use tracing::instrument;
@@ -147,36 +146,66 @@ fn build_new_context(current: &str, entry: &ContextEntry<'_>) -> Option<String> 
     }
 }
 
+/// Find the byte position just after the first `{` of the top-level JSON object,
+/// skipping leading whitespace. Returns `None` if no `{` is found.
+fn find_toplevel_object_open(source: &str) -> Option<usize> {
+    let offset = source.find('{')?;
+    Some(offset + 1)
+}
+
+/// Build the new-context value string for a fresh `@context` insertion.
+fn new_context_value(entry: &ContextEntry<'_>) -> String {
+    match entry {
+        ContextEntry::Prefix { name, namespace } => {
+            format!("{{\"{}\":\"{}\"}}", name, namespace)
+        }
+        ContextEntry::Url(url) => format!("\"{}\"", url),
+    }
+}
+
 /// Returns a `TextEdit` that inserts `entry` into the `@context` of the JSON-LD
 /// document described by `source` / `rope`. Returns `None` when:
-/// - the `@context` key cannot be found in the source,
 /// - the entry (prefix key or URL string) is already present, or
 /// - the existing value shape cannot be extended.
+///
+/// When no `@context` key exists yet, a new one is inserted right after the
+/// opening `{` of the top-level JSON object.
 pub fn add_to_context(
     source: &str,
     rope: &ropey::Rope,
     entry: ContextEntry<'_>,
 ) -> Option<Vec<TextEdit>> {
-    let span = find_context_value_span(source)?;
-    let current = &source[span.clone()];
+    match find_context_value_span(source) {
+        Some(span) => {
+            let current = &source[span.clone()];
 
-    // Check whether the entry is already present.
-    match &entry {
-        ContextEntry::Prefix { name, .. } => {
-            if current.contains(&format!("\"{}\"", name)) {
-                return None;
+            // Check whether the entry is already present.
+            match &entry {
+                ContextEntry::Prefix { name, .. } => {
+                    if current.contains(&format!("\"{}\"", name)) {
+                        return None;
+                    }
+                }
+                ContextEntry::Url(url) => {
+                    if current.contains(&format!("\"{}\"", url)) {
+                        return None;
+                    }
+                }
             }
+
+            let new_text = build_new_context(current, &entry)?;
+            let range = range_to_range(&span, rope)?;
+            Some(vec![TextEdit { range, new_text }])
         }
-        ContextEntry::Url(url) => {
-            if current.contains(&format!("\"{}\"", url)) {
-                return None;
-            }
+        None => {
+            // No @context present — insert one after the opening `{`.
+            let insert_pos = find_toplevel_object_open(source)?;
+            let context_value = new_context_value(&entry);
+            let new_text = format!("\"@context\": {}, ", context_value);
+            let range = range_to_range(&(insert_pos..insert_pos), rope)?;
+            Some(vec![TextEdit { range, new_text }])
         }
     }
-
-    let new_text = build_new_context(current, &entry)?;
-    let range = range_to_range(&span, rope)?;
-    Some(vec![TextEdit { range, new_text }])
 }
 
 // ── prefix completion ─────────────────────────────────────────────────────────
@@ -453,7 +482,11 @@ pub fn jsonld_context_alias_completion(
 pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
-        schedule.add_systems((jsonld_lov_undefined_prefix_completion.after(generate_completions),));
+        schedule.add_systems((
+            // jsonld_property_completion.after(generate_completions),
+            // jsonld_context_alias_completion.after(generate_completions),
+            jsonld_lov_undefined_prefix_completion.after(generate_completions),
+        ));
     });
 }
 
@@ -537,6 +570,62 @@ mod tests {
             completions.iter().any(|c| c == "\"name\""),
             "Expected \"name\" alias in completions, got: {:?}",
             completions
+        );
+    }
+
+    #[test]
+    fn add_to_context_inserts_when_absent() {
+        use ropey::Rope;
+
+        use crate::ecs::completion::{add_to_context, ContextEntry};
+
+        // Document without any @context.
+        let src = "{\n  \"@id\": \"http://example.com/me\"\n}";
+        let rope = Rope::from_str(src);
+
+        let edits = add_to_context(
+            src,
+            &rope,
+            ContextEntry::Prefix {
+                name: "foaf",
+                namespace: "http://xmlns.com/foaf/0.1/",
+            },
+        );
+        assert!(edits.is_some(), "Expected edits when @context is absent");
+        let edits = edits.unwrap();
+        assert_eq!(edits.len(), 1);
+        assert!(
+            edits[0].new_text.contains("@context"),
+            "Edit should insert @context, got: {:?}",
+            edits[0].new_text
+        );
+        assert!(
+            edits[0].new_text.contains("foaf"),
+            "Edit should contain the prefix name"
+        );
+    }
+
+    #[test]
+    fn add_to_context_no_duplicate() {
+        use ropey::Rope;
+
+        use crate::ecs::completion::{add_to_context, ContextEntry};
+
+        // Document where "foaf" is already declared.
+        let src = "{\n  \"@context\": {\"foaf\": \"http://xmlns.com/foaf/0.1/\"},\n  \"@id\": \"http://example.com/me\"\n}";
+        let rope = Rope::from_str(src);
+
+        let edits = add_to_context(
+            src,
+            &rope,
+            ContextEntry::Prefix {
+                name: "foaf",
+                namespace: "http://xmlns.com/foaf/0.1/",
+            },
+        );
+        assert!(
+            edits.is_none(),
+            "Should return None when prefix already present"
         );
     }
 }

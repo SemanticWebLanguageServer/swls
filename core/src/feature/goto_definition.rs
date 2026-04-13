@@ -47,8 +47,7 @@ mod system {
             let Some(term) = triple.term() else {
                 continue;
             };
-            let _span =
-                tracing::debug_span!("goto_definition", term = %term.value).entered();
+            let _span = tracing::debug_span!("goto_definition", term = %term.value).entered();
 
             tracing::debug!("kind {:?}", target);
             if target == TermKind::Iri {

@@ -3,8 +3,8 @@ extern crate tracing;
 
 use bevy_ecs::prelude::*;
 use swls_core::{lsp_types::SemanticTokenType, prelude::*};
-use swls_lang_turtle::lang::parser::TurtleParseError;
 use swls_lang_rdf_base::register_rdf_lang;
+use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
 use crate::ecs::{setup_completion, setup_parse};
@@ -49,10 +49,7 @@ impl Lang for Sparql {
             || k == SK::StringLiteralLong2 as u16
         {
             Some(SemanticTokenType::STRING)
-        } else if k == SK::Integer as u16
-            || k == SK::Decimal as u16
-            || k == SK::Double as u16
-        {
+        } else if k == SK::Integer as u16 || k == SK::Decimal as u16 || k == SK::Double as u16 {
             Some(SemanticTokenType::NUMBER)
         } else if k == SK::Iriref as u16 {
             Some(SemanticTokenType::PROPERTY)
@@ -66,14 +63,60 @@ impl Lang for Sparql {
 
 /// All SPARQL keywords for completion.
 pub static SPARQL_KEYWORDS: &[&str] = &[
-    "REGEX", "SUBSTR", "REPLACE", "EXISTS", "SELECT", "DISTINCT", "REDUCED",
-    "OPTIONAL", "UNION", "AS", "CONSTRUCT", "WHERE", "DESCRIBE", "ASK", "FROM",
-    "NAMED", "GROUP", "BY", "HAVING", "ORDER", "ASC", "DESC", "LIMIT", "OFFSET",
-    "VALUES", "LOAD", "SILENT", "CLEAR", "DROP", "CREATE", "ADD", "MOVE", "COPY",
-    "INSERT", "DATA", "DELETE", "WITH", "USING", "DEFAULT", "ALL", "GRAPH",
-    "SERVICE", "BIND", "UNDEF", "MINUS", "FILTER",
+    "REGEX",
+    "SUBSTR",
+    "REPLACE",
+    "EXISTS",
+    "SELECT",
+    "DISTINCT",
+    "REDUCED",
+    "OPTIONAL",
+    "UNION",
+    "AS",
+    "CONSTRUCT",
+    "WHERE",
+    "DESCRIBE",
+    "ASK",
+    "FROM",
+    "NAMED",
+    "GROUP",
+    "BY",
+    "HAVING",
+    "ORDER",
+    "ASC",
+    "DESC",
+    "LIMIT",
+    "OFFSET",
+    "VALUES",
+    "LOAD",
+    "SILENT",
+    "CLEAR",
+    "DROP",
+    "CREATE",
+    "ADD",
+    "MOVE",
+    "COPY",
+    "INSERT",
+    "DATA",
+    "DELETE",
+    "WITH",
+    "USING",
+    "DEFAULT",
+    "ALL",
+    "GRAPH",
+    "SERVICE",
+    "BIND",
+    "UNDEF",
+    "MINUS",
+    "FILTER",
     // Aggregates
-    "COUNT", "SUM", "MIN", "MAX", "AVG", "SAMPLE", "GROUP_CONCAT",
+    "COUNT",
+    "SUM",
+    "MIN",
+    "MAX",
+    "AVG",
+    "SAMPLE",
+    "GROUP_CONCAT",
 ];
 
 #[derive(Debug, Default)]

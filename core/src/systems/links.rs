@@ -1,8 +1,7 @@
-use crate::lsp_types::Url;
 use bevy_ecs::prelude::*;
 use tracing::instrument;
 
-use crate::{prelude::*, util::ns::owl};
+use crate::{lsp_types::Url, prelude::*, util::ns::owl};
 
 pub fn derive_prefix_links(
     mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,

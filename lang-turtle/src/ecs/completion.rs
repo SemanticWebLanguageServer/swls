@@ -1,9 +1,12 @@
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
-use swls_core::lsp_types::CompletionItemKind;
-use swls_core::systems::PrefixEntry;
-use swls_core::util::triple::{MyQuad, MyTerm, TripleComponent, TripleTarget};
-use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use swls_core::{
+    components::*,
+    lsp_types::CompletionItemKind,
+    prelude::*,
+    systems::{prefix::prefix_completion_helper, PrefixEntry},
+    util::triple::{MyQuad, MyTerm, TripleComponent, TripleTarget},
+};
 use swls_lov::LocalPrefix;
 use tracing::debug;
 

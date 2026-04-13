@@ -1,7 +1,10 @@
 use bevy_ecs::prelude::*;
 use completion::CompletionRequest;
-use swls_core::systems::PrefixEntry;
-use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
+use swls_core::{
+    components::*,
+    prelude::*,
+    systems::{prefix::prefix_completion_helper, PrefixEntry},
+};
 use swls_lov::LocalPrefix;
 
 use crate::TriGLang;

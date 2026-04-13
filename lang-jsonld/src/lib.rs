@@ -12,7 +12,7 @@ use swls_lang_rdf_base::register_rdf_lang;
 use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
-use crate::ecs::{setup_completion, setup_parsing, ContextCache};
+use crate::ecs::{format_jsonld_system, setup_completion, setup_parsing, ContextCache};
 
 #[derive(Component, Default)]
 pub struct JsonLdLang;
@@ -60,6 +60,10 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     world.insert_resource(ContextCache::default());
     setup_parsing::<C>(world);
     setup_completion(world);
+
+    world.schedule_scope(FormatLabel, |_, schedule| {
+        schedule.add_systems(format_jsonld_system);
+    });
 }
 
 impl Lang for JsonLdLang {

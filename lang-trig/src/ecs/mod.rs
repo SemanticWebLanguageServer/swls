@@ -4,9 +4,10 @@ use bevy_ecs::prelude::*;
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
-use swls_lang_turtle::ecs::parse::derive_triples_system;
-use swls_lang_turtle::lang::model::NamedNodeExt;
-use swls_lang_turtle::lang::parser::TurtleParseError;
+use swls_lang_turtle::{
+    ecs::parse::derive_triples_system,
+    lang::{model::NamedNodeExt, parser::TurtleParseError},
+};
 use tracing::{info, instrument};
 
 use crate::TriGLang;
@@ -103,8 +104,10 @@ fn parse_trig_system(
         return;
     }
     for (entity, source, label) in &query {
-        use rdf_parsers::trig::convert::convert;
-        use rdf_parsers::trig::parser::{Lang, Rule, SyntaxKind};
+        use rdf_parsers::trig::{
+            convert::convert,
+            parser::{Lang, Rule, SyntaxKind},
+        };
 
         let prev = prev_infos.get(label.as_str());
         let (parse, new_prev) = rdf_parsers::parse_incremental(

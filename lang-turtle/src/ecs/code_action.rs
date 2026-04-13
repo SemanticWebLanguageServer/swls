@@ -3,20 +3,14 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::*;
 use swls_core::{
     feature::code_action::CodeActionRequest,
+    lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit},
     prelude::*,
 };
-use swls_core::lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit};
-use crate::lang::model::NamedNodeExt;
 
-use crate::TurtleLang;
+use crate::{lang::model::NamedNodeExt, TurtleLang};
 
 pub fn organize_imports(
-    mut query: Query<(
-        &Element<TurtleLang>,
-        &RopeC,
-        &Label,
-        &mut CodeActionRequest,
-    )>,
+    mut query: Query<(&Element<TurtleLang>, &RopeC, &Label, &mut CodeActionRequest)>,
 ) {
     for (turtle, rope, label, mut req) in &mut query {
         let prefixes = &turtle.prefixes;
@@ -98,20 +92,15 @@ mod tests {
 
     #[test]
     fn organize_imports_produces_action_when_unsorted() {
-        let (mut world, _) =
-            setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let source = "@prefix z: <http://z.org/>.\n@prefix a: <http://a.org/>.\n<> a z:Foo.\n";
-        let entity = create_file(
-            &mut world,
-            source,
-            "http://example.com/ns#",
-            "turtle",
-            Open,
-        );
+        let entity = create_file(&mut world, source, "http://example.com/ns#", "turtle", Open);
 
         world.run_schedule(ParseLabel);
-        world.entity_mut(entity).insert(CodeActionRequest::default());
+        world
+            .entity_mut(entity)
+            .insert(CodeActionRequest::default());
         world.run_schedule(CodeActionLabel);
 
         let req: Option<CodeActionRequest> = world.entity_mut(entity).take();
@@ -123,25 +112,24 @@ mod tests {
 
     #[test]
     fn organize_imports_no_action_when_sorted() {
-        let (mut world, _) =
-            setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let source = "@prefix a: <http://a.org/>.\n@prefix z: <http://z.org/>.\n<> a z:Foo.\n";
-        let entity = create_file(
-            &mut world,
-            source,
-            "http://example.com/ns#",
-            "turtle",
-            Open,
-        );
+        let entity = create_file(&mut world, source, "http://example.com/ns#", "turtle", Open);
 
         world.run_schedule(ParseLabel);
-        world.entity_mut(entity).insert(CodeActionRequest::default());
+        world
+            .entity_mut(entity)
+            .insert(CodeActionRequest::default());
         world.run_schedule(CodeActionLabel);
 
         let req: Option<CodeActionRequest> = world.entity_mut(entity).take();
         let actions = req.map(|r| r.0).unwrap_or_default();
 
-        assert_eq!(actions.len(), 0, "expected no code actions when already sorted");
+        assert_eq!(
+            actions.len(),
+            0,
+            "expected no code actions when already sorted"
+        );
     }
 }

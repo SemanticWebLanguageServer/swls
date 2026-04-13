@@ -20,7 +20,8 @@ pub use crate::{
     systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
     util::{
-        fs::*, lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,
+        fs::*,
+        lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,
         range_to_range, spanned,
         token::{get_current_cst_token, semantic_token, CstTokens, TokenComponent},
         triple::*,

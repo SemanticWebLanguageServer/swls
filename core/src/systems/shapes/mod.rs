@@ -1,19 +1,18 @@
-use crate::{lsp_types::TextDocumentItem, util};
+use std::{collections::HashMap, fmt::Write as _};
+
 use bevy_ecs::prelude::*;
 use rudof_rdf::rdf_core::FocusRDF;
+use shacl_ast::ast::ShaclSchema;
+use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
+use shacl_rdf::ShaclParser;
 use shacl_validation::{
     shacl_engine::native::NativeEngine, shape_validation::Validate as _,
     validation_report::result::ValidationResult,
 };
-use std::{collections::HashMap, fmt::Write as _};
-
-use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
-use shacl_rdf::ShaclParser;
 use sophia_api::quad::Quad as _;
 use tracing::{info, info_span, instrument};
 
-use crate::prelude::*;
-use shacl_ast::ast::ShaclSchema;
+use crate::{lsp_types::TextDocumentItem, prelude::*, util};
 
 mod data;
 use data::*;

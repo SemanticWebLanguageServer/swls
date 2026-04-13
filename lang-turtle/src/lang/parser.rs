@@ -1,14 +1,9 @@
-use swls_core::prelude::SimpleDiagnostic;
 use rdf_parsers::{
     model::Turtle,
-    turtle::{
-        convert::convert,
-        Lang,
-        SyntaxKind,
-        Rule,
-    },
+    turtle::{convert::convert, Lang, Rule, SyntaxKind},
     IncrementalBias, PrevParseInfo,
 };
+use swls_core::prelude::SimpleDiagnostic;
 
 #[derive(Debug, Clone)]
 pub struct TurtleParseError {

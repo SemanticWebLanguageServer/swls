@@ -66,7 +66,9 @@ pub fn prepare_rename(
                         Some(t) => t.value.to_string(),
                         None => continue,
                     };
-                    commands.entity(e).insert(PrepareRenameRequest { range, placeholder });
+                    commands
+                        .entity(e)
+                        .insert(PrepareRenameRequest { range, placeholder });
                     continue;
                 }
             }
@@ -78,7 +80,9 @@ pub fn prepare_rename(
 #[instrument(skip(query))]
 pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &mut RenameEdits)>) {
     for (triple, triples, rope, label, mut edits) in &mut query {
-        let Some(target) = triple.term() else { continue };
+        let Some(target) = triple.term() else {
+            continue;
+        };
         let new_text = edits.1.clone();
         for quad in triples.0.iter() {
             for term in [quad.s(), quad.p(), quad.o()] {

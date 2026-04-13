@@ -4,8 +4,10 @@ use std::{
 };
 
 use ropey::Rope;
-use swls_core::prelude::Spanned;
-use swls_core::{lsp_types::FormattingOptions, prelude::spanned};
+use swls_core::{
+    lsp_types::FormattingOptions,
+    prelude::{spanned, Spanned},
+};
 use tracing::{info, trace, warn};
 
 use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
@@ -331,12 +333,12 @@ mod tests {
 
     use std::str::FromStr;
 
+    use rdf_parsers::turtle::SyntaxKind;
     use ropey::Rope;
     use rowan::NodeOrToken;
     use swls_core::prelude::Spanned;
 
     use crate::lang::{formatter::format_turtle, model::Turtle, parser::parse_new};
-    use rdf_parsers::turtle::SyntaxKind;
 
     fn parse_turtle(inp: &str, url: &swls_core::lsp_types::Url) -> (Turtle, Vec<Spanned<String>>) {
         let (turtle, errs, _, syntax, _) = parse_new(inp, url.as_str(), None);

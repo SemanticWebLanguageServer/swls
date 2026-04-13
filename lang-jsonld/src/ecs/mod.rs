@@ -1,18 +1,21 @@
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+use std::{
+    collections::HashMap,
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
+};
 
-use bevy_ecs::error::info;
-use bevy_ecs::prelude::*;
-use bevy_ecs::world::CommandQueue;
-use rdf_parsers::jsonld::convert::{convert_with_loader, ActiveContext, ContextLoader};
-use rdf_parsers::jsonld::parser::{Lang, Rule, SyntaxKind};
-use rdf_parsers::{IncrementalBias, PrevParseInfo};
-use rowan::NodeOrToken;
+use bevy_ecs::{error::info, prelude::*, world::CommandQueue};
+use rdf_parsers::{
+    jsonld::{
+        convert::{convert_with_loader, ActiveContext, ContextLoader},
+        parser::{Lang, Rule, SyntaxKind},
+    },
+    IncrementalBias, PrevParseInfo,
+};
+use rowan::{GreenNode, NodeOrToken};
 use swls_core::prelude::*;
-use swls_lang_turtle::ecs::parse::derive_triples_system;
-use swls_lang_turtle::lang::parser::TurtleParseError;
+use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::{info, instrument};
 
 use crate::JsonLdLang;
@@ -206,12 +209,23 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
         if errors.is_empty() {
             commands
                 .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens), JsonLdActiveContext(ctx)))
+                .insert((
+                    element,
+                    Errors(errors),
+                    CstTokens(cst_tokens),
+                    JsonLdActiveContext(ctx),
+                    Wrapped(parse.green_node),
+                ))
                 .remove::<Dirty>();
         } else {
-            commands
-                .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens), JsonLdActiveContext(ctx), Dirty));
+            commands.entity(entity).insert((
+                element,
+                Errors(errors),
+                CstTokens(cst_tokens),
+                JsonLdActiveContext(ctx),
+                Wrapped(parse.green_node),
+                Dirty,
+            ));
         }
 
         // For any @context URLs not yet available, fetch them asynchronously.
@@ -277,5 +291,30 @@ fn derive_jsonld_prefixes(
             .unwrap_or_else(|| url.0.clone());
 
         commands.entity(entity).insert(Prefixes(prefixes, base));
+    }
+}
+
+pub(crate) fn format_jsonld_system(
+    mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<JsonLdLang>>,
+) {
+    use swls_core::lsp_types::{Position, Range};
+    for (source, node, mut request) in &mut query {
+        if request.0.is_some() {
+            tracing::debug!("Didn't format with the jsonld format system, already formatted");
+            continue;
+        }
+        tracing::debug!("Formatting with turtle format system");
+
+        let root = rowan::SyntaxNode::new_root(node.0.clone());
+
+        let formatted = rdf_parsers::jsonld::format::format(&root, 80);
+
+        request.0 = Some(vec![swls_core::lsp_types::TextEdit::new(
+            Range::new(
+                Position::new(0, 0),
+                Position::new(source.0.len_lines() as u32 + 1, 0),
+            ),
+            formatted,
+        )]);
     }
 }

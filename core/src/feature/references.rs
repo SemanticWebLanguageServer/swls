@@ -1,10 +1,10 @@
-use crate::lsp_types::Location;
 use bevy_ecs::{
     component::Component,
     schedule::{IntoScheduleConfigs, Schedule, ScheduleLabel},
     world::World,
 };
 
+use crate::lsp_types::Location;
 pub use crate::util::triple::get_current_triple;
 
 /// [`Component`] indicating that the current document is handling a References request.

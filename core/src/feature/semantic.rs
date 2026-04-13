@@ -1,11 +1,13 @@
-use crate::lsp_types::{SemanticToken, SemanticTokenType};
 use bevy_ecs::{
     prelude::*,
     schedule::{And, ScheduleLabel},
 };
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 
-use crate::prelude::*;
+use crate::{
+    lsp_types::{SemanticToken, SemanticTokenType},
+    prelude::*,
+};
 
 /// [`Resource`] mapping a [`SemanticTokenType`] to their used index.
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Default)]

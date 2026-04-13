@@ -7,10 +7,16 @@ use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::NodeOrToken;
-use sophia_api::quad::Quad as _;
-use sophia_api::term::{Term as _, TermKind};
-use swls_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
-use swls_core::{lsp_types::CompletionItemKind, systems::PrefixEntry};
+use sophia_api::{
+    quad::Quad as _,
+    term::{Term as _, TermKind},
+};
+use swls_core::{
+    components::*,
+    lsp_types::CompletionItemKind,
+    prelude::*,
+    systems::{prefix::prefix_completion_helper, PrefixEntry},
+};
 use swls_lang_turtle::lang::model::{NamedNodeExt, TurtleExt};
 use swls_lov::LocalPrefix;
 
@@ -72,8 +78,10 @@ fn parse_sparql_system(
         return;
     }
     for (entity, source, label) in &query {
-        use rdf_parsers::sparql::convert::convert;
-        use rdf_parsers::sparql::parser::{Lang, Rule, SyntaxKind};
+        use rdf_parsers::sparql::{
+            convert::convert,
+            parser::{Lang, Rule, SyntaxKind},
+        };
 
         let prev = prev_infos.get(label.as_str());
         let (parse, new_prev) = rdf_parsers::parse_incremental(

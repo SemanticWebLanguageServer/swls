@@ -65,7 +65,10 @@ impl DefinedClass {
     }
 }
 
-pub fn group_per_prefix<'a>(subclasses: impl Iterator<Item = Cow<'a, str>>, pref: &Prefixes) -> String {
+pub fn group_per_prefix<'a>(
+    subclasses: impl Iterator<Item = Cow<'a, str>>,
+    pref: &Prefixes,
+) -> String {
     let mut subclass_str = String::new();
     let subclasses: Vec<_> = subclasses
         .skip(1)

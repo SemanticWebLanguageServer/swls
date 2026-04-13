@@ -3,7 +3,6 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Display, sync::Arc};
 use bevy_ecs::prelude::*;
 use iri_s::IriS;
 use prefixmap::{error::PrefixMapError, PrefixMap};
-
 use rudof_rdf::rdf_core::{
     term::{
         self as r_term, literal::Literal, BlankNode, Iri, IriOrBlankNode, Term as Rudof_Term,
@@ -11,10 +10,10 @@ use rudof_rdf::rdf_core::{
     },
     FocusRDF, Matcher, NeighsRDF, RDFError, SHACLPath,
 };
+use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
 use sophia_api::term::Term;
 
 use crate::prelude::*;
-use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
 
 #[derive(Component)]
 pub struct ShaclShapes {
@@ -101,8 +100,7 @@ impl<'b> TryInto<oxrdf::Term> for MyTerm<'static> {
     type Error = ();
 
     fn try_into(self) -> std::result::Result<oxrdf::Term, Self::Error> {
-        use oxigraph::model as M;
-        use oxigraph::model::Term as T;
+        use oxigraph::{model as M, model::Term as T};
         let output = match &self.ty {
             Some(sophia_api::prelude::TermKind::Iri) => {
                 T::NamedNode(M::NamedNode::new(self.as_str()).map_err(|_| ())?)

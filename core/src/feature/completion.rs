@@ -1,10 +1,10 @@
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
+
 use crate::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit,
     Documentation, InsertTextFormat, TextEdit,
 };
-use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
-use derive_more::{AsMut, AsRef, Deref, DerefMut};
-
 pub use crate::{
     systems::{
         complete_class, complete_properties, keyword_complete, prefix::defined_prefix_completion,

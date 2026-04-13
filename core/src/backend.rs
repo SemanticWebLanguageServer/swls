@@ -556,10 +556,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn code_action(
-        &self,
-        params: CodeActionParams,
-    ) -> Result<Option<CodeActionResponse>> {
+    async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             return Ok(None);

@@ -6,8 +6,8 @@ use std::{
 
 use bevy_ecs::{resource::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use swls_core::{lsp_types::SemanticTokenType, prelude::*};
 use swls::{client::BinFs, timings, TowerClient};
+use swls_core::{lsp_types::SemanticTokenType, prelude::*};
 use tower_lsp::{LspService, Server};
 use tracing::{debug, info, level_filters::LevelFilter};
 

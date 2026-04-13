@@ -1,6 +1,8 @@
 pub mod triples;
 
-use bevy_ecs::{component::Component, event::EntityEvent, observer::On, system::Commands, world::World};
+use bevy_ecs::{
+    component::Component, event::EntityEvent, observer::On, system::Commands, world::World,
+};
 use swls_core::{
     feature::{
         diagnostics::publish_diagnostics,

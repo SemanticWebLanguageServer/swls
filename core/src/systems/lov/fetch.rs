@@ -5,21 +5,19 @@ use std::{
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use serde::Deserialize;
-use tracing::{debug, error, info, span};
-
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
     term::Term as _,
 };
+use tracing::{debug, error, info, span};
 
+use super::setup::FromPrefix;
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
     util::{fs::Fs, ns::owl},
 };
-
-use super::setup::FromPrefix;
 
 #[derive(Deserialize, Debug)]
 struct Version {
@@ -112,12 +110,7 @@ pub fn open_imports<C: Client + Resource>(
 /// Next, extract that json object into an object and find the latest dataset
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
-    query: Query<
-        &Prefixes,
-        (
-            Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,
-        ),
-    >,
+    query: Query<&Prefixes, (Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,)>,
     ontologies: Query<(Entity, &swls_lov::LocalPrefix)>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,

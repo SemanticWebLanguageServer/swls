@@ -7,7 +7,6 @@ use sophia_api::{
     quad::Quad as _,
     term::Term as _,
 };
-
 use tracing::{debug, error, instrument, trace};
 
 use crate::{prelude::*, util::ns::rdfs};

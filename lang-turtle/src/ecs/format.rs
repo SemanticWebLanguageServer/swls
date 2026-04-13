@@ -1,15 +1,15 @@
 use bevy_ecs::prelude::*;
-use swls_core::lsp_types::{Position, Range};
-use swls_core::{components::*, prelude::*};
+use swls_core::{
+    components::*,
+    lsp_types::{Position, Range},
+    prelude::*,
+};
 use tracing::debug;
 
 use crate::{lang::formatter::format_turtle, TurtleLang};
 
 pub fn format_turtle_system(
-    mut query: Query<
-        (&RopeC, &Element<TurtleLang>, &Comments, &mut FormatRequest),
-        Without<Dirty>,
-    >,
+    mut query: Query<(&RopeC, &Element<TurtleLang>, &Comments, &mut FormatRequest), Without<Dirty>>,
 ) {
     debug!("Format turtle system");
 

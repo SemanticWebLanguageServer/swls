@@ -1,18 +1,18 @@
 use std::{borrow::Cow, collections::HashSet};
 
-use swls_core::prelude::{MyQuad, MyTerm, TermContext, Triples2};
-use swls_core::lsp_types::Url;
-use sophia_iri::resolve::{BaseIri, IriParseError};
-use swls_core::prelude::Spanned;
-use tracing::warn;
-
 // Re-export canonical model types from the turtle crate.
 // NOTE: TurtleSimpleError is intentionally NOT re-exported — we define our own
 // below, adding a Parse(IriParseError) variant needed by TriplesBuilder.
 pub use rdf_parsers::model::{
-    Base, BlankNode, Literal, NamedNode, PO, RDFLiteral, StringStyle, Term, Triple, Turtle,
-    TurtlePrefix, Variable,
+    Base, BlankNode, Literal, NamedNode, RDFLiteral, StringStyle, Term, Triple, Turtle,
+    TurtlePrefix, Variable, PO,
 };
+use sophia_iri::resolve::{BaseIri, IriParseError};
+use swls_core::{
+    lsp_types::Url,
+    prelude::{MyQuad, MyTerm, Spanned, TermContext, Triples2},
+};
+use tracing::warn;
 
 // ── Based trait ──────────────────────────────────────────────────────────────
 
@@ -274,7 +274,8 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
                 let term_context = match (&lit.lang, &lit.ty) {
                     (Some(l), _) => TermContext::LangTag(Cow::Owned(l.to_string())),
                     (_, Some(dt)) => {
-                        if let Some(dt) = NamedNodeExt::expand_step(dt, self.based, HashSet::new()) {
+                        if let Some(dt) = NamedNodeExt::expand_step(dt, self.based, HashSet::new())
+                        {
                             TermContext::DataType(dt.into())
                         } else {
                             TermContext::None
@@ -400,7 +401,7 @@ mod test {
     use super::{Turtle, TurtleExt};
 
     fn parse_turtle(inp: &str, base_url: &str) -> Turtle {
-        use rdf_parsers::turtle::{convert::convert, Rule, SyntaxKind, Lang};
+        use rdf_parsers::turtle::{convert::convert, Lang, Rule, SyntaxKind};
         let (parse, _) = rdf_parsers::parse_incremental(
             Rule::new(SyntaxKind::TurtleDoc),
             inp,
@@ -451,7 +452,9 @@ mod test {
 <e> <pred> (<a> <b> <c>).
 "#;
         let output = parse_turtle(txt, "http://example.com/");
-        let triples = output.get_simple_triples().expect("Triples found collection");
+        let triples = output
+            .get_simple_triples()
+            .expect("Triples found collection");
         let a: &Vec<MyQuad<'_>> = &triples;
         let quads: HashSet<String> = a
             .iter()
@@ -485,7 +488,12 @@ mod test {
         let txt = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n<> foaf:name \"Arthur\".";
         let output = parse_turtle(txt, "http://example.com/");
         let triples = output.get_simple_triples().expect("Triples found");
-        assert_eq!(triples.triples.len(), 1, "expected exactly one triple, got: {:#?}", triples.triples);
+        assert_eq!(
+            triples.triples.len(),
+            1,
+            "expected exactly one triple, got: {:#?}",
+            triples.triples
+        );
         let t = &triples.triples[0];
         println!("triple span:    {:?}", t.span);
         println!("subject span:   {:?}", t.subject.span);
@@ -493,11 +501,23 @@ mod test {
         println!("object span:    {:?}", t.object.span);
 
         // Subject "<>" is at bytes 44..46
-        assert!(t.subject.span.contains(&44), "cursor at start of subject should be in subject span, span={:?}", t.subject.span);
+        assert!(
+            t.subject.span.contains(&44),
+            "cursor at start of subject should be in subject span, span={:?}",
+            t.subject.span
+        );
         // Predicate "foaf:name" is at bytes 47..56
-        assert!(t.predicate.span.contains(&50), "cursor in middle of predicate should be in predicate span, span={:?}", t.predicate.span);
+        assert!(
+            t.predicate.span.contains(&50),
+            "cursor in middle of predicate should be in predicate span, span={:?}",
+            t.predicate.span
+        );
         // Object "\"Arthur\"" is at bytes 57..65
-        assert!(t.object.span.contains(&60), "cursor in middle of object should be in object span, span={:?}", t.object.span);
+        assert!(
+            t.object.span.contains(&60),
+            "cursor in middle of object should be in object span, span={:?}",
+            t.object.span
+        );
 
         // The triple outer span must contain all positions
         assert!(t.span.contains(&44));

@@ -8,7 +8,6 @@ use swls_core::{
     lsp_types::SemanticTokenType,
     prelude::*,
 };
-
 use swls_lang_rdf_base::register_rdf_lang;
 
 pub mod config;
@@ -16,8 +15,10 @@ pub mod ecs;
 pub mod lang;
 pub mod prefix;
 
-use crate::config::{extract_known_prefixes_from_config, extract_known_shapes_from_config};
-use crate::ecs::{setup_code_action, setup_completion, setup_formatting, setup_parsing};
+use crate::{
+    config::{extract_known_prefixes_from_config, extract_known_shapes_from_config},
+    ecs::{setup_code_action, setup_completion, setup_formatting, setup_parsing},
+};
 
 #[derive(Component, Default)]
 pub struct TurtleLang;

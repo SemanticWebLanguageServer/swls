@@ -4,8 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use swls_lang_turtle::lang::parse_source;
 use swls_core::lsp_types::Url;
+use swls_lang_turtle::lang::parse_source;
 
 fn sorted_file_paths_by_size_desc(dir: impl AsRef<Path>) -> std::io::Result<Vec<PathBuf>> {
     let mut files = fs::read_dir(dir)?
