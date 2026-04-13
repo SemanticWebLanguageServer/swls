@@ -34,10 +34,14 @@ pub fn trig_lov_undefined_prefix_completion(
             prefixes,
             &mut req.0,
             |name, location| {
-                Some(vec![swls_core::lsp_types::TextEdit {
-                    range: Range::new(start.clone(), start),
-                    new_text: format!("@prefix {}: <{}>.\n", name, location),
-                }])
+                if prefixes.iter().any(|p| p.prefix == name) {
+                    None
+                } else {
+                    Some(vec![swls_core::lsp_types::TextEdit {
+                        range: Range::new(start.clone(), start),
+                        new_text: format!("@prefix {}: <{}>.\n", name, location),
+                    }])
+                }
             },
             lovs.iter(),
             prefix_cc.iter(),

@@ -1,5 +1,6 @@
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
+use tower_lsp::lsp_types::{MarkupContent, MarkupKind};
 
 use crate::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit,
@@ -30,7 +31,7 @@ pub fn setup_schedule(world: &mut World) {
         keyword_complete.after(generate_completions),
         complete_class.after(generate_completions),
         complete_properties.after(generate_completions),
-        defined_prefix_completion.after(generate_completions),
+        // defined_prefix_completion.after(generate_completions),
     ));
     world.add_schedule(completion);
 }
@@ -153,7 +154,12 @@ impl Into<CompletionItem> for SimpleCompletion {
                 .then_some(InsertTextFormat::SNIPPET),
             filter_text,
             label_details: _label_details,
-            documentation: documentation.map(|st| Documentation::String(st)),
+            documentation: documentation.map(|st| {
+                Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: st,
+                })
+            }),
             text_edit,
             additional_text_edits: Some(additional_text_edits),
             commit_characters: commit_char.map(|x| vec![String::from(x)]),

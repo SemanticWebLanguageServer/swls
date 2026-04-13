@@ -362,6 +362,7 @@ impl LanguageServer for Backend {
             .run_schedule::<HoverRequest>(entity, HoverLabel, (request, PositionComponent(pos)))
             .await
         {
+            tracing::info!("hover\n{:?}", hover.0);
             if hover.0.len() > 0 {
                 return Ok(Some(crate::lsp_types::Hover {
                     contents: crate::lsp_types::HoverContents::Markup(MarkupContent {

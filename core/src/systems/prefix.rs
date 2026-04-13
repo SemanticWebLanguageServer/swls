@@ -131,7 +131,7 @@ pub fn prefix_completion_helper<'a>(
             .chain(prefixes.iter().map(PrefixLike::Prefix))
             .filter(|p| p.name().starts_with(text))
             .flat_map(|lov| {
-                if suggested.contains(lov.namespace()) {
+                if suggested.contains(lov.name()) {
                     return None;
                 }
 
@@ -141,7 +141,7 @@ pub fn prefix_completion_helper<'a>(
                     extra_edits(&lov.name(), &lov.namespace()),
                 );
 
-                suggested.insert(lov.namespace().to_string());
+                suggested.insert(lov.name().to_string());
                 Some(completion)
             }),
     );
