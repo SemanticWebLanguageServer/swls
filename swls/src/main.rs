@@ -44,7 +44,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     r.0.iter()
         .for_each(|(k, v)| semantic_tokens[*v] = k.clone());
 
-    tokio::spawn(async move {
+    tokio::task::spawn_local(async move {
         while let Some(mut x) = rx.next().await {
             world.commands().append(&mut x);
             world.flush();
@@ -89,12 +89,15 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::build(|client| {
-        let (sender, rt) = setup_world(TowerClient::new(client.clone()));
+    let local = tokio::task::LocalSet::new();
+    local.run_until(async {
+        let (service, socket) = LspService::build(|client| {
+            let (sender, rt) = setup_world(TowerClient::new(client.clone()));
+            Backend::new(sender, client, rt)
+        })
+        .finish();
 
-        Backend::new(sender, client, rt)
+        Server::new(stdin, stdout, socket).serve(service).await;
     })
-    .finish();
-
-    Server::new(stdin, stdout, socket).serve(service).await;
+    .await;
 }

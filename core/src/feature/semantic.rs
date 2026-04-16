@@ -53,7 +53,6 @@ pub fn basic_semantic_tokens<L: Lang + Component>(
                 })
                 .collect(),
         );
-        tracing::info!("ttc {:?}", types);
         commands.entity(e).insert(types);
     }
 }
@@ -64,12 +63,10 @@ pub fn semantic_tokens_system(
 ) {
     tracing::info!("semantic_tokens_system called");
     for (rope, types, mut req) in &mut query {
-        tracing::info!("Got one {}", types.len());
         let rope = &rope.0;
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());
         ts.resize(rope.len_bytes(), None);
         types.iter().for_each(|Spanned(ty, r)| {
-        tracing::info!("Got one {:?} {:?}",  ty, r);
             r.clone().for_each(|j| {
                 if j < ts.len() {
                     ts[j] = Some(ty.clone())

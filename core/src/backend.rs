@@ -23,7 +23,7 @@ use crate::{
     },
     lsp_types::{request::SemanticTokensRefresh, *},
     prelude::*,
-    Startup,
+    Started, Startup,
 };
 
 #[derive(Debug)]
@@ -201,6 +201,14 @@ impl LanguageServer for Backend {
                 ..ServerCapabilities::default()
             },
         })
+    }
+
+    async fn initialized(&self, _params: InitializedParams) {
+        self.run(|world| {
+            tracing::info!("initialized");
+            world.run_schedule(Started);
+        })
+        .await;
     }
 
     async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) -> () {

@@ -16,12 +16,6 @@ pub fn derive_prefix_links(
             let url: Url =
                 fs.0.lov_url(u.url.as_str(), &u.prefix)
                     .unwrap_or(u.url.clone());
-            tracing::debug!(
-                "Mapping prefix {}: {} to {}",
-                u.prefix,
-                u.url.as_str(),
-                url.as_str()
-            );
 
             new_links.push((url.clone(), SOURCE));
         }

@@ -5,20 +5,23 @@ use std::{
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
-use bevy_ecs::{error::info, prelude::*, world::CommandQueue};
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel, world::CommandQueue};
+use futures::{channel, SinkExt};
 use rdf_parsers::{
     jsonld::{
-        convert::{convert_with_loader, ActiveContext, ContextLoader},
+        convert::{
+            convert_with_loader, parse_jsonld_for_context, ActiveContext, ContextLoader, JsonLdVal,
+        },
         parser::{Lang, Rule, SyntaxKind},
     },
     IncrementalBias, PrevParseInfo,
 };
 use rowan::{GreenNode, NodeOrToken};
-use swls_core::prelude::*;
+use swls_core::{lsp_types::Url, prelude::*};
 use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::{info, instrument};
 
-use crate::JsonLdLang;
+use crate::{cjs, JsonLdHelper, JsonLdLang, Registry};
 
 pub mod completion;
 pub use completion::setup_completion;
@@ -58,24 +61,54 @@ fn poll_sync<F: Future>(fut: F) -> F::Output {
 /// Resolves `@context` URLs by first checking open documents in the ECS world,
 /// then falling back to the [`ContextCache`] of previously-fetched remote contexts.
 /// Missing URLs are recorded so the caller can fetch them asynchronously.
-struct WorldContextLoader<'a> {
-    world_sources: &'a HashMap<String, String>,
-    fetched: &'a HashMap<String, String>,
-    pub missing: Vec<String>,
+struct WorldContextLoader {
+    sender: CommandSender,
 }
 
-impl ContextLoader for WorldContextLoader<'_> {
+impl ContextLoader for WorldContextLoader {
+    fn load_val<'a>(
+        &'a mut self,
+        url: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<rdf_parsers::jsonld::convert::JsonLdVal>> + 'a>> {
+        info!("context loader load val {}", url);
+        let cs = self.sender.clone();
+
+        let url = url.to_string();
+        Box::pin(async move {
+            let (sender, receiver) = futures::channel::oneshot::channel::<Result<String, _>>();
+            let mut command_queue = CommandQueue::default();
+            let url2 = url.clone();
+            command_queue.push(move |world: &mut World| {
+                world.spawn(ContextRequest {
+                    url: url2,
+                    on_ready: Some(sender),
+                });
+                world.run_schedule(FetchLabel);
+            });
+
+            let _ = cs.unbounded_send(command_queue);
+
+            let v = receiver.await.ok()?;
+            info!("context loader got response for {}", url);
+            match v {
+                Ok(s) => parse_jsonld_for_context(&s),
+                Err(x) => {
+                    if let JsonLdVal::Object(members, _) = &x {
+                        if let Some((_, _, _, ctx)) =
+                            members.iter().find(|(k, _, _, _)| k == "@context")
+                        {
+                            return Some(ctx.clone());
+                        }
+                    }
+
+                    Some(x)
+                }
+            }
+        })
+    }
     fn load<'a>(&'a mut self, url: &'a str) -> Pin<Box<dyn Future<Output = Option<String>> + 'a>> {
-        info!("context loader load {}", url);
-        let result = self
-            .world_sources
-            .get(url)
-            .or_else(|| self.fetched.get(url))
-            .cloned();
-        if result.is_none() {
-            self.missing.push(url.to_string());
-        }
-        Box::pin(std::future::ready(result))
+        info!("context loader load string {}", url);
+        Box::pin(std::future::ready(None))
     }
 }
 
@@ -92,6 +125,128 @@ pub fn setup_parsing<C: Client + Resource + Clone>(world: &mut World) {
                 .before(triples),
         ));
     });
+
+    let mut schedule = bevy_ecs::schedule::Schedule::new(FetchLabel);
+    schedule.add_systems((
+        cjs::cjs_loader.before(fetch_from_world),
+        fetch_from_world,
+        fetch_from_web::<C>.after(fetch_from_world),
+        return_empty.after(fetch_from_web::<C>),
+    ));
+    world.add_schedule(schedule);
+}
+
+/// Indicates that something should be fetched
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct FetchLabel;
+
+fn return_empty(requests: Query<(Entity, &mut ContextRequest)>, mut commander: Commands) {
+    for (e, mut r) in requests {
+        if let Some(sender) = r.on_ready.take() {
+            tracing::info!("loader sending empty {}", r.url);
+            let _ = sender.send(Result::Ok(String::new()));
+        } else {
+            tracing::info!("loader cannot send empty {}", r.url);
+        }
+        commander.entity(e).despawn();
+    }
+}
+
+fn fetch_from_world(
+    mut requests: Query<(Entity, &mut ContextRequest)>,
+    documents: Query<(&Label, Option<&Wrapped<JsonLdVal>>, Option<&Source>)>,
+    mut commander: Commands,
+) {
+    let mut should_reparse = false;
+    for (entity, mut request) in requests.iter_mut() {
+        for (labels, jsonld_val, s) in documents {
+            if labels.as_str() == request.url.as_str() {
+                if let Some(sender) = request.on_ready.take() {
+                    let o = match (jsonld_val, s) {
+                        (Some(val), _) => {
+                            let char_count = format!("{:?}", val).len();
+                            tracing::info!(
+                                "loader fetch_from_world sent {} (found val {} {})",
+                                request.url,
+                                jsonld_val.is_some(),
+                                char_count
+                            );
+                            should_reparse = true;
+                            sender.send(Result::Err(val.as_ref().clone()))
+                        }
+                        (_, Some(source)) => {
+                            tracing::info!(
+                                "loader fetch_from_world sent {} (found val false {})",
+                                request.url,
+                                source.len()
+                            );
+                            sender.send(Result::Ok(source.to_string()))
+                        }
+                        _ => {
+                            tracing::info!(
+                                "loader fetch_from_world sent {} (empty string)",
+                                request.url,
+                            );
+                            sender.send(Result::Ok("".to_string()))
+                        }
+                    };
+                    tracing::info!("Sent succesful {:?}", o);
+                }
+                if let Ok(mut e) = commander.get_entity(entity) {
+                    e.despawn();
+                }
+            }
+        }
+    }
+    if should_reparse {
+        commander.run_schedule(ParseLabel);
+    }
+}
+
+fn fetch_from_web<C: Client + Resource + Clone>(
+    mut requests: Query<(&mut ContextRequest,), Added<ContextRequest>>,
+    sender: Res<CommandSender>,
+    client: Res<C>,
+) {
+    for (r,) in requests.iter_mut() {
+        let client_clone = client.as_ref().clone();
+        let url = r.url.to_string();
+
+        let Ok(label) = Url::parse(&url) else {
+            continue;
+        };
+        let sender = sender.clone();
+        client.spawn(async move {
+            if let Ok(resp) = client_clone.fetch(&url, &HashMap::new()).await {
+                let mut cq = CommandQueue::default();
+                cq.push(move |world: &mut World| {
+                    if world
+                        .query::<(Entity, &Label)>()
+                        .iter(&world)
+                        .find(|x| x.1.as_str() == &url)
+                        .is_none()
+                    {
+                        world.spawn((
+                            // JsonLdLang,
+                            // DynLang(Box::new(JsonLdHelper)),
+                            Source(resp.body),
+                            Label(label),
+                        ));
+                    }
+
+                    world.flush();
+                    world.run_schedule(FetchLabel);
+                });
+                let _ = sender.unbounded_send(cq);
+            }
+        });
+    }
+}
+
+#[derive(bevy_ecs::prelude::Component)]
+pub struct ContextRequest {
+    pub url: String,
+    pub on_ready: Option<channel::oneshot::Sender<Result<String, JsonLdVal>>>,
 }
 
 fn extract_jsonld_cst_tokens(node: &rowan::SyntaxNode<Lang>) -> Vec<Spanned<rowan::SyntaxKind>> {
@@ -142,113 +297,80 @@ fn collect_errors(node: &rowan::SyntaxNode<Lang>) -> Vec<TurtleParseError> {
     errors
 }
 
-#[instrument(skip(
-    query,
-    all_sources,
-    prev_infos,
-    context_cache,
-    sender,
-    client,
-    commands
-))]
+#[instrument(skip(query, sender, commands, client))]
 fn parse_jsonld_system<C: Client + Resource + Clone>(
-    query: Query<(Entity, &Source, &Label), (Changed<Source>, With<JsonLdLang>)>,
-    all_sources: Query<(&Label, &Source)>,
+    query: Query<
+        (Entity, &Source, &Label, Option<&Wrapped<PrevParseInfo>>),
+        (Changed<Source>, With<JsonLdLang>),
+    >,
     mut commands: Commands,
-    mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
-    context_cache: Res<ContextCache>,
     sender: Res<CommandSender>,
     client: Res<C>,
 ) {
-    // Snapshot of all currently-open documents for context resolution.
-    let world_sources: HashMap<String, String> = all_sources
-        .iter()
-        .map(|(l, s)| (l.to_string(), s.0.clone()))
-        .collect();
-
-    for (entity, source, label) in &query {
-        let prev = prev_infos.get(label.as_str());
+    for (entity, source, label, prev) in &query {
         let (parse, new_prev) = rdf_parsers::parse_incremental(
             Rule::new(SyntaxKind::JsonldDoc),
             source.0.as_str(),
-            prev,
+            prev.map(|x| &x.0),
             IncrementalBias::default(),
         );
-        prev_infos.insert(label.to_string(), new_prev);
+        commands.entity(entity).insert(Wrapped(new_prev));
 
         let syntax = parse.syntax::<Lang>();
         let errors = collect_errors(&syntax);
         let cst_tokens = extract_jsonld_cst_tokens(&syntax);
 
         let mut loader = WorldContextLoader {
-            world_sources: &world_sources,
-            fetched: &context_cache.0,
-            missing: Vec::new(),
+            sender: sender.clone(),
         };
 
-        let (jsonld_model, ctx) = poll_sync(convert_with_loader(
-            &syntax,
-            &mut loader,
-            Some(label.0.to_string()),
-        ));
-
-        info!(
-            "{} triples ({} parse errors)",
-            jsonld_model.triples.len(),
-            errors.len()
-        );
-
-        info!("active context {:?}", ctx);
-        for p in &jsonld_model.prefixes {
-            info!("prefix {:?}", p.value());
-        }
-
+        let gn = parse.green_node.clone();
+        let base = label.0.to_string();
         let span = 0..source.0.len();
-        let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
+        let e = entity.clone();
+        let mut sender = sender.clone();
+        client.spawn_local(async move {
+            let syntax = rowan::SyntaxNode::new_root(gn.clone());
+            let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
+
+            info!("{} triples", jsonld_model.triples.len(),);
+
+            for t in &jsonld_model.triples {
+                info!("{}", t.value());
+            }
+
+            let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
+
+            let mut command_queue = CommandQueue::default();
+            command_queue.push(move |world: &mut World| {
+                world
+                    .entity_mut(e)
+                    .insert((element, JsonLdActiveContext(ctx)));
+                // Re-run ParseLabel so that derive_triples_system and
+                // derive_jsonld_prefixes see the newly-inserted element
+                // (they react to Changed<Element<JsonLdLang>>).  Without
+                // this, those systems only fire on the *next* user edit.
+                world.run_schedule(ParseLabel);
+            });
+            let _ = sender.0.send(command_queue).await;
+        });
 
         if errors.is_empty() {
             commands
                 .entity(entity)
                 .insert((
-                    element,
                     Errors(errors),
                     CstTokens(cst_tokens),
-                    JsonLdActiveContext(ctx),
                     Wrapped(parse.green_node),
                 ))
                 .remove::<Dirty>();
         } else {
             commands.entity(entity).insert((
-                element,
                 Errors(errors),
                 CstTokens(cst_tokens),
-                JsonLdActiveContext(ctx),
                 Wrapped(parse.green_node),
                 Dirty,
             ));
-        }
-
-        // For any @context URLs not yet available, fetch them asynchronously.
-        // When a fetch succeeds the source is re-inserted to trigger a re-parse.
-        for missing_url in loader.missing {
-            let sender = sender.0.clone();
-            let client_clone = client.as_ref().clone();
-            let source_text = source.0.clone();
-            client.spawn(async move {
-                if let Ok(resp) = client_clone.fetch(&missing_url, &HashMap::new()).await {
-                    let mut cq = CommandQueue::default();
-                    cq.push(move |world: &mut World| {
-                        world
-                            .resource_mut::<ContextCache>()
-                            .0
-                            .insert(missing_url, resp.body);
-                        if let Ok(mut em) = world.get_entity_mut(entity) {
-                            em.insert(Source(source_text));
-                        }
-                    });
-                    let _ = sender.unbounded_send(cq);
-                }
-            });
         }
     }
 }

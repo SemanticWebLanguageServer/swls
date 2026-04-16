@@ -148,7 +148,9 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
         populate_known_ontologies,
         // extract_known_prefixes_from_config::<C>,
     ));
+
     world.add_schedule(schedule);
+    world.add_schedule(Schedule::new(Started));
 }
 
 /// Event triggers when a document is opened
@@ -216,3 +218,6 @@ pub struct Tasks;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Startup;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Started;

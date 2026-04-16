@@ -1,7 +1,13 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf, pin::Pin};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    path::{Path, PathBuf},
+    pin::Pin,
+};
 
 use bevy_ecs::resource::Resource;
 use futures::FutureExt;
+use swls_core::prelude::FsDirEntry;
 use swls_core::{
     client::{Client, ClientSync, Resp},
     lsp_types::{Diagnostic, MessageType, Url},
@@ -75,6 +81,29 @@ impl FsTrait for BinFs {
         }
         write(fp, content.as_bytes()).await.ok()
     }
+
+    async fn read_dir(&self, path: &Path) -> Option<Vec<FsDirEntry>> {
+        let mut entries = Vec::new();
+        let mut rd = tokio::fs::read_dir(path).await.ok()?;
+        while let Some(entry) = rd.next_entry().await.ok()? {
+            let metadata = entry.metadata().await.ok()?;
+            entries.push(FsDirEntry {
+                name: entry.file_name().to_string_lossy().into_owned(),
+                path: entry.path(),
+                is_dir: metadata.is_dir(),
+            });
+        }
+        Some(entries)
+    }
+    async fn is_file(&self, path: &Path) -> bool {
+        path.is_file()
+    }
+    async fn is_dir(&self, path: &Path) -> bool {
+        path.is_dir()
+    }
+    async fn canonicalize(&self, path: &Path) -> Option<PathBuf> {
+        path.canonicalize().ok()
+    }
 }
 
 #[derive(Resource, Clone)]
@@ -93,10 +122,7 @@ impl TowerClient {
 
 impl ClientSync for TowerClient {
     fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
-        let handle = std::thread::current();
-        debug!("Spawn thread name {:?}", handle.id());
         self.handle.spawn(fut);
-        // info!("Should spawn but won't!");
     }
 
     fn fetch(
@@ -106,7 +132,7 @@ impl ClientSync for TowerClient {
     ) -> Pin<Box<dyn Send + std::future::Future<Output = Result<Resp, String>>>> {
         use tokio::{fs::File, io::AsyncReadExt};
         use tracing::error;
-        debug!("fetching resource");
+        debug!("fetching resource {}", url);
 
         let m_url = reqwest::Url::parse(url);
 
@@ -118,7 +144,6 @@ impl ClientSync for TowerClient {
 
         return async {
             let url = m_url.map_err(|_| String::from("invalid url!"))?;
-            debug!("Found url {} {}", url.scheme(), url);
             if url.scheme() == "file" {
                 let mut file = File::open(url.path())
                     .await
@@ -136,7 +161,6 @@ impl ClientSync for TowerClient {
                 });
             }
 
-            debug!("sending request");
             let resp = match builder.send().await {
                 Ok(x) => x,
                 Err(e) => {
@@ -157,7 +181,6 @@ impl ClientSync for TowerClient {
                     }
                 })
                 .collect();
-            debug!("received response");
             let body = resp.text().await.unwrap();
 
             Ok(Resp {
@@ -167,6 +190,10 @@ impl ClientSync for TowerClient {
             })
         }
         .boxed();
+    }
+
+    fn spawn_local<F: std::future::Future<Output = ()> + 'static>(&self, fut: F) {
+        tokio::task::spawn_local(fut);
     }
 }
 

@@ -4,6 +4,7 @@ use bevy_ecs::{
     world::World,
 };
 
+use crate::prelude::get_current_cst_token;
 pub use crate::util::triple::get_current_triple;
 
 /// [`Component`] indicating that the current document is handling a GotoDefinition request.
@@ -17,6 +18,7 @@ pub struct Label;
 pub fn setup_schedule(world: &mut World) {
     let mut references = Schedule::new(Label);
     references.add_systems((
+        get_current_cst_token.before(get_current_triple),
         get_current_triple,
         system::goto_definition.after(get_current_triple),
     ));

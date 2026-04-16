@@ -114,13 +114,17 @@ impl TurtleExt for Turtle {
         let mut builder = TriplesBuilder::new(self, base);
 
         for t in &self.triples {
-            let _ = builder.ingest(t);
+            tracing::info!("Ingesting triple {}", t.value());
+            if let Err(e) = builder.ingest(t) {
+                tracing::error!("Failed parsing triple {}: {:?}", t.value(), e);
+            }
         }
 
         Ok(self.into_triples(builder.triples))
     }
 
     fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples2<'a> {
+        tracing::info!("Results in {} triples", triples.len());
         let base = match &self.base {
             Some(Spanned(Base(_, Spanned(named_node, span)), _)) => {
                 NamedNodeExt::expand_step(named_node, self, HashSet::new())

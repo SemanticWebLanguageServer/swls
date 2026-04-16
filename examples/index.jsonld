@@ -1,5 +1,8 @@
 {
-  "@context": { "rml": "http://w3id.org/rml/" },
-  "@type": "rml:source",
-  "rml:field": "test"
+  "@context": "context.jsonld",
+  "@type": "Person",
+  "@id": "https://example.com/alice",
+  "name": "Alice",
+  "url": "https://alice.example.com",
+  "knows": { "@type": "Person", "name": "Bob" }
 }

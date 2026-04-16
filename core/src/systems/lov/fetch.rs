@@ -235,6 +235,7 @@ fn extra_from_lov<C: Client + Resource>(
 }
 
 pub(super) async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<String> {
+    return None;
     if let Some(url) = extract_file_url(&prefix, &c).await {
         match c.fetch(&url, &std::collections::HashMap::new()).await {
             Ok(resp) if resp.status == 200 => return Some(resp.body),
@@ -250,9 +251,12 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> 
 }
 
 async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
-    if let Some(body) = fetch_lov_body(&prefix.prefix, c).await {
-        let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
-        spawn_document(label, body, &sender, extra);
+    tracing::info!("A FUTURE IS STARTING");
+    if prefix.prefix.to_ascii_lowercase() == prefix.prefix {
+        if let Some(body) = fetch_lov_body(&prefix.prefix, c).await {
+            let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
+            spawn_document(label, body, &sender, extra);
+        }
     }
 }
 

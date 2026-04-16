@@ -18,11 +18,14 @@ rdf-parsers.workspace    = true
 ropey.workspace          = true
 rowan = "0.16.1"
 tracing.workspace        = true
+components-rs = { path = "/data/components-rs/", default-features = false }
 
 swls-core          = { workspace = true, features = ["shapes"] }
 swls-lang-rdf-base = { workspace = true }
 swls-lang-turtle   = { workspace = true }
 swls-lov           = { workspace = true }
+async-trait.workspace  = true
+serde_json.workspace   = true
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }
