@@ -57,6 +57,40 @@ pub fn collect_id_spans(
     }
 }
 
+/// Walk a `JsonLdVal` tree and record the source file for every `@id` value
+/// (first-seen wins, consistent with [`collect_id_spans`]).
+///
+/// The resulting map is used to determine which file a component's `@id` was
+/// originally defined in, even when the component is later merged into a
+/// parent node (e.g., the module node in `components.jsonld`).
+pub fn collect_id_sources(
+    val: &JsonLdVal,
+    resolver: &ContextResolver,
+    source_file: &str,
+    out: &mut HashMap<String, String>,
+) {
+    match val {
+        JsonLdVal::Object(members, _) => {
+            for (key, _, _, value) in members {
+                if key == "@id" {
+                    if let Some(s) = value.as_str() {
+                        let expanded = resolver.expand_term(s);
+                        out.entry(expanded)
+                            .or_insert_with(|| source_file.to_string());
+                    }
+                }
+                collect_id_sources(value, resolver, source_file, out);
+            }
+        }
+        JsonLdVal::Array(items) => {
+            for (item, _) in items {
+                collect_id_sources(item, resolver, source_file, out);
+            }
+        }
+        _ => {}
+    }
+}
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /// Registry of all discovered CJS components and modules.
@@ -76,6 +110,11 @@ pub struct ComponentRegistry {
     pub components: HashMap<String, CjsComponent>,
     /// All modules indexed by their fully expanded IRI.
     pub modules: HashMap<String, CjsModule>,
+    /// Raw source text of every component file that was loaded, keyed by the
+    /// absolute file path (same strings used in `CjsComponent::source_file` and
+    /// `CjsModule::source_file`).  Used by the LSP to convert `iri_span` byte
+    /// offsets to LSP line/column positions without re-reading files from disk.
+    pub file_sources: HashMap<String, String>,
 }
 
 /// Intermediate node collected during phase 1, before merging by `@id`.
@@ -101,6 +140,7 @@ impl ComponentRegistry {
         Self {
             components: HashMap::new(),
             modules: HashMap::new(),
+            file_sources: HashMap::new(),
         }
     }
 
@@ -121,6 +161,8 @@ impl ComponentRegistry {
         let mut visited_files: std::collections::HashSet<PathBuf> =
             std::collections::HashSet::new();
         let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
+        let mut id_source_files: HashMap<String, String> = HashMap::new();
+        let mut file_sources: HashMap<String, String> = HashMap::new();
 
         for version_map in state.component_modules.values() {
             for component_path in version_map.values() {
@@ -132,6 +174,8 @@ impl ComponentRegistry {
                         &mut all_nodes,
                         &mut visited_files,
                         &mut id_spans,
+                        &mut id_source_files,
+                        &mut file_sources,
                     )
                     .await?;
                 } else {
@@ -148,7 +192,8 @@ impl ComponentRegistry {
             all_nodes.len()
         );
 
-        self.process_merged_nodes(&all_nodes, &id_spans, state)?;
+        self.process_merged_nodes(&all_nodes, &id_spans, &id_source_files, state)?;
+        self.file_sources = file_sources;
 
         Ok(())
     }
@@ -162,6 +207,8 @@ impl ComponentRegistry {
         all_nodes: &'a mut HashMap<String, CollectedNode>,
         visited: &'a mut std::collections::HashSet<PathBuf>,
         id_spans: &'a mut HashMap<String, Range<usize>>,
+        id_source_files: &'a mut HashMap<String, String>,
+        file_sources: &'a mut HashMap<String, String>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
             let canonical = fs
@@ -192,6 +239,9 @@ impl ComponentRegistry {
             let nodes = expand::extract_graph_nodes(&doc, &state.contexts)?;
             let source = path.display().to_string();
 
+            collect_id_sources(&doc, &resolver, &source, id_source_files);
+            file_sources.insert(source.clone(), contents);
+
             for node in &nodes {
                 if let Some(id) = &node.id {
                     let span = id_spans.get(id).cloned().unwrap_or(0..0);
@@ -220,7 +270,7 @@ impl ComponentRegistry {
                 }
             }
 
-            self.process_imports_collect(fs, &doc, &nodes, &resolver, state, all_nodes, visited, id_spans)
+            self.process_imports_collect(fs, &doc, &nodes, &resolver, state, all_nodes, visited, id_spans, id_source_files, file_sources)
                 .await?;
 
             Ok(())
@@ -238,6 +288,8 @@ impl ComponentRegistry {
         all_nodes: &'a mut HashMap<String, CollectedNode>,
         visited: &'a mut std::collections::HashSet<PathBuf>,
         id_spans: &'a mut HashMap<String, Range<usize>>,
+        id_source_files: &'a mut HashMap<String, String>,
+        file_sources: &'a mut HashMap<String, String>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
             let mut import_iris = Vec::new();
@@ -257,7 +309,7 @@ impl ComponentRegistry {
             for iri in import_iris {
                 if let Some(local_path) = resolve_iri_to_path(&iri, &state.import_paths) {
                     if cfs::exists(fs, &local_path).await {
-                        self.collect_nodes_from_file(fs, &local_path, state, all_nodes, visited, id_spans)
+                        self.collect_nodes_from_file(fs, &local_path, state, all_nodes, visited, id_spans, id_source_files, file_sources)
                             .await?;
                     }
                 }
@@ -271,11 +323,12 @@ impl ComponentRegistry {
         &mut self,
         all_nodes: &HashMap<String, CollectedNode>,
         id_spans: &HashMap<String, Range<usize>>,
+        id_source_files: &HashMap<String, String>,
         _state: &ModuleState,
     ) -> Result<()> {
         for node in all_nodes.values() {
             if node.types.contains(&IRI_MODULE.to_string()) {
-                self.register_module_from_merged(node, all_nodes, id_spans)?;
+                self.register_module_from_merged(node, all_nodes, id_spans, id_source_files)?;
             }
         }
         Ok(())
@@ -286,6 +339,7 @@ impl ComponentRegistry {
         node: &CollectedNode,
         _all_nodes: &HashMap<String, CollectedNode>,
         id_spans: &HashMap<String, Range<usize>>,
+        id_source_files: &HashMap<String, String>,
     ) -> Result<()> {
         let require_name = node
             .properties
@@ -298,9 +352,14 @@ impl ComponentRegistry {
 
         if let Some(component_vals) = node.properties.get(IRI_COMPONENT) {
             for comp_val in component_vals {
-                if let Some(comp) =
-                    self.parse_component(comp_val, &node.id, &node.resolver, id_spans)
-                {
+                if let Some(comp) = self.parse_component(
+                    comp_val,
+                    &node.id,
+                    &node.resolver,
+                    id_spans,
+                    id_source_files,
+                    &node.source_file,
+                ) {
                     self.components.insert(comp.iri.clone(), comp.clone());
                     components.push(comp);
                 }
@@ -330,10 +389,17 @@ impl ComponentRegistry {
         module_iri: &str,
         resolver: &ContextResolver,
         id_spans: &HashMap<String, Range<usize>>,
+        id_source_files: &HashMap<String, String>,
+        fallback_source_file: &str,
     ) -> Option<CjsComponent> {
         let id_str = value.get("@id")?.as_str()?;
         let iri = resolver.expand_term(id_str);
         let iri_span = id_spans.get(&iri).cloned().unwrap_or(0..0);
+        // Use the file where this @id was first seen; fall back to the module file.
+        let source_file = id_source_files
+            .get(&iri)
+            .cloned()
+            .unwrap_or_else(|| fallback_source_file.to_string());
 
         let types: Vec<String> = match value.get("@type") {
             Some(JsonLdVal::Str(t)) => vec![resolver.expand_term(t)],
@@ -410,6 +476,7 @@ impl ComponentRegistry {
             extends,
             constructor_arguments,
             module_iri: Some(module_iri.to_string()),
+            source_file,
             iri_span,
         })
     }

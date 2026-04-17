@@ -110,8 +110,9 @@ pub struct CjsModule {
 /// Returned by [`ComponentRegistry`] and used for:
 /// - **Autocompletion** of `@type` values in config files (all variants)
 /// - **Hover documentation** — `comment` provides the description
-/// - **Goto-definition** — `source_file` on the parent module + `iri_span`
-///   points to the `@id` in the components file
+/// - **Goto-definition** — `source_file` + `iri_span` points to the `@id`
+///   in the file where this component is defined (may differ from the module's
+///   entry-point file when components are split across imported sub-files)
 /// - **Parameter completion** — `parameters` drives key completion inside
 ///   config instance objects
 #[derive(Debug, Clone)]
@@ -132,8 +133,11 @@ pub struct CjsComponent {
     pub constructor_arguments: Option<JsonLdVal>,
     /// IRI of the module that declares this component.
     pub module_iri: Option<String>,
-    /// Byte range of the `@id` value for this component in the components file.
-    /// Combined with `module_iri → CjsModule.source_file` for goto-definition.
+    /// Absolute path to the file where this component's `@id` is defined.
+    /// This is the correct target for goto-definition; it may differ from
+    /// `CjsModule::source_file` when the module imports component sub-files.
+    pub source_file: String,
+    /// Byte range of the `@id` value for this component in `source_file`.
     pub iri_span: Range<usize>,
 }
 

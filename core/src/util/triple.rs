@@ -203,6 +203,7 @@ pub fn get_current_triple(
                     target,
                 });
             } else {
+                commands.entity(e).remove::<TripleComponent>();
                 debug!("No current triple found");
             }
         }

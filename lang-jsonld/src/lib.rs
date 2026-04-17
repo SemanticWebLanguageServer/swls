@@ -94,6 +94,23 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     });
 }
 
+/// Convert a byte offset to an LSP `Position` (line + character).
+fn byte_offset_to_position(source: &str, offset: usize) -> swls_core::lsp_types::Position {
+    let offset = offset.min(source.len());
+    let before = &source[..offset];
+    let line = before.matches('\n').count() as u32;
+    let col = before.rfind('\n').map(|p| offset - p - 1).unwrap_or(offset) as u32;
+    swls_core::lsp_types::Position::new(line, col)
+}
+
+/// Convert a byte-range span to an LSP `Range` using the file's source text.
+fn span_to_lsp_range(source: &str, span: &std::ops::Range<usize>) -> swls_core::lsp_types::Range {
+    swls_core::lsp_types::Range::new(
+        byte_offset_to_position(source, span.start),
+        byte_offset_to_position(source, span.end),
+    )
+}
+
 fn goto_cjs(
     mut query: Query<(
         &TokenComponent,
@@ -105,51 +122,66 @@ fn goto_cjs(
     use swls_core::lsp_types::{Location, Range};
 
     for (token, triple, mut req) in &mut query {
-        let st = match triple.and_then(|x| x.term()) {
-            Some(x) => x.as_str(),
-            None => token.text.as_str().trim_matches('"'),
-        };
-
-        tracing::info!(
-            "Found path {} Found module {} Found Component {}",
-            resolve_iri_to_path(st, &res.1.import_paths).is_some(),
-            res.0.modules.get(st).is_some(),
-            res.0.components.get(st).is_some()
-        );
-
-        if let Some(component) = res.0.components.get(st) {
-            if let Some(module_iri) = &component.module_iri {
-                tracing::info!("Module iri {}", module_iri);
-                if let Some(module) = res.0.modules.get(module_iri.as_str()) {
-                    if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(
-                        std::path::Path::new(&module.source_file),
-                    ) {
-                        req.0.push(Location {
-                            uri,
-                            range: Range::default(),
-                        });
-                        continue;
-                    }
-                }
+        // Only use the expanded IRI from the TripleComponent if the cursor token
+        // actually overlaps the matched term's span.  get_current_triple is lenient
+        // and may fall back to a nearby triple (e.g. the first triple in the
+        // document) when the cursor is on @context or other non-triple content.
+        let triple_term_str: Option<String> = triple.and_then(|tc| {
+            let term_span = match tc.target {
+                TripleTarget::Subject => &tc.triple.subject.span,
+                TripleTarget::Predicate => &tc.triple.predicate.span,
+                TripleTarget::Object => &tc.triple.object.span,
+                TripleTarget::Graph => return None,
+            };
+            let cursor = token.source_span.start;
+            if term_span.start <= cursor && cursor <= term_span.end {
+                tc.term().map(|t| t.as_str().to_string())
+            } else {
+                None
             }
-        }
+        });
+        let st: &str = triple_term_str
+            .as_deref()
+            .unwrap_or_else(|| token.text.as_str().trim_matches('"'));
 
-        // Try modules and components by IRI.
-        if let Some(module) = res.0.modules.get(st) {
-            if let Ok(uri) =
-                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(&module.source_file))
-            {
-                req.0.push(Location {
-                    uri,
-                    range: Range::default(),
-                });
+        // Components: navigate to the component's own source file at the exact @id span.
+        if let Some(component) = res.0.components.get(st) {
+            tracing::info!("Component from {}", component.source_file);
+
+            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(std::path::Path::new(
+                &component.source_file,
+            )) {
+                let range = res
+                    .0
+                    .file_sources
+                    .get(&component.source_file)
+                    .map(|src| span_to_lsp_range(src, &component.iri_span))
+                    .unwrap_or_default();
+                req.0.push(Location { uri, range });
                 continue;
             }
         }
 
-        // Fall back to treating the token as a literal IRI.
-        if let Some(path) = resolve_iri_to_path(st, &res.1.import_paths) {
-            tracing::debug!("goto_cjs literal IRI resolved to {:?}", path);
+        // Modules: navigate to the module source file at the exact @id span.
+        if let Some(module) = res.0.modules.get(st) {
+            if let Ok(uri) =
+                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(&module.source_file))
+            {
+                let range = res
+                    .0
+                    .file_sources
+                    .get(&module.source_file)
+                    .map(|src| span_to_lsp_range(src, &module.iri_span))
+                    .unwrap_or_default();
+                req.0.push(Location { uri, range });
+                continue;
+            }
+        }
+
+        // Import IRIs: strip any fragment, then resolve to a local file path.
+        let iri_no_fragment = st.split('#').next().unwrap_or(st);
+        if let Some(path) = resolve_iri_to_path(iri_no_fragment, &res.1.import_paths) {
+            tracing::debug!("goto_cjs import IRI resolved to {:?}", path);
             if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
                 req.0.push(Location {
                     uri,
