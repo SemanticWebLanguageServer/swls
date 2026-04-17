@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
-};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel, world::CommandQueue};
 use futures::{channel, SinkExt};
@@ -21,7 +16,7 @@ use swls_core::{lsp_types::Url, prelude::*};
 use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::{info, instrument};
 
-use crate::{cjs, JsonLdHelper, JsonLdLang, Registry};
+use crate::{cjs, JsonLdLang};
 
 pub mod completion;
 pub use completion::setup_completion;
@@ -36,27 +31,6 @@ pub struct ContextCache(pub HashMap<String, String>);
 /// completion systems to offer term-alias and prefix-based completions.
 #[derive(Component, Debug, Default, Clone)]
 pub struct JsonLdActiveContext(pub ActiveContext);
-
-/// Drives a `future::ready`-only async future synchronously using a noop waker.
-///
-/// This mirrors the approach used inside `rdf_parsers::jsonld::convert::convert`.
-/// Panics if the future does not resolve in a single poll — which can only happen
-/// if a [`ContextLoader`] implementation does real async I/O (ours never does).
-fn poll_sync<F: Future>(fut: F) -> F::Output {
-    fn noop_clone(p: *const ()) -> RawWaker {
-        RawWaker::new(p, &NOOP_VTABLE)
-    }
-    fn noop(_: *const ()) {}
-    static NOOP_VTABLE: RawWakerVTable = RawWakerVTable::new(noop_clone, noop, noop, noop);
-    // SAFETY: The waker is never used to wake anything; the future must resolve
-    // in one poll (all ContextLoader::load calls return future::ready).
-    let waker = unsafe { Waker::from_raw(RawWaker::new(std::ptr::null(), &NOOP_VTABLE)) };
-    let mut cx = Context::from_waker(&waker);
-    match std::pin::pin!(fut).poll(&mut cx) {
-        Poll::Ready(v) => v,
-        Poll::Pending => panic!("WorldContextLoader must only return future::ready"),
-    }
-}
 
 /// Resolves `@context` URLs by first checking open documents in the ECS world,
 /// then falling back to the [`ContextCache`] of previously-fetched remote contexts.
@@ -295,6 +269,47 @@ fn collect_errors(node: &rowan::SyntaxNode<Lang>) -> Vec<TurtleParseError> {
         }
     }
     errors
+}
+
+pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
+    query: Query<(Entity, &Wrapped<GreenNode>, &Label, &Source), With<JsonLdLang>>,
+    sender: Res<CommandSender>,
+    client: Res<C>,
+) {
+    for (e, gn, label, source) in query {
+        let base = label.0.to_string();
+        let span = 0..source.0.len();
+        let mut sender = sender.clone();
+        let gn = gn.0.clone();
+        client.spawn_local(async move {
+            let mut loader = WorldContextLoader {
+                sender: sender.clone(),
+            };
+            let syntax = rowan::SyntaxNode::new_root(gn);
+            let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
+
+            info!("{} triples", jsonld_model.triples.len(),);
+
+            for t in &jsonld_model.triples {
+                info!("{}", t.value());
+            }
+
+            let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
+
+            let mut command_queue = CommandQueue::default();
+            command_queue.push(move |world: &mut World| {
+                world
+                    .entity_mut(e)
+                    .insert((element, JsonLdActiveContext(ctx)));
+                // Re-run ParseLabel so that derive_triples_system and
+                // derive_jsonld_prefixes see the newly-inserted element
+                // (they react to Changed<Element<JsonLdLang>>).  Without
+                // this, those systems only fire on the *next* user edit.
+                world.run_schedule(ParseLabel);
+            });
+            let _ = sender.0.send(command_queue).await;
+        });
+    }
 }
 
 #[instrument(skip(query, sender, commands, client))]

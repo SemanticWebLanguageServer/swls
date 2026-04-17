@@ -3,13 +3,12 @@
     html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
 )]
 pub mod cjs;
-use std::path::{Path, PathBuf};
 
 use bevy_ecs::{
     component::Component,
     resource::Resource,
     schedule::IntoScheduleConfigs,
-    system::{Commands, Query, Res},
+    system::{Query, Res, RunSystemOnce},
     world::{CommandQueue, World},
 };
 use components_rs::{
@@ -20,14 +19,16 @@ use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
     prelude::{goto_definition::GotoDefinitionRequest, *},
-    Started, Startup,
+    Startup,
 };
 use swls_lang_rdf_base::register_rdf_lang;
 use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
 use crate::{
-    ecs::{format_jsonld_system, setup_completion, setup_parsing, ContextCache},
+    ecs::{
+        derive_jsonld_triples, format_jsonld_system, setup_completion, setup_parsing, ContextCache,
+    },
     fs::start_testing,
 };
 
@@ -109,15 +110,27 @@ fn goto_cjs(
             None => token.text.as_str().trim_matches('"'),
         };
 
-        // Fall back to treating the token as a literal IRI.
-        if let Some(path) = resolve_iri_to_path(st, &res.1.import_paths) {
-            tracing::debug!("goto_cjs literal IRI resolved to {:?}", path);
-            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
-                req.0.push(Location {
-                    uri,
-                    range: Range::default(),
-                });
-                continue;
+        tracing::info!(
+            "Found path {} Found module {} Found Component {}",
+            resolve_iri_to_path(st, &res.1.import_paths).is_some(),
+            res.0.modules.get(st).is_some(),
+            res.0.components.get(st).is_some()
+        );
+
+        if let Some(component) = res.0.components.get(st) {
+            if let Some(module_iri) = &component.module_iri {
+                tracing::info!("Module iri {}", module_iri);
+                if let Some(module) = res.0.modules.get(module_iri.as_str()) {
+                    if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(
+                        std::path::Path::new(&module.source_file),
+                    ) {
+                        req.0.push(Location {
+                            uri,
+                            range: Range::default(),
+                        });
+                        continue;
+                    }
+                }
             }
         }
 
@@ -134,19 +147,15 @@ fn goto_cjs(
             }
         }
 
-        if let Some(component) = res.0.components.get(st) {
-            if let Some(module_iri) = &component.module_iri {
-                if let Some(module) = res.0.modules.get(module_iri.as_str()) {
-                    if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(
-                        std::path::Path::new(&module.source_file),
-                    ) {
-                        req.0.push(Location {
-                            uri,
-                            range: Range::default(),
-                        });
-                        continue;
-                    }
-                }
+        // Fall back to treating the token as a literal IRI.
+        if let Some(path) = resolve_iri_to_path(st, &res.1.import_paths) {
+            tracing::debug!("goto_cjs literal IRI resolved to {:?}", path);
+            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
+                req.0.push(Location {
+                    uri,
+                    range: Range::default(),
+                });
+                continue;
             }
         }
 
@@ -274,6 +283,7 @@ fn start_jsonld<C: Client + Resource + Clone>(
                 let mut command_queue = CommandQueue::default();
                 command_queue.push(move |world: &mut World| {
                     world.insert_resource(reg);
+                    let _ = world.run_system_once(derive_jsonld_triples::<C>);
                 });
                 let _ = commands.unbounded_send(command_queue);
             }

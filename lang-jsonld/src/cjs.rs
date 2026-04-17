@@ -4,34 +4,12 @@ use bevy_ecs::{
     entity::Entity,
     system::{Commands, Local, Query, Res},
 };
-use rdf_parsers::jsonld::convert::JsonLdVal;
 use swls_core::{
     lsp_types::Url,
     prelude::{Label, Wrapped},
 };
 
 use crate::{ecs::ContextRequest, Registry};
-
-pub fn serde_to_jsonld(value: &serde_json::Value) -> JsonLdVal {
-    match value {
-        serde_json::Value::Object(map) => {
-            let members = map
-                .iter()
-                .map(|(k, v)| (k.to_string(), 0..0, 0..0, serde_to_jsonld(v)))
-                .collect();
-            JsonLdVal::Object(members, 0..0)
-        }
-        serde_json::Value::Array(arr) => JsonLdVal::Array(
-            arr.into_iter()
-                .map(|x| (serde_to_jsonld(x), 0..0))
-                .collect(),
-        ),
-        serde_json::Value::String(s) => JsonLdVal::Str(s.clone()),
-        serde_json::Value::Number(n) => JsonLdVal::Number(n.to_string()),
-        serde_json::Value::Bool(b) => JsonLdVal::Bool(*b),
-        serde_json::Value::Null => JsonLdVal::Null,
-    }
-}
 
 #[tracing::instrument(skip(requests, json_ld_vals, res, commander, found))]
 pub fn cjs_loader(
