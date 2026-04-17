@@ -74,6 +74,7 @@ impl LangHelper for JsonLdHelper {
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
     register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, "jsonld", &[".jsonld"]);
+    register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, "json", &[".json"]);
     world.insert_resource(ContextCache::default());
     world.insert_resource(Registry::empty());
     setup_parsing::<C>(world);
@@ -88,48 +89,68 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     });
 
     world.schedule_scope(GotoDefinitionLabel, |_, schedule| {
-        schedule.add_systems(goto_cjs.after(get_current_cst_token));
+        schedule.add_systems(goto_cjs.after(get_current_triple));
     });
 }
 
-fn goto_cjs(mut query: Query<(&TokenComponent, &mut GotoDefinitionRequest)>, res: Res<Registry>) {
-    for (t, re) in query {
-        let text = t.text.trim_matches('"');
-        if let Some(module) = res.0.modules.get(text) {
-            tracing::debug!("Module found for {} {:?}", text, module);
-        } else {
-            tracing::debug!("No module found for {} ", text);
+fn goto_cjs(
+    mut query: Query<(
+        &TokenComponent,
+        Option<&TripleComponent>,
+        &mut GotoDefinitionRequest,
+    )>,
+    res: Res<Registry>,
+) {
+    use swls_core::lsp_types::{Location, Range};
+
+    for (token, triple, mut req) in &mut query {
+        let st = match triple.and_then(|x| x.term()) {
+            Some(x) => x.as_str(),
+            None => token.text.as_str().trim_matches('"'),
+        };
+
+        // Fall back to treating the token as a literal IRI.
+        if let Some(path) = resolve_iri_to_path(st, &res.1.import_paths) {
+            tracing::debug!("goto_cjs literal IRI resolved to {:?}", path);
+            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
+                req.0.push(Location {
+                    uri,
+                    range: Range::default(),
+                });
+                continue;
+            }
         }
 
-        if let Some(module) = res.0.components.get(text) {
-            tracing::debug!("Component found for {} {:?}", text, module);
-        } else {
-            tracing::debug!("No Component found for {} ", text);
+        // Try modules and components by IRI.
+        if let Some(module) = res.0.modules.get(st) {
+            if let Ok(uri) =
+                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(&module.source_file))
+            {
+                req.0.push(Location {
+                    uri,
+                    range: Range::default(),
+                });
+                continue;
+            }
         }
 
-        if let Some(module) = res.1.contexts.get(text) {
-            tracing::debug!("Context found for {} {:?}", text, module);
-        } else {
-            tracing::debug!("No Context found for {} ", text);
+        if let Some(component) = res.0.components.get(st) {
+            if let Some(module_iri) = &component.module_iri {
+                if let Some(module) = res.0.modules.get(module_iri.as_str()) {
+                    if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(
+                        std::path::Path::new(&module.source_file),
+                    ) {
+                        req.0.push(Location {
+                            uri,
+                            range: Range::default(),
+                        });
+                        continue;
+                    }
+                }
+            }
         }
 
-        if let Some(module) = res.1.import_paths.get(text) {
-            tracing::debug!("Import path found for {} {:?}", text, module);
-        } else {
-            tracing::debug!("No import path found for {} ", text);
-        }
-
-        if let Some(module) = res.1.component_modules.get(text) {
-            tracing::debug!("component modules for {} {:?}", text, module);
-        } else {
-            tracing::debug!("No component module found for {} ", text);
-        }
-
-        if let Some(path) = resolve_iri_to_path(&text, &res.1.import_paths) {
-            tracing::debug!("resolve_iri_to_path {} {:?}", text, path);
-        } else {
-            tracing::debug!("resolve_iri_to_path nothing {} ", text);
-        }
+        tracing::debug!("goto_cjs: no definition found for '{}'", st);
     }
 }
 

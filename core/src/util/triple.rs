@@ -111,7 +111,10 @@ impl Triples {
 
 #[instrument(skip(query, commands))]
 pub fn get_current_triple(
-    query: Query<(Entity, &PositionComponent, &Triples, &RopeC, &DynLang)>,
+    query: Query<
+        (Entity, &PositionComponent, &Triples, &RopeC, &DynLang),
+        Changed<PositionComponent>,
+    >,
     mut commands: Commands,
 ) {
     for (e, position, triples, rope, lang) in &query {
@@ -121,19 +124,6 @@ pub fn get_current_triple(
             debug!("Couldn't transform to an offset");
             continue;
         };
-
-        for t in triples.iter() {
-            tracing::info!(
-                "{} {:?} {} {:?} {} {:?} {}",
-                t.subject,
-                t.subject.span,
-                t.predicate,
-                t.predicate.span,
-                t.object,
-                t.object.span,
-                offset
-            );
-        }
 
         // First try: find the narrowest triple whose span inclusively contains the cursor.
         // Using inclusive end (<=) so the cursor at exactly span.end (e.g. after a partially
@@ -152,7 +142,17 @@ pub fn get_current_triple(
             .filter(|x| x.1.contains(&offset))
             .min_by_key(|x| x.1.end - x.1.start)
         {
-            tracing::info!("Triple Component {:?}", target);
+            tracing::info!(
+                "Narrowest triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",
+                offset,
+                target,
+                t.subject,
+                t.subject.span,
+                t.predicate,
+                t.predicate.span,
+                t.object,
+                t.object.span
+            );
             commands.entity(e).insert(TripleComponent {
                 triple: t.clone(),
                 target,
@@ -187,7 +187,17 @@ pub fn get_current_triple(
                 } else {
                     lang.default_position()
                 };
-                tracing::info!("Triple Component {:?}", target);
+                tracing::info!(
+                    "Triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",
+                    offset,
+                    target,
+                    t.subject,
+                    t.subject.span,
+                    t.predicate,
+                    t.predicate.span,
+                    t.object,
+                    t.object.span
+                );
                 commands.entity(e).insert(TripleComponent {
                     triple: t.clone(),
                     target,
