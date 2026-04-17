@@ -7,7 +7,6 @@ pub use rdf_parsers::model::{
     Base, BlankNode, Literal, NamedNode, RDFLiteral, StringStyle, Term, Triple, Turtle,
     TurtlePrefix, Variable, PO,
 };
-use sophia_iri::resolve::{BaseIri, IriParseError};
 use swls_core::{
     lsp_types::Url,
     prelude::{MyQuad, MyTerm, Spanned, TermContext, Triples2},
@@ -30,11 +29,97 @@ impl Based for Turtle {
     }
 }
 
+// ── IRI resolution ────────────────────────────────────────────────────────────
+
+/// Resolve `relative` against `base` using RFC 3986 path resolution, without
+/// any IRI validation.  This intentionally accepts non-standard / "invalid"
+/// IRIs so that tokens in the source document can be round-tripped back to the
+/// triple store without percent-encoding transformations.
+fn resolve_iri(base: &str, relative: &str) -> String {
+    // Already absolute (has a scheme colon before any slash or query char).
+    if looks_absolute(relative) {
+        return relative.to_string();
+    }
+    // Protocol-relative  //authority/path
+    if relative.starts_with("//") {
+        let scheme = base.split("://").next().unwrap_or("http");
+        return format!("{}:{}", scheme, relative);
+    }
+    // Root-relative  /path
+    if relative.starts_with('/') {
+        let authority_end = base
+            .find("://")
+            .and_then(|i| base[i + 3..].find('/').map(|j| i + 3 + j))
+            .unwrap_or(base.len());
+        return format!("{}{}", &base[..authority_end], relative);
+    }
+    // Fragment-only or empty  #frag  or  ""
+    if relative.is_empty() || relative.starts_with('#') {
+        let base_no_frag = base.split('#').next().unwrap_or(base);
+        return format!("{}{}", base_no_frag, relative);
+    }
+    // Relative path — merge with the base's "directory"
+    let base_dir = match base.rfind('/') {
+        Some(i) => &base[..=i],
+        None => "",
+    };
+    let merged = format!("{}{}", base_dir, relative);
+    normalize_path_segments(&merged)
+}
+
+/// Heuristic: does `s` carry its own scheme?  We look for `<scheme>:` where
+/// scheme starts with a letter and contains only [A-Za-z0-9+\-.].
+fn looks_absolute(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    if bytes.is_empty() || !bytes[0].is_ascii_alphabetic() {
+        return false;
+    }
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b':' {
+            return i > 0;
+        }
+        if !matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'+' | b'-' | b'.') {
+            return false;
+        }
+    }
+    false
+}
+
+/// Remove `.` and `..` segments from a merged path string, preserving any
+/// authority prefix (`scheme://host`).
+fn normalize_path_segments(path: &str) -> String {
+    // Split off a leading scheme://authority so we don't mangle it.
+    let (prefix, rest) = if let Some(i) = path.find("://") {
+        let after = &path[i + 3..];
+        let slash = after.find('/').map(|j| i + 3 + j).unwrap_or(path.len());
+        (&path[..slash], &path[slash..])
+    } else {
+        ("", path)
+    };
+
+    let mut stack: Vec<&str> = Vec::new();
+    for seg in rest.split('/') {
+        match seg {
+            "." => {}
+            ".." => {
+                stack.pop();
+            }
+            s => stack.push(s),
+        }
+    }
+    // If the original path ended with /. or /.. keep a trailing slash.
+    let trailing = if rest.ends_with("/..") || rest.ends_with("/.") {
+        "/"
+    } else {
+        ""
+    };
+    format!("{}/{}{}", prefix, stack.join("/"), trailing)
+}
+
 // ── Error type ───────────────────────────────────────────────────────────────
 
 #[derive(Debug)]
 pub enum TurtleSimpleError {
-    Parse(IriParseError),
     UnexpectedBase(&'static str),
     UnexpectedBaseString(String),
 }
@@ -102,13 +187,11 @@ impl TurtleExt for Turtle {
     fn get_simple_triples<'a>(&'a self) -> Result<Triples2<'a>, TurtleSimpleError> {
         let base = match &self.base {
             Some(Spanned(Base(_, Spanned(named_node, _)), _)) => {
-                let nn = NamedNodeExt::expand_step(named_node, self, HashSet::new()).ok_or(
+                NamedNodeExt::expand_step(named_node, self, HashSet::new()).ok_or(
                     TurtleSimpleError::UnexpectedBase("Expected valid named node base"),
-                )?;
-                BaseIri::new(nn).map_err(TurtleSimpleError::Parse)?
+                )?
             }
-            None => BaseIri::new(self.set_base.clone().unwrap_or_default())
-                .map_err(TurtleSimpleError::Parse)?,
+            None => self.set_base.clone().unwrap_or_default(),
         };
 
         let mut builder = TriplesBuilder::new(self, base);
@@ -155,12 +238,12 @@ impl TurtleExt for Turtle {
 pub struct TriplesBuilder<'a, T> {
     pub triples: Vec<MyQuad<'a>>,
     blank_node: Box<dyn FnMut(std::ops::Range<usize>) -> MyTerm<'a>>,
-    base: BaseIri<String>,
+    base: String,
     based: &'a T,
 }
 
 impl<'a, T: Based> TriplesBuilder<'a, T> {
-    pub fn new(based: &'a T, base: BaseIri<String>) -> Self {
+    pub fn new(based: &'a T, base: String) -> Self {
         let mut count = 0;
         let blank_node = Box::new(move |span: std::ops::Range<usize>| {
             count += 1;
@@ -203,16 +286,8 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
             let predicate_term = match predicate.value() {
                 Term::NamedNode(NamedNode::Invalid) => MyTerm::invalid(predicate.span().clone()),
                 Term::NamedNode(nn) => {
-                    if let Ok(node) = NamedNodeExt::expand_step(nn, self.based, HashSet::new())
-                        .ok_or(TurtleSimpleError::UnexpectedBase(
-                            "Expected valid named node for predicate",
-                        ))
-                        .and_then(|n| {
-                            self.base
-                                .resolve(n.as_str())
-                                .map_err(TurtleSimpleError::Parse)
-                        })
-                        .map(|x| x.unwrap())
+                    if let Some(node) = NamedNodeExt::expand_step(nn, self.based, HashSet::new())
+                        .map(|n| resolve_iri(&self.base, &n))
                     {
                         MyTerm::named_node(node, predicate.span().clone())
                     } else {
@@ -261,19 +336,12 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         let object = match term {
             Ok(Spanned(Term::Variable(Variable(var, _)), span)) => MyTerm::variable(var, span),
             Ok(Spanned(Term::NamedNode(NamedNode::Invalid), span)) => MyTerm::invalid(span),
-            Ok(Spanned(Term::NamedNode(nn), span)) => MyTerm::named_node(
-                NamedNodeExt::expand_step(nn, self.based, HashSet::new())
-                    .ok_or(TurtleSimpleError::UnexpectedBase(
-                        "Expected valid named node for object",
-                    ))
-                    .and_then(|n| {
-                        self.base
-                            .resolve(n.as_str())
-                            .map_err(TurtleSimpleError::Parse)
-                    })
-                    .map(|x| x.unwrap())?,
-                span,
-            ),
+            Ok(Spanned(Term::NamedNode(nn), span)) => {
+                match NamedNodeExt::expand_step(nn, self.based, HashSet::new()) {
+                    Some(n) => MyTerm::named_node(resolve_iri(&self.base, &n), span),
+                    None => MyTerm::invalid(span),
+                }
+            }
             Ok(Spanned(Term::Literal(Literal::RDF(lit)), span)) => {
                 let term_context = match (&lit.lang, &lit.ty) {
                     (Some(l), _) => TermContext::LangTag(Cow::Owned(l.to_string())),
@@ -368,19 +436,15 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
                 out
             }
             Term::NamedNode(NamedNode::Invalid) => MyTerm::invalid(triple.subject.span().clone()),
-            Term::NamedNode(nn) => MyTerm::named_node(
-                NamedNodeExt::expand_step(nn, self.based, HashSet::new())
-                    .ok_or(TurtleSimpleError::UnexpectedBase(
-                        "Expected valid named node for subject",
-                    ))
-                    .and_then(|n| {
-                        self.base
-                            .resolve(n.as_str())
-                            .map_err(TurtleSimpleError::Parse)
-                    })
-                    .map(|x| x.unwrap())?,
-                triple.subject.span().clone(),
-            ),
+            Term::NamedNode(nn) => {
+                match NamedNodeExt::expand_step(nn, self.based, HashSet::new()) {
+                    Some(n) => MyTerm::named_node(
+                        resolve_iri(&self.base, &n),
+                        triple.subject.span().clone(),
+                    ),
+                    None => MyTerm::invalid(triple.subject.span().clone()),
+                }
+            }
             Term::Invalid => MyTerm::invalid(triple.subject.span().clone()),
             Term::Variable(var) => MyTerm::variable(&var.0, triple.subject.span().clone()),
             x => {

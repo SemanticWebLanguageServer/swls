@@ -21,9 +21,11 @@ pub fn serde_to_jsonld(value: &serde_json::Value) -> JsonLdVal {
                 .collect();
             JsonLdVal::Object(members, 0..0)
         }
-        serde_json::Value::Array(arr) => {
-            JsonLdVal::Array(arr.into_iter().map(serde_to_jsonld).collect())
-        }
+        serde_json::Value::Array(arr) => JsonLdVal::Array(
+            arr.into_iter()
+                .map(|x| (serde_to_jsonld(x), 0..0))
+                .collect(),
+        ),
         serde_json::Value::String(s) => JsonLdVal::Str(s.clone()),
         serde_json::Value::Number(n) => JsonLdVal::Number(n.to_string()),
         serde_json::Value::Bool(b) => JsonLdVal::Bool(*b),
@@ -46,10 +48,9 @@ pub fn cjs_loader(
             continue;
         }
 
-        if let Some(ctx) = res.1.contexts.get(r.url.as_str()) {
+        if let Some(val) = res.1.contexts.get(r.url.as_str()) {
             tracing::info!("jsonld loader {} found context", r.url.as_str());
             found.insert(r.url.as_str().to_string());
-            let val = serde_to_jsonld(ctx);
 
             let mut found = false;
 
@@ -64,7 +65,7 @@ pub fn cjs_loader(
             if !found {
                 if let Ok(l) = Url::parse(r.url.as_str()) {
                     tracing::info!("Spawning {}", r.url);
-                    commander.spawn((Label(l), Wrapped(val)));
+                    commander.spawn((Label(l), Wrapped(val.clone())));
                 }
             }
         } else {

@@ -1,0 +1,35 @@
+[package]
+name = "components-rs"
+version = "0.1.1"
+edition = "2021"
+rust-version = "1.75"
+description = "Static analysis tooling for Components.js dependency injection projects"
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/LinkedSoftwareDependencies/Components.js/"
+repository = "https://github.com/ajuvercr/components-rs"
+keywords = ["components-js", "dependency-injection", "json-ld", "static-analysis"]
+categories = ["development-tools"]
+
+[[bin]]
+name = "components-rs"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["tokio"]
+tokio = ["dep:tokio"]
+cli = ["dep:clap", "dep:anyhow", "dep:tracing-subscriber", "tokio"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+semver = "1"
+thiserror = "2"
+tracing.workspace = true
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt", "macros", "fs"], optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
+anyhow = { version = "1", optional = true }
+rdf-parsers.workspace = true

@@ -31,6 +31,7 @@ tracing = "0.1"
 tower-lsp = { version = "0.19.0", default-features = false, features = [
 ] }
 
+components-rs      = { path = "components-rs",     version = "0.1.1", default-features = false }
 swls-lov           = { path = "lov",               version = "0.1.0" }
 swls-core          = { path = "core",              version = "0.1.0", default-features = false }
 swls-token-helpers = { path = "swls-token-helpers", version = "0.1.0" }
@@ -42,6 +43,7 @@ swls-lang-trig     = { path = "lang-trig",         version = "0.1.0" }
 
 [workspace]
 default-members = [
+  "components-rs",
   "core",
   "lov",
   "lang-rdf-base",
@@ -52,6 +54,7 @@ default-members = [
   "swls",
 ]
 members = [
+  "components-rs",
   "core",
   "lov",
   "lang-rdf-base",

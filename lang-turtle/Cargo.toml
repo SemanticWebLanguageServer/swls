@@ -21,7 +21,6 @@ serde.workspace        = true
 serde_json.workspace   = true
 similar.workspace = true
 sophia_api.workspace   = true
-sophia_iri.workspace   = true
 tracing.workspace      = true
 
 swls-lov.workspace           = true

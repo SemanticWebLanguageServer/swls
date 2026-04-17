@@ -648,13 +648,17 @@ dependencies = [
 name = "components-rs"
 version = "0.1.1"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "clap",
  "rdf-parsers",
  "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3518,7 +3522,6 @@ dependencies = [
  "serde_json",
  "similar",
  "sophia_api",
- "sophia_iri",
  "swls-core",
  "swls-lang-rdf-base",
  "swls-lov",

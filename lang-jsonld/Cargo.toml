@@ -16,10 +16,10 @@ bevy_ecs.workspace       = true
 futures.workspace        = true
 rdf-parsers.workspace    = true
 ropey.workspace          = true
-rowan = "0.16.1"
 tracing.workspace        = true
-components-rs = { path = "/data/components-rs/", default-features = false }
+rowan = "0.16.1"
 
+components-rs = { workspace = true }
 swls-core          = { workspace = true, features = ["shapes"] }
 swls-lang-rdf-base = { workspace = true }
 swls-lang-turtle   = { workspace = true }
