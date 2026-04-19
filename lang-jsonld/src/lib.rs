@@ -15,6 +15,7 @@ use components_rs::{
     components::registry::{resolve_iri_to_path, ComponentRegistry},
     module_state::ModuleState,
 };
+use oxigraph::model::{GraphName, Literal, NamedNode, Quad};
 use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
@@ -164,6 +165,7 @@ fn goto_cjs(
 
         // Modules: navigate to the module source file at the exact @id span.
         if let Some(module) = res.0.modules.get(st) {
+            tracing::info!("Module from {}", module.source_file);
             if let Ok(uri) =
                 swls_core::lsp_types::Url::from_file_path(std::path::Path::new(&module.source_file))
             {
@@ -172,6 +174,23 @@ fn goto_cjs(
                     .file_sources
                     .get(&module.source_file)
                     .map(|src| span_to_lsp_range(src, &module.iri_span))
+                    .unwrap_or_default();
+                req.0.push(Location { uri, range });
+                continue;
+            }
+        }
+
+        // Parameters: navigate to the parameter's defining file at the exact @id span.
+        if let Some((source_file, iri_span)) = res.0.parameters.get(st) {
+            tracing::info!("Parameter from {}", source_file);
+            if let Ok(uri) =
+                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(source_file))
+            {
+                let range = res
+                    .0
+                    .file_sources
+                    .get(source_file)
+                    .map(|src| span_to_lsp_range(src, iri_span))
                     .unwrap_or_default();
                 req.0.push(Location { uri, range });
                 continue;
@@ -285,6 +304,89 @@ mod fs {
     }
 }
 
+fn build_cjs_quads(registry: &ComponentRegistry) -> Vec<Quad> {
+    let rdf_type = NamedNode::new_unchecked("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+    let rdfs_class = NamedNode::new_unchecked("http://www.w3.org/2000/01/rdf-schema#Class");
+    let rdfs_subclass_of =
+        NamedNode::new_unchecked("http://www.w3.org/2000/01/rdf-schema#subClassOf");
+    let rdfs_comment = NamedNode::new_unchecked("http://www.w3.org/2000/01/rdf-schema#comment");
+    let rdf_property =
+        NamedNode::new_unchecked("http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
+    let rdfs_domain = NamedNode::new_unchecked("http://www.w3.org/2000/01/rdf-schema#domain");
+    let rdfs_range = NamedNode::new_unchecked("http://www.w3.org/2000/01/rdf-schema#range");
+
+    let graph = GraphName::DefaultGraph;
+    let mut quads = Vec::new();
+
+    for comp in registry.components.values() {
+        let iri = NamedNode::new_unchecked(&comp.iri);
+
+        quads.push(Quad::new(
+            iri.clone(),
+            rdf_type.clone(),
+            rdfs_class.clone(),
+            graph.clone(),
+        ));
+
+        if let Some(comment) = &comp.comment {
+            quads.push(Quad::new(
+                iri.clone(),
+                rdfs_comment.clone(),
+                Literal::new_simple_literal(comment.as_str()),
+                graph.clone(),
+            ));
+        }
+
+        for parent in &comp.extends {
+            let parent_node = NamedNode::new_unchecked(parent);
+            quads.push(Quad::new(
+                iri.clone(),
+                rdfs_subclass_of.clone(),
+                parent_node,
+                graph.clone(),
+            ));
+        }
+
+        for param in &comp.parameters {
+            let param_iri = NamedNode::new_unchecked(&param.iri);
+
+            quads.push(Quad::new(
+                param_iri.clone(),
+                rdf_type.clone(),
+                rdf_property.clone(),
+                graph.clone(),
+            ));
+            quads.push(Quad::new(
+                param_iri.clone(),
+                rdfs_domain.clone(),
+                iri.clone(),
+                graph.clone(),
+            ));
+
+            if let Some(range) = &param.range {
+                let range_node = NamedNode::new_unchecked(range);
+                quads.push(Quad::new(
+                    param_iri.clone(),
+                    rdfs_range.clone(),
+                    range_node,
+                    graph.clone(),
+                ));
+            }
+
+            if let Some(comment) = &param.comment {
+                quads.push(Quad::new(
+                    param_iri.clone(),
+                    rdfs_comment.clone(),
+                    Literal::new_simple_literal(comment.as_str()),
+                    graph.clone(),
+                ));
+            }
+        }
+    }
+
+    quads
+}
+
 #[derive(Resource)]
 pub struct Registry(pub ComponentRegistry, pub ModuleState);
 impl Registry {
@@ -314,7 +416,46 @@ fn start_jsonld<C: Client + Resource + Clone>(
             if let Ok(reg) = start_testing(&fs, &ws).await {
                 let mut command_queue = CommandQueue::default();
                 command_queue.push(move |world: &mut World| {
+                    let quads = build_cjs_quads(&reg.0);
                     world.insert_resource(reg);
+
+                    // let store_clone = world.get_resource::<swls_core::store::Store>();
+                    //
+                    // if let Some(store) = store_clone {
+                    //     tracing::info!("Derive store found adding {} triples", quads.len());
+                    //     let mut loader = store.0.bulk_loader();
+                    //     let _ = loader.load_quads(quads.into_iter());
+                    //     let _ = loader.commit();
+                    // } else {
+                    //     tracing::info!("Derive no store found");
+                    // }
+
+                    //     let classes = find_classes(&store);
+                    //     let props = find_properties(&store);
+                    //
+                    //     if let Some(mut onto) = world.get_resource_mut::<swls_core::prelude::Ontologies>() {
+                    //         if let Some(c) = classes {
+                    //             onto.classes = c;
+                    //         }
+                    //         if let Some(ref p) = props {
+                    //             onto.properties = p.clone();
+                    //         }
+                    //     }
+                    //
+                    //     if let Some(p) = props {
+                    //         if let Some(mut hierarchy) = world.get_resource_mut::<swls_core::prelude::TypeHierarchy<'static>>() {
+                    //             for prop in p.values() {
+                    //                 for d in &prop.domains {
+                    //                     let _ = hierarchy.get_id(d.as_str());
+                    //                 }
+                    //                 for r in &prop.ranges {
+                    //                     let _ = hierarchy.get_id(r.as_str());
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // }
+
                     let _ = world.run_system_once(derive_jsonld_triples::<C>);
                 });
                 let _ = commands.unbounded_send(command_queue);

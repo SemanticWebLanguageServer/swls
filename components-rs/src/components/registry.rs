@@ -110,6 +110,9 @@ pub struct ComponentRegistry {
     pub components: HashMap<String, CjsComponent>,
     /// All modules indexed by their fully expanded IRI.
     pub modules: HashMap<String, CjsModule>,
+    /// All parameters indexed by their fully expanded IRI, pointing to
+    /// `(source_file, iri_span)` for goto-definition without searching every file.
+    pub parameters: HashMap<String, (String, Range<usize>)>,
     /// Raw source text of every component file that was loaded, keyed by the
     /// absolute file path (same strings used in `CjsComponent::source_file` and
     /// `CjsModule::source_file`).  Used by the LSP to convert `iri_span` byte
@@ -140,6 +143,7 @@ impl ComponentRegistry {
         Self {
             components: HashMap::new(),
             modules: HashMap::new(),
+            parameters: HashMap::new(),
             file_sources: HashMap::new(),
         }
     }
@@ -439,7 +443,7 @@ impl ComponentRegistry {
             .and_then(|v| v.as_str())
             .map(String::from);
 
-        let parameters = self.parse_parameters(value, resolver, id_spans);
+        let parameters = self.parse_parameters(value, resolver, id_spans, id_source_files, &source_file);
 
         let extends: Vec<String> =
             match value.get("extends").or_else(|| value.get(IRI_RDFS_SUBCLASS_OF)) {
@@ -487,6 +491,8 @@ impl ComponentRegistry {
         value: &JsonLdVal,
         resolver: &ContextResolver,
         id_spans: &HashMap<String, Range<usize>>,
+        id_source_files: &HashMap<String, String>,
+        fallback_source_file: &str,
     ) -> Vec<CjsParameter> {
         let params = match value.get("parameters").or_else(|| value.get(IRI_PARAMETER)) {
             Some(v) => v,
@@ -520,6 +526,10 @@ impl ComponentRegistry {
                 let lazy = p.get("lazy").and_then(|v| v.as_bool()).unwrap_or(false);
                 let unique = p.get("unique").and_then(|v| v.as_bool()).unwrap_or(false);
                 let default_value = p.get("default").cloned();
+                let source_file = id_source_files
+                    .get(&iri)
+                    .cloned()
+                    .unwrap_or_else(|| fallback_source_file.to_string());
 
                 Some(CjsParameter {
                     iri,
@@ -529,6 +539,7 @@ impl ComponentRegistry {
                     lazy,
                     unique,
                     default_value,
+                    source_file,
                     iri_span,
                 })
             })
@@ -551,6 +562,16 @@ impl ComponentRegistry {
                         comp.parameters.push(param);
                     }
                 }
+            }
+        }
+
+        // Build flat parameter index for O(1) goto-definition lookups.
+        // Use first-seen (the defining component wins over inheritors).
+        for comp in self.components.values() {
+            for param in &comp.parameters {
+                self.parameters
+                    .entry(param.iri.clone())
+                    .or_insert_with(|| (param.source_file.clone(), param.iri_span.clone()));
             }
         }
     }
@@ -602,8 +623,12 @@ pub fn resolve_iri_to_path(
             return Some(local_dir.join(suffix));
         }
     }
-    if let Some(path) = iri.strip_prefix("file://") {
-        return Some(PathBuf::from(path));
+    // Handle file:// URIs: strip scheme + optional host component so that
+    // both "file:///home/..." and "file:////home/..." (4 slashes) produce a
+    // valid absolute path "/home/...".
+    if let Some(rest) = iri.strip_prefix("file://") {
+        let clean = rest.trim_start_matches('/');
+        return Some(PathBuf::from(format!("/{clean}")));
     }
     None
 }

@@ -147,8 +147,8 @@ pub struct CjsComponent {
 /// - **Key completion** inside config instance objects (the parameter IRI,
 ///   compacted via the active context, is the JSON key)
 /// - **Type-aware value completion** — `range` restricts accepted value types
-/// - **Goto-definition** on a config parameter key — `iri_span` points to the
-///   `@id` in the component definition file
+/// - **Goto-definition** on a config parameter key — `source_file` + `iri_span`
+///   point to the `@id` in the component definition file
 #[derive(Debug, Clone)]
 pub struct CjsParameter {
     /// Fully expanded parameter IRI (the JSON key in a config file after expansion).
@@ -165,7 +165,9 @@ pub struct CjsParameter {
     pub unique: bool,
     /// Default value used when the parameter is omitted.
     pub default_value: Option<JsonLdVal>,
-    /// Byte range of the `@id` value for this parameter in the components file.
+    /// Absolute path to the file where this parameter's `@id` is defined.
+    pub source_file: String,
+    /// Byte range of the `@id` value for this parameter in `source_file`.
     pub iri_span: Range<usize>,
 }
 

@@ -25,6 +25,7 @@ swls-lang-rdf-base = { workspace = true }
 swls-lang-turtle   = { workspace = true }
 swls-lov           = { workspace = true }
 async-trait.workspace  = true
+oxigraph               = { version = "0.5.3", features = ["rdf-12"], default-features = false }
 serde_json.workspace   = true
 
 [dev-dependencies]

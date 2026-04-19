@@ -133,10 +133,12 @@ pub fn derive_ontologies(
 ) {
     if !query.is_empty() {
         if let Some(classes) = find_classes(&store.0) {
+            tracing::info!("Derive {} classes", classes.len());
             resource.classes = classes;
         }
 
         if let Some(properties) = find_properties(&store.0) {
+            tracing::info!("Derive {} properties", properties.len());
             for p in properties.values() {
                 for domain in &p.domains {
                     let _ = hierarchy.get_id(domain.as_str());

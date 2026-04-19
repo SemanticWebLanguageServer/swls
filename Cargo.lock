@@ -3442,6 +3442,7 @@ dependencies = [
  "bevy_ecs",
  "components-rs",
  "futures",
+ "oxigraph",
  "rdf-parsers",
  "ropey",
  "rowan",
