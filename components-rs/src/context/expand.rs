@@ -78,21 +78,21 @@ impl ContextResolver {
                     if let Some(inner) = ctx_doc.get("@context") {
                         self.load_context_value(inner, known_contexts)?;
                     } else {
-                        self.load_context_object(ctx_doc)?;
+                        self.load_context_object(ctx_doc, known_contexts)?;
                     }
                 } else {
                     tracing::warn!("Unknown context URL: {url} — skipping");
                 }
             }
             JsonLdVal::Object(_, _) => {
-                self.load_context_object(value)?;
+                self.load_context_object(value, known_contexts)?;
             }
             _ => {}
         }
         Ok(())
     }
 
-    fn load_context_object(&mut self, obj: &JsonLdVal) -> Result<()> {
+    fn load_context_object(&mut self, obj: &JsonLdVal, known_contexts: &HashMap<String, JsonLdVal>) -> Result<()> {
         let members = obj
             .as_object()
             .ok_or_else(|| ComponentsJsError::ContextResolution("Expected object".into()))?;
@@ -107,7 +107,7 @@ impl ContextResolver {
                 k if k.starts_with('@') => {}
                 _ => match val {
                     JsonLdVal::Str(iri) => {
-                        if iri.ends_with('/') || iri.ends_with('#') || iri.ends_with(':') {
+                        if iri.ends_with('/') || iri.ends_with('#') {
                             self.prefixes.insert(key.clone(), iri.clone());
                         } else {
                             self.terms.insert(
@@ -134,6 +134,11 @@ impl ContextResolver {
                                     container,
                                 },
                             );
+                        }
+                        // Flatten type-scoped @context so parameter names like
+                        // `originalUrlExtractor` are available for IRI compaction.
+                        if let Some(inner_ctx) = val.get("@context") {
+                            self.load_context_value(inner_ctx, known_contexts)?;
                         }
                     }
                     _ => {}
@@ -232,7 +237,7 @@ impl IriCompactor {
             if let Some(inner) = ctx_doc.get("@context") {
                 resolver.load_context_value(inner, known_contexts)?;
             } else {
-                resolver.load_context_object(ctx_doc)?;
+                resolver.load_context_object(ctx_doc, known_contexts)?;
             }
         }
 

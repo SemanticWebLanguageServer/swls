@@ -234,16 +234,21 @@ fn extra_from_lov<C: Client + Resource>(
     }
 }
 
-pub(super) async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> Option<String> {
-    return None;
-    if let Some(url) = extract_file_url(&prefix, &c).await {
-        match c.fetch(&url, &std::collections::HashMap::new()).await {
-            Ok(resp) if resp.status == 200 => return Some(resp.body),
-            Ok(resp) => {
-                error!("Fetch ({}) failed status {}", url, resp.status);
-            }
-            Err(e) => {
-                error!("Fetch ({}) failed {:?}", url, e);
+pub(super) async fn fetch_lov_body<C: Client + Resource>(
+    prefix: &str,
+    namespace: &str,
+    c: C,
+) -> Option<String> {
+    if namespace.ends_with('#') || namespace.ends_with('/') {
+        if let Some(url) = extract_file_url(&prefix, &c).await {
+            match c.fetch(&url, &std::collections::HashMap::new()).await {
+                Ok(resp) if resp.status == 200 => return Some(resp.body),
+                Ok(resp) => {
+                    error!("Fetch ({}) failed status {}", url, resp.status);
+                }
+                Err(e) => {
+                    error!("Fetch ({}) failed {:?}", url, e);
+                }
             }
         }
     }
@@ -253,7 +258,7 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(prefix: &str, c: C) -> 
 async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
     tracing::info!("A FUTURE IS STARTING");
     if prefix.prefix.to_ascii_lowercase() == prefix.prefix {
-        if let Some(body) = fetch_lov_body(&prefix.prefix, c).await {
+        if let Some(body) = fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c).await {
             let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
             spawn_document(label, body, &sender, extra);
         }
@@ -275,7 +280,7 @@ async fn local_lov<C: Client + Resource>(
     );
     let content = if local.content.is_empty() {
         info!("Fetching from LOV {}", local.name);
-        if let Some(body) = fetch_lov_body(&local.name, c).await {
+        if let Some(body) = fetch_lov_body(&local.name, &local.namespace, c).await {
             Cow::Owned(body)
         } else {
             return;

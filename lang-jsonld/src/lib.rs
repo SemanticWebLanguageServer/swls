@@ -419,14 +419,14 @@ fn start_jsonld<C: Client + Resource + Clone>(
                     let quads = build_cjs_quads(&reg.0);
                     world.insert_resource(reg);
 
-                    // let store_clone = world.get_resource::<swls_core::store::Store>();
+                    let store_clone = world.get_resource::<swls_core::store::Store>();
                     //
-                    // if let Some(store) = store_clone {
-                    //     tracing::info!("Derive store found adding {} triples", quads.len());
-                    //     let mut loader = store.0.bulk_loader();
-                    //     let _ = loader.load_quads(quads.into_iter());
-                    //     let _ = loader.commit();
-                    // } else {
+                    if let Some(store) = store_clone {
+                        tracing::info!("Derive store found adding {} triples", quads.len());
+                        let mut loader = store.0.bulk_loader();
+                        let _ = loader.load_quads(quads.into_iter());
+                        let _ = loader.commit();
+                    }
                     //     tracing::info!("Derive no store found");
                     // }
 

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
@@ -10,7 +10,7 @@ use swls_core::{
 use swls_lov::LocalPrefix;
 use tracing::instrument;
 
-use crate::{ecs::JsonLdActiveContext, JsonLdLang};
+use crate::{ecs::JsonLdActiveContext, JsonLdLang, Registry};
 
 /// Strip the leading and trailing JSON string quotes from a token's text.
 /// Returns the unquoted content, or the original text if it is not a quoted string.
@@ -345,85 +345,88 @@ pub fn jsonld_lov_undefined_prefix_completion(
         );
     }
 }
-/// JSON-LD property/predicate completion based on declared namespace prefixes.
+/// JSON-LD property completion driven by the CJS component registry.
 ///
-/// When the cursor is in predicate position inside a JSON-LD document this
-/// system offers property names shortened via the `@context`-declared prefixes
-/// (e.g. `foaf:name`). Unlike the generic [`complete_properties`] system the
-/// completion text is wrapped in JSON string quotes because JSON-LD predicates
-/// are always JSON string values.
-#[instrument(skip(query, hierarchy, resource, config))]
+/// When the cursor is in predicate position this system looks up the CJS
+/// component for the subject's declared `@type` and suggests its parameter
+/// names (including inherited ones).  Parameter IRIs are compacted via the
+/// document's active `@context` terms first, then via declared prefixes.
+#[instrument(skip(query, hierarchy, registry))]
 pub fn jsonld_property_completion(
     mut query: Query<
         (
             &TokenComponent,
             &TripleComponent,
-            &Prefixes,
             &Types,
+            &JsonLdActiveContext,
+            &Prefixes,
             &mut CompletionRequest,
         ),
         With<JsonLdLang>,
     >,
     hierarchy: Res<TypeHierarchy<'static>>,
-    resource: Res<Ontologies>,
-    config: Res<ServerConfig>,
+    registry: Res<Registry>,
 ) {
-    for (token, triple, prefixes, types, mut request) in &mut query {
+    for (token, triple, types, active_ctx, prefixes, mut request) in &mut query {
         if triple.target != TripleTarget::Predicate {
             continue;
         }
 
         let bare_text = unquote(&token.text);
 
-        let tts = types.get(&triple.triple.subject.value);
+        let Some(type_ids) = types.get(triple.triple.subject.value.as_ref()) else {
+            continue;
+        };
 
-        let subclasses: HashSet<_> = tts
+        // Build reverse lookup: full IRI -> term name (from active context).
+        let iri_to_term: HashMap<&str, &str> = active_ctx
+            .0
+            .terms
             .iter()
-            .flat_map(|x| x.iter())
+            .filter_map(|(term, def)| def.iri.as_deref().map(|iri| (iri, term.as_str())))
+            .collect();
+
+        let subclasses: HashSet<_> = type_ids
+            .iter()
             .flat_map(|t| hierarchy.iter_subclass(*t))
             .collect();
 
-        for property in resource.properties.values() {
-            let correct_domain = property
-                .domains
-                .iter()
-                .any(|domain| subclasses.contains(domain.as_str()));
+        let mut seen_params: HashSet<String> = HashSet::new();
 
-            if !subclasses.is_empty()
-                && config
-                    .config
-                    .local
-                    .completion
-                    .correct_domain_required(&property.term.value)
-                && !correct_domain
-            {
+        for type_iri in &subclasses {
+            let Some(component) = registry.0.components.get(type_iri.as_ref()) else {
                 continue;
-            }
+            };
 
-            let to_beat = prefixes
-                .shorten(&property.term.value)
-                .map(Cow::Owned)
-                .unwrap_or(property.term.value.clone());
+            for param in &component.parameters {
+                let compact = iri_to_term
+                    .get(param.iri.as_str())
+                    .map(|&t| t.to_string())
+                    .or_else(|| prefixes.shorten(&param.iri));
 
-            if to_beat.starts_with(bare_text) {
-                let quoted = format!("\"{}\"", to_beat);
+                let Some(compact) = compact else {
+                    continue;
+                };
+
+                if !compact.starts_with(bare_text) || !seen_params.insert(compact.clone()) {
+                    continue;
+                }
+
                 let mut completion = SimpleCompletion::new(
-                    CompletionItemKind::ENUM_MEMBER,
-                    to_beat.to_string(),
+                    CompletionItemKind::FIELD,
+                    compact.clone(),
                     TextEdit {
                         range: token.range.clone(),
-                        new_text: quoted,
+                        new_text: format!("\"{}\"", compact),
                     },
-                )
-                .label_description(&property.full_title())
-                .documentation(&property.full_docs(prefixes));
+                );
 
-                if correct_domain {
-                    completion.kind = CompletionItemKind::FIELD;
-                    request.push(completion.sort_text(format!("0{}", to_beat)));
-                } else {
-                    request.push(completion.sort_text(format!("1{}", to_beat)));
+                if let Some(comment) = &param.comment {
+                    completion = completion.documentation(comment.as_str());
                 }
+
+                let sort_prefix = if param.required { "0" } else { "1" };
+                request.push(completion.sort_text(format!("{}{}", sort_prefix, compact)));
             }
         }
     }
@@ -483,7 +486,7 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
-            // jsonld_property_completion.after(generate_completions),
+            jsonld_property_completion.after(generate_completions),
             // jsonld_context_alias_completion.after(generate_completions),
             jsonld_lov_undefined_prefix_completion.after(generate_completions),
         ));

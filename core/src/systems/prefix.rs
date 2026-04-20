@@ -130,6 +130,7 @@ pub fn prefix_completion_helper<'a>(
             .chain(prefix_cc.map(|x| PrefixLike::Entry(x)))
             .chain(prefixes.iter().map(PrefixLike::Prefix))
             .filter(|p| p.name().starts_with(text))
+            .filter(|p| p.namespace().ends_with('#') || p.namespace().ends_with('/'))
             .flat_map(|lov| {
                 if suggested.contains(lov.name()) {
                     return None;
