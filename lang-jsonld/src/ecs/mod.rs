@@ -1,6 +1,8 @@
 use std::{collections::HashMap, future::Future, pin::Pin};
 
-use bevy_ecs::{prelude::*, schedule::ScheduleLabel, world::CommandQueue};
+use bevy_ecs::{
+    prelude::*, schedule::ScheduleLabel, system::RunSystemOnce as _, world::CommandQueue,
+};
 use futures::{channel, SinkExt};
 use rdf_parsers::{
     jsonld::{
@@ -12,7 +14,10 @@ use rdf_parsers::{
     IncrementalBias, PrevParseInfo,
 };
 use rowan::{GreenNode, NodeOrToken};
-use swls_core::{lsp_types::Url, prelude::*};
+use swls_core::{
+    lsp_types::{request::InlayHintRefreshRequest, TextDocumentItem, Url},
+    prelude::*,
+};
 use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::{info, instrument};
 
@@ -52,6 +57,7 @@ impl ContextLoader for WorldContextLoader {
             let (sender, receiver) = futures::channel::oneshot::channel::<Result<String, _>>();
             let mut command_queue = CommandQueue::default();
             let url2 = url.clone();
+            tracing::info!("Trying to find context {}", url.as_str());
             command_queue.push(move |world: &mut World| {
                 world.spawn(ContextRequest {
                     url: url2,
@@ -181,6 +187,7 @@ fn fetch_from_web<C: Client + Resource + Clone>(
     mut requests: Query<(&mut ContextRequest,), Added<ContextRequest>>,
     sender: Res<CommandSender>,
     client: Res<C>,
+    fs: Res<Fs>,
 ) {
     for (r,) in requests.iter_mut() {
         let client_clone = client.as_ref().clone();
@@ -190,30 +197,65 @@ fn fetch_from_web<C: Client + Resource + Clone>(
             continue;
         };
         let sender = sender.clone();
-        client.spawn(async move {
-            if let Ok(resp) = client_clone.fetch(&url, &HashMap::new()).await {
-                let mut cq = CommandQueue::default();
-                cq.push(move |world: &mut World| {
-                    if world
-                        .query::<(Entity, &Label)>()
-                        .iter(&world)
-                        .find(|x| x.1.as_str() == &url)
-                        .is_none()
-                    {
-                        world.spawn((
-                            // JsonLdLang,
-                            // DynLang(Box::new(JsonLdHelper)),
-                            Source(resp.body),
-                            Label(label),
-                        ));
-                    }
+        if label.scheme().starts_with("http") {
+            client.spawn(async move {
+                if let Ok(resp) = client_clone.fetch(&url, &HashMap::new()).await {
+                    let mut cq = CommandQueue::default();
+                    cq.push(move |world: &mut World| {
+                        if world
+                            .query::<(Entity, &Label)>()
+                            .iter(&world)
+                            .find(|x| x.1.as_str() == &url)
+                            .is_none()
+                        {
+                            world.spawn((Source(resp.body), Label(label)));
+                            let _ = world.run_system_once(derive_jsonld_triples::<C>);
+                        }
+                    });
+                    let _ = sender.unbounded_send(cq);
+                }
+            });
+        } else {
+            let fs = fs.clone();
+            client.spawn(async move {
+                if let Some(resp) = fs.0.read_file(&label).await {
+                    let mut cq = CommandQueue::default();
+                    cq.push(move |world: &mut World| {
+                        if world
+                            .query::<(Entity, &Label)>()
+                            .iter(&world)
+                            .find(|x| x.1.as_str() == &url)
+                            .is_none()
+                        {
+                            let item = TextDocumentItem {
+                                version: 1,
+                                uri: label.clone(),
+                                language_id: String::from("turtle"),
+                                text: String::new(),
+                            };
+                            let e = world
+                                .spawn((
+                                    RopeC(ropey::Rope::from_str(&resp)),
+                                    Source(resp),
+                                    Label(label.clone()),
+                                    Wrapped(item),
+                                    Types(HashMap::new()),
+                                ))
+                                .id();
 
-                    world.flush();
-                    world.run_schedule(FetchLabel);
-                });
-                let _ = sender.unbounded_send(cq);
-            }
-        });
+                            world.trigger(CreateEvent {
+                                url: label,
+                                language_id: Some("jsonld".to_string()),
+                                entity: e,
+                            });
+                            tracing::info!("Found local file, rerunning the deriving {}", url);
+                            let _ = world.run_system_once(derive_jsonld_triples::<C>);
+                        }
+                    });
+                    let _ = sender.unbounded_send(cq);
+                }
+            });
+        }
     }
 }
 
@@ -281,6 +323,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
         let span = 0..source.0.len();
         let mut sender = sender.clone();
         let gn = gn.0.clone();
+        let c2 = client.clone();
         client.spawn_local(async move {
             let mut loader = WorldContextLoader {
                 sender: sender.clone(),
@@ -308,6 +351,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
                 world.run_schedule(ParseLabel);
             });
             let _ = sender.0.send(command_queue).await;
+            c2.send_request::<InlayHintRefreshRequest>(()).await;
         });
     }
 }

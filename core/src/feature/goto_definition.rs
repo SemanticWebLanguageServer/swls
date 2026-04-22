@@ -40,16 +40,23 @@ mod system {
             &Triples,
             &Label,
             &RopeC,
+            &PositionComponent,
             &mut GotoDefinitionRequest,
         )>,
         project: Query<(&Triples, &RopeC, &Label)>,
     ) {
-        for (triple, triples, label, rope, mut req) in &mut query {
+        for (triple, triples, label, rope, pos, mut req) in &mut query {
             let target = triple.kind();
             let Some(term) = triple.term() else {
                 continue;
             };
             let _span = tracing::debug_span!("goto_definition", term = %term.value).entered();
+            let Some(idx) = position_to_offset(pos.0, rope) else {
+                continue;
+            };
+            if !term.span.contains(&idx) {
+                continue;
+            }
 
             tracing::debug!("kind {:?}", target);
             if target == TermKind::Iri {

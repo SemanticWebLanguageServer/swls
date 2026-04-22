@@ -526,7 +526,10 @@ impl LanguageServer for Backend {
                 (PositionComponent(pos), GotoDefinitionRequest(Vec::new())),
             )
             .await
-            .map(|x| GotoDefinitionResponse::Array(x.0));
+            .map(|x| {
+                tracing::info!("response {:?}", x.0);
+                GotoDefinitionResponse::Array(x.0)
+            });
 
         Ok(arr)
     }

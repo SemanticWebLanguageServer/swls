@@ -205,7 +205,7 @@ pub struct CreateEvent {
     pub url: crate::lsp_types::Url,
     pub language_id: Option<String>,
     #[event_target]
-    entity: Entity,
+    pub entity: Entity,
 }
 
 /// [`ScheduleLabel`] related to the Tasks schedule

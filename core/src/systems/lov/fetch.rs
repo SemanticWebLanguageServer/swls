@@ -135,16 +135,8 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                         local.content.is_empty()
                     );
 
-                    let label = match crate::lsp_types::Url::parse(&local.location) {
-                        Ok(label) => label,
-                        Err(e) => {
-                            tracing::error!(
-                                "Failed to parse defined prefix location {} {:?}",
-                                local.location,
-                                e
-                            );
-                            continue;
-                        }
+                    let Some(label) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) else {
+                        continue;
                     };
 
                     found = true;

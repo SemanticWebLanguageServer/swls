@@ -10,7 +10,7 @@ use futures::FutureExt;
 use swls_core::prelude::FsDirEntry;
 use swls_core::{
     client::{Client, ClientSync, Resp},
-    lsp_types::{Diagnostic, MessageType, Url},
+    lsp_types::{request::Request, Diagnostic, MessageType, Url},
     prelude::{File, FsTrait},
 };
 use tokio::fs::{self, read_to_string, write};
@@ -201,6 +201,14 @@ impl ClientSync for TowerClient {
 impl Client for TowerClient {
     async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> () {
         self.client.log_message(ty, msg).await;
+    }
+
+    async fn send_request<R: Request>(&self, params: R::Params) -> Option<R::Result>
+    where
+        R::Params: Sync + Send + 'static,
+        R::Result: Sync + Send + 'static,
+    {
+        self.client.send_request::<R>(params).await.ok()
     }
 
     async fn publish_diagnostics(

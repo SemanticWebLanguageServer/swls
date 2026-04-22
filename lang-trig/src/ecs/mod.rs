@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
-use rowan::NodeOrToken;
+use rowan::{GreenNode, NodeOrToken};
 use swls_core::prelude::*;
 use swls_lang_turtle::{
     ecs::parse::derive_triples_system,
@@ -116,6 +116,8 @@ fn parse_trig_system(
             prev,
             IncrementalBias::default(),
         );
+
+        let gn = parse.green_node.clone();
         prev_infos.insert(label.to_string(), new_prev);
 
         let syntax = parse.syntax::<Lang>();
@@ -137,12 +139,16 @@ fn parse_trig_system(
         if errors.is_empty() {
             commands
                 .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens)))
+                .insert((element, Errors(errors), CstTokens(cst_tokens), Wrapped(gn)))
                 .remove::<Dirty>();
         } else {
-            commands
-                .entity(entity)
-                .insert((element, Errors(errors), CstTokens(cst_tokens), Dirty));
+            commands.entity(entity).insert((
+                element,
+                Errors(errors),
+                CstTokens(cst_tokens),
+                Dirty,
+                Wrapped(gn),
+            ));
         }
     }
 }
@@ -178,5 +184,30 @@ fn derive_prefixes(
             .unwrap_or(url.0.clone());
 
         commands.entity(entity).insert(Prefixes(prefixes, base));
+    }
+}
+
+pub(crate) fn format_trig_system(
+    mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<TriGLang>>,
+) {
+    use swls_core::lsp_types::{Position, Range};
+    for (source, node, mut request) in &mut query {
+        if request.0.is_some() {
+            tracing::debug!("Didn't format with the trig format system, already formatted");
+            continue;
+        }
+        tracing::debug!("Formatting with trig format system");
+
+        let root = rowan::SyntaxNode::new_root(node.0.clone());
+
+        let formatted = rdf_parsers::trig::format::format(&root, 80);
+
+        request.0 = Some(vec![swls_core::lsp_types::TextEdit::new(
+            Range::new(
+                Position::new(0, 0),
+                Position::new(source.0.len_lines() as u32 + 1, 0),
+            ),
+            formatted,
+        )]);
     }
 }

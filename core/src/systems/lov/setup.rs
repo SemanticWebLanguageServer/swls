@@ -15,6 +15,7 @@ pub fn populate_known_ontologies(mut commands: Commands) {
     let mut actual_local = HashSet::new();
     for lov in swls_lov::LOCAL_PREFIXES.iter() {
         actual_local.insert(lov.name.clone());
+        // TODO:  I actually want to spawn the ontology fully
         commands.spawn(lov.clone());
     }
 

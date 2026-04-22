@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display, pin::Pin};
 
+use crate::lsp_types::request::Request;
 use crate::lsp_types::{Diagnostic, MessageType, Url};
 
 #[derive(Debug)]
@@ -18,6 +19,13 @@ pub trait Client: Clone + ClientSync {
         diags: Vec<Diagnostic>,
         version: Option<i32>,
     ) -> ();
+    async fn send_request<R: Request + Sync + Send + 'static>(
+        &self,
+        params: R::Params,
+    ) -> Option<R::Result>
+    where
+        R::Params: Sync + Send + 'static,
+        R::Result: Sync + Send + 'static;
 }
 
 pub trait ClientSync {

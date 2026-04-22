@@ -274,8 +274,19 @@ impl ComponentRegistry {
                 }
             }
 
-            self.process_imports_collect(fs, &doc, &nodes, &resolver, state, all_nodes, visited, id_spans, id_source_files, file_sources)
-                .await?;
+            self.process_imports_collect(
+                fs,
+                &doc,
+                &nodes,
+                &resolver,
+                state,
+                all_nodes,
+                visited,
+                id_spans,
+                id_source_files,
+                file_sources,
+            )
+            .await?;
 
             Ok(())
         })
@@ -313,8 +324,17 @@ impl ComponentRegistry {
             for iri in import_iris {
                 if let Some(local_path) = resolve_iri_to_path(&iri, &state.import_paths) {
                     if cfs::exists(fs, &local_path).await {
-                        self.collect_nodes_from_file(fs, &local_path, state, all_nodes, visited, id_spans, id_source_files, file_sources)
-                            .await?;
+                        self.collect_nodes_from_file(
+                            fs,
+                            &local_path,
+                            state,
+                            all_nodes,
+                            visited,
+                            id_spans,
+                            id_source_files,
+                            file_sources,
+                        )
+                        .await?;
                     }
                 }
             }
@@ -443,28 +463,31 @@ impl ComponentRegistry {
             .and_then(|v| v.as_str())
             .map(String::from);
 
-        let parameters = self.parse_parameters(value, resolver, id_spans, id_source_files, &source_file);
+        let parameters =
+            self.parse_parameters(value, resolver, id_spans, id_source_files, &source_file);
 
-        let extends: Vec<String> =
-            match value.get("extends").or_else(|| value.get(IRI_RDFS_SUBCLASS_OF)) {
-                Some(JsonLdVal::Str(s)) => vec![resolver.expand_term(s)],
-                Some(v) if v.as_array().is_some() => v
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .filter_map(|(item, _)| match item {
-                        JsonLdVal::Str(s) => Some(resolver.expand_term(s)),
-                        _ => item.get("@id")?.as_str().map(|s| resolver.expand_term(s)),
-                    })
-                    .collect(),
-                Some(v) => v
-                    .get("@id")
-                    .and_then(|v| v.as_str())
-                    .map(|s| resolver.expand_term(s))
-                    .into_iter()
-                    .collect(),
-                None => vec![],
-            };
+        let extends: Vec<String> = match value
+            .get("extends")
+            .or_else(|| value.get(IRI_RDFS_SUBCLASS_OF))
+        {
+            Some(JsonLdVal::Str(s)) => vec![resolver.expand_term(s)],
+            Some(v) if v.as_array().is_some() => v
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|(item, _)| match item {
+                    JsonLdVal::Str(s) => Some(resolver.expand_term(s)),
+                    _ => item.get("@id")?.as_str().map(|s| resolver.expand_term(s)),
+                })
+                .collect(),
+            Some(v) => v
+                .get("@id")
+                .and_then(|v| v.as_str())
+                .map(|s| resolver.expand_term(s))
+                .into_iter()
+                .collect(),
+            None => vec![],
+        };
 
         let constructor_arguments = value
             .get("constructorArguments")
@@ -510,13 +533,13 @@ impl ComponentRegistry {
                 let iri = resolver.expand_term(id_str);
                 let iri_span = id_spans.get(&iri).cloned().unwrap_or(0..0);
 
-                let range = p
-                    .get("range")
-                    .or_else(|| p.get(IRI_RDFS_RANGE))
-                    .and_then(|v| match v {
-                        JsonLdVal::Str(s) => Some(resolver.expand_term(s)),
-                        _ => v.get("@id")?.as_str().map(|s| resolver.expand_term(s)),
-                    });
+                let range =
+                    p.get("range")
+                        .or_else(|| p.get(IRI_RDFS_RANGE))
+                        .and_then(|v| match v {
+                            JsonLdVal::Str(s) => Some(resolver.expand_term(s)),
+                            _ => v.get("@id")?.as_str().map(|s| resolver.expand_term(s)),
+                        });
                 let comment = p
                     .get("comment")
                     .or_else(|| p.get(IRI_RDFS_COMMENT))
@@ -626,6 +649,7 @@ pub fn resolve_iri_to_path(
     // Handle file:// URIs: strip scheme + optional host component so that
     // both "file:///home/..." and "file:////home/..." (4 slashes) produce a
     // valid absolute path "/home/...".
+
     if let Some(rest) = iri.strip_prefix("file://") {
         let clean = rest.trim_start_matches('/');
         return Some(PathBuf::from(format!("/{clean}")));

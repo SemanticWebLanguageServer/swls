@@ -6,6 +6,7 @@ pub mod cjs;
 
 use bevy_ecs::{
     component::Component,
+    query::With,
     resource::Resource,
     schedule::IntoScheduleConfigs,
     system::{Query, Res, RunSystemOnce},
@@ -20,6 +21,7 @@ use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
     prelude::{goto_definition::GotoDefinitionRequest, *},
+    util::resolve_iri,
     Startup,
 };
 use swls_lang_rdf_base::register_rdf_lang;
@@ -113,21 +115,25 @@ fn span_to_lsp_range(source: &str, span: &std::ops::Range<usize>) -> swls_core::
 }
 
 fn goto_cjs(
-    mut query: Query<(
-        &TokenComponent,
-        Option<&TripleComponent>,
-        &mut GotoDefinitionRequest,
-    )>,
+    mut query: Query<
+        (
+            &TokenComponent,
+            Option<&TripleComponent>,
+            &Label,
+            &mut GotoDefinitionRequest,
+        ),
+        With<JsonLdLang>,
+    >,
     res: Res<Registry>,
 ) {
     use swls_core::lsp_types::{Location, Range};
 
-    for (token, triple, mut req) in &mut query {
+    for (token, triple, label, mut req) in &mut query {
         // Only use the expanded IRI from the TripleComponent if the cursor token
         // actually overlaps the matched term's span.  get_current_triple is lenient
         // and may fall back to a nearby triple (e.g. the first triple in the
         // document) when the cursor is on @context or other non-triple content.
-        let triple_term_str: Option<String> = triple.and_then(|tc| {
+        let triple_term_str = triple.and_then(|tc| {
             let term_span = match tc.target {
                 TripleTarget::Subject => &tc.triple.subject.span,
                 TripleTarget::Predicate => &tc.triple.predicate.span,
@@ -136,7 +142,7 @@ fn goto_cjs(
             };
             let cursor = token.source_span.start;
             if term_span.start <= cursor && cursor <= term_span.end {
-                tc.term().map(|t| t.as_str().to_string())
+                tc.term().map(|t| t.as_str())
             } else {
                 None
             }
@@ -144,6 +150,14 @@ fn goto_cjs(
         let st: &str = triple_term_str
             .as_deref()
             .unwrap_or_else(|| token.text.as_str().trim_matches('"'));
+
+        tracing::info!(
+            "Goto definition {:?} {} {:?} {:?}",
+            triple_term_str,
+            st,
+            token,
+            triple
+        );
 
         // Components: navigate to the component's own source file at the exact @id span.
         if let Some(component) = res.0.components.get(st) {
@@ -197,17 +211,28 @@ fn goto_cjs(
             }
         }
 
-        // Import IRIs: strip any fragment, then resolve to a local file path.
-        let iri_no_fragment = st.split('#').next().unwrap_or(st);
-        if let Some(path) = resolve_iri_to_path(iri_no_fragment, &res.1.import_paths) {
-            tracing::debug!("goto_cjs import IRI resolved to {:?}", path);
-            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
-                req.0.push(Location {
-                    uri,
-                    range: Range::default(),
-                });
-                continue;
+        if triple_term_str.is_none() {
+            // Import IRIs: strip any fragment, then resolve to a local file path.
+            let iri_no_fragment = st.split('#').next().unwrap_or(st);
+            if let Some(path) = resolve_iri_to_path(iri_no_fragment, &res.1.import_paths) {
+                tracing::debug!("goto_cjs import IRI resolved to {:?}", path);
+                if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
+                    req.0.push(Location {
+                        uri,
+                        range: Range::default(),
+                    });
+                    continue;
+                }
             }
+        }
+
+        let target = resolve_iri(&label.as_str(), st);
+        if let Ok(uri) = swls_core::lsp_types::Url::parse(&target) {
+            req.0.push(Location {
+                uri,
+                range: Range::default(),
+            });
+            continue;
         }
 
         tracing::debug!("goto_cjs: no definition found for '{}'", st);
@@ -427,34 +452,6 @@ fn start_jsonld<C: Client + Resource + Clone>(
                         let _ = loader.load_quads(quads.into_iter());
                         let _ = loader.commit();
                     }
-                    //     tracing::info!("Derive no store found");
-                    // }
-
-                    //     let classes = find_classes(&store);
-                    //     let props = find_properties(&store);
-                    //
-                    //     if let Some(mut onto) = world.get_resource_mut::<swls_core::prelude::Ontologies>() {
-                    //         if let Some(c) = classes {
-                    //             onto.classes = c;
-                    //         }
-                    //         if let Some(ref p) = props {
-                    //             onto.properties = p.clone();
-                    //         }
-                    //     }
-                    //
-                    //     if let Some(p) = props {
-                    //         if let Some(mut hierarchy) = world.get_resource_mut::<swls_core::prelude::TypeHierarchy<'static>>() {
-                    //             for prop in p.values() {
-                    //                 for d in &prop.domains {
-                    //                     let _ = hierarchy.get_id(d.as_str());
-                    //                 }
-                    //                 for r in &prop.ranges {
-                    //                     let _ = hierarchy.get_id(r.as_str());
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
 
                     let _ = world.run_system_once(derive_jsonld_triples::<C>);
                 });
