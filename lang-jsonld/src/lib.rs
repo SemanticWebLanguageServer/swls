@@ -224,15 +224,15 @@ fn goto_cjs(
                     continue;
                 }
             }
-        }
 
-        let target = resolve_iri(&label.as_str(), st);
-        if let Ok(uri) = swls_core::lsp_types::Url::parse(&target) {
-            req.0.push(Location {
-                uri,
-                range: Range::default(),
-            });
-            continue;
+            let target = resolve_iri(&label.as_str(), st);
+            if let Ok(uri) = swls_core::lsp_types::Url::parse(&target) {
+                req.0.push(Location {
+                    uri,
+                    range: Range::default(),
+                });
+                continue;
+            }
         }
 
         tracing::debug!("goto_cjs: no definition found for '{}'", st);
