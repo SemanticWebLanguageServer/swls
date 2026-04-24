@@ -42,6 +42,8 @@ pub struct ModuleState {
     pub contexts: HashMap<String, JsonLdVal>,
     /// Import paths: IRI prefix → absolute local directory URL.
     pub import_paths: HashMap<String, Url>,
+    /// Context URLs: full context IRI → absolute local file URL (from lsd:contexts).
+    pub context_urls: HashMap<String, Url>,
 }
 
 impl ModuleState {
@@ -54,13 +56,17 @@ impl ModuleState {
             component_modules: HashMap::new(),
             contexts: HashMap::new(),
             import_paths: HashMap::new(),
+            context_urls: HashMap::new(),
         }
     }
     /// Build the full module state from a project root URL.
     pub async fn build(fs: &dyn Fs, main_module_path: &Url) -> Result<Self> {
         let main_module_path = fs.canonicalize(main_module_path).await?;
 
-        tracing::info!("Building module state from: {}", main_module_path.as_str());
+        tracing::info!(
+            "[CJS] Building module state from: {}",
+            main_module_path.as_str()
+        );
 
         let node_module_import_paths =
             node_modules::build_node_module_import_paths(&main_module_path);
@@ -75,9 +81,10 @@ impl ModuleState {
         let component_modules = build_component_modules(&package_jsons)?;
         let contexts = build_component_contexts(fs, &package_jsons).await?;
         let import_paths = build_component_import_paths(&package_jsons)?;
+        let context_urls = build_component_context_urls(&package_jsons)?;
 
         tracing::info!(
-            "Found {} component modules, {} contexts, {} import paths",
+            "[CJS] Found {} component modules, {} contexts, {} import paths",
             component_modules.len(),
             contexts.len(),
             import_paths.len()
@@ -91,6 +98,7 @@ impl ModuleState {
             component_modules,
             contexts,
             import_paths,
+            context_urls,
         })
     }
 }
@@ -226,4 +234,39 @@ fn build_component_import_paths(
     }
 
     Ok(import_paths)
+}
+
+/// Build the context URLs map: full context IRI → absolute local file URL (from lsd:contexts).
+fn build_component_context_urls(
+    package_jsons: &HashMap<Url, PackageJson>,
+) -> Result<HashMap<String, Url>> {
+    let mut context_urls: HashMap<String, Url> = HashMap::new();
+    let mut ctx_versions: HashMap<String, semver::Version> = HashMap::new();
+
+    for (module_path, pkg) in package_jsons {
+        let Some(ctx_map) = &pkg.lsd_contexts else {
+            continue;
+        };
+        let Ok(version) = semver::Version::parse(&pkg.version) else {
+            continue;
+        };
+
+        for (ctx_iri, rel_path) in ctx_map {
+            let file_url = match module_path.join(rel_path) {
+                Ok(u) => u,
+                Err(_) => continue,
+            };
+
+            if let Some(existing_ver) = ctx_versions.get(ctx_iri) {
+                if &version <= existing_ver {
+                    continue;
+                }
+            }
+
+            context_urls.insert(ctx_iri.clone(), file_url);
+            ctx_versions.insert(ctx_iri.clone(), version.clone());
+        }
+    }
+
+    Ok(context_urls)
 }

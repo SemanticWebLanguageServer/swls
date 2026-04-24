@@ -92,10 +92,18 @@ impl FsTrait for BinFs {
         Some(entries)
     }
     async fn is_file(&self, path: &Url) -> bool {
-        !path.as_str().ends_with('/')
+        if let Some(p) = path.to_file_path().ok() {
+            p.is_file()
+        } else {
+            !path.as_str().ends_with('/')
+        }
     }
     async fn is_dir(&self, path: &Url) -> bool {
-        path.as_str().ends_with('/')
+        if let Some(p) = path.to_file_path().ok() {
+            p.is_dir()
+        } else {
+            !path.as_str().ends_with('/')
+        }
     }
     async fn canonicalize(&self, path: &Url) -> Option<Url> {
         let path = path.to_file_path().ok()?;

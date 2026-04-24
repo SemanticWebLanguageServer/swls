@@ -31,6 +31,7 @@ pub mod ecs;
 use crate::{
     ecs::{
         derive_jsonld_triples, format_jsonld_system, setup_completion, setup_parsing, ContextCache,
+        JsonLdActiveContext,
     },
     fs::start_testing,
 };
@@ -114,7 +115,58 @@ fn span_to_lsp_range(source: &str, span: &std::ops::Range<usize>) -> swls_core::
     )
 }
 
-#[tracing::instrument(skip(query, res))]
+/// Expand a JSON-LD compact IRI or bare term name using the document's active context.
+///
+/// Handles chains like `css:dist/...` → `npmd:@solid/...dist/...` → `https://...dist/...`
+/// and bare term names like `BearerWebIdExtractor` → `css:dist/...BearerWebIdExtractor`.
+fn expand_iri_with_context(
+    active: &rdf_parsers::jsonld::convert::ActiveContext,
+    value: &str,
+) -> String {
+    expand_iri_inner(active, value, 0)
+}
+
+fn expand_iri_inner(
+    active: &rdf_parsers::jsonld::convert::ActiveContext,
+    value: &str,
+    depth: usize,
+) -> String {
+    if depth > 10 || value.is_empty() || value.starts_with('@') {
+        return value.to_string();
+    }
+    // Already absolute — well-known schemes only, so we don't mistake `css:` for absolute.
+    if value.starts_with("https://")
+        || value.starts_with("http://")
+        || value.starts_with("file://")
+        || value.starts_with("urn:")
+    {
+        return value.to_string();
+    }
+    // Bare term lookup (e.g. "BearerWebIdExtractor")
+    if let Some(def) = active.terms.get(value) {
+        if let Some(iri) = &def.iri {
+            if iri != value {
+                return expand_iri_inner(active, iri, depth + 1);
+            }
+        }
+    }
+    // Compact IRI like "prefix:suffix"
+    if let Some(colon_pos) = value.find(':') {
+        if colon_pos > 0 {
+            let prefix = &value[..colon_pos];
+            let suffix = &value[colon_pos + 1..];
+            if let Some(def) = active.terms.get(prefix) {
+                if let Some(iri) = &def.iri {
+                    let expanded_prefix = expand_iri_inner(active, iri, depth + 1);
+                    return format!("{}{}", expanded_prefix, suffix);
+                }
+            }
+        }
+    }
+    value.to_string()
+}
+
+#[tracing::instrument(skip(query, res, available))]
 fn goto_cjs(
     mut query: Query<
         (
@@ -122,6 +174,7 @@ fn goto_cjs(
             Option<&TripleComponent>,
             &Label,
             &mut GotoDefinitionRequest,
+            Option<&JsonLdActiveContext>,
         ),
         With<JsonLdLang>,
     >,
@@ -130,7 +183,7 @@ fn goto_cjs(
 ) {
     use swls_core::lsp_types::{Location, Range};
 
-    for (token, triple, label, mut req) in &mut query {
+    for (token, triple, label, mut req, active_ctx) in &mut query {
         // Only use the expanded IRI from the TripleComponent if the cursor token
         // actually overlaps the matched term's span.  get_current_triple is lenient
         // and may fall back to a nearby triple (e.g. the first triple in the
@@ -149,9 +202,19 @@ fn goto_cjs(
                 None
             }
         });
+        let raw_token = token.text.as_str().trim_matches('"');
+        // When no triple term is available (e.g. cursor in @context), expand compact
+        // IRIs like `css:dist/...` using the document's active context so that
+        // resolve_iri_to_url can match them against import_paths.
+        let context_expanded = if triple_term_str.is_none() {
+            active_ctx.map(|ctx| expand_iri_with_context(&ctx.0, raw_token))
+        } else {
+            None
+        };
         let st: &str = triple_term_str
             .as_deref()
-            .unwrap_or_else(|| token.text.as_str().trim_matches('"'));
+            .or(context_expanded.as_deref())
+            .unwrap_or(raw_token);
 
         tracing::info!("Goto definition {:?} {}", triple_term_str, st,);
 
@@ -172,7 +235,7 @@ fn goto_cjs(
             resolve_iri_to_url(st, &res.1.import_paths),
         );
         if let Some((file, span)) = found_target {
-            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(std::path::Path::new(file)) {
+            if let Ok(uri) = swls_core::lsp_types::Url::parse(file) {
                 let range = res
                     .0
                     .file_sources
@@ -185,17 +248,15 @@ fn goto_cjs(
         }
 
         let iri_no_fragment = st.split('#').next().unwrap_or(st);
-        if let Some(t) = resolve_iri_to_url(iri_no_fragment, &res.1.import_paths) {
+        let resolved = resolve_iri_to_url(iri_no_fragment, &res.1.import_paths)
+            .or_else(|| res.1.context_urls.get(iri_no_fragment).cloned());
+        if let Some(t) = resolved {
             tracing::info!("target {}", t.as_str());
-            if available.iter().any(|l| l.0 == t) {
-                req.0.push(Location {
-                    uri: t,
-                    range: Range::default(),
-                });
-                continue;
-            } else {
-                tracing::info!("Not available");
-            }
+            req.0.push(Location {
+                uri: t,
+                range: Range::default(),
+            });
+            continue;
         }
 
         if triple_term_str.is_none() {
