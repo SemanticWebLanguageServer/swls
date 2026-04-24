@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    path::{Path, PathBuf},
-    pin::Pin,
-};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, pin::Pin};
 
 use bevy_ecs::resource::Resource;
 use futures::FutureExt;
@@ -82,8 +77,9 @@ impl FsTrait for BinFs {
         write(fp, content.as_bytes()).await.ok()
     }
 
-    async fn read_dir(&self, path: &Path) -> Option<Vec<FsDirEntry>> {
+    async fn read_dir(&self, path: &Url) -> Option<Vec<FsDirEntry>> {
         let mut entries = Vec::new();
+        let path = path.to_file_path().ok()?;
         let mut rd = tokio::fs::read_dir(path).await.ok()?;
         while let Some(entry) = rd.next_entry().await.ok()? {
             let metadata = entry.metadata().await.ok()?;
@@ -95,14 +91,24 @@ impl FsTrait for BinFs {
         }
         Some(entries)
     }
-    async fn is_file(&self, path: &Path) -> bool {
-        path.is_file()
+    async fn is_file(&self, path: &Url) -> bool {
+        !path.as_str().ends_with('/')
     }
-    async fn is_dir(&self, path: &Path) -> bool {
-        path.is_dir()
+    async fn is_dir(&self, path: &Url) -> bool {
+        path.as_str().ends_with('/')
     }
-    async fn canonicalize(&self, path: &Path) -> Option<PathBuf> {
-        path.canonicalize().ok()
+    async fn canonicalize(&self, path: &Url) -> Option<Url> {
+        let path = path.to_file_path().ok()?;
+        let canonical = tokio::fs::canonicalize(&path).await.ok()?;
+        let is_dir = tokio::fs::metadata(&canonical)
+            .await
+            .map(|m| m.is_dir())
+            .unwrap_or(false);
+        if is_dir {
+            Url::from_directory_path(&canonical).ok()
+        } else {
+            Url::from_file_path(&canonical).ok()
+        }
     }
 }
 

@@ -13,7 +13,7 @@ use bevy_ecs::{
     world::{CommandQueue, World},
 };
 use components_rs::{
-    components::registry::{resolve_iri_to_path, ComponentRegistry},
+    components::registry::{resolve_iri_to_url, ComponentRegistry},
     module_state::ModuleState,
 };
 use oxigraph::model::{GraphName, Literal, NamedNode, Quad};
@@ -114,6 +114,7 @@ fn span_to_lsp_range(source: &str, span: &std::ops::Range<usize>) -> swls_core::
     )
 }
 
+#[tracing::instrument(skip(query, res))]
 fn goto_cjs(
     mut query: Query<
         (
@@ -124,6 +125,7 @@ fn goto_cjs(
         ),
         With<JsonLdLang>,
     >,
+    available: Query<&Label, With<JsonLdLang>>,
     res: Res<Registry>,
 ) {
     use swls_core::lsp_types::{Location, Range};
@@ -151,80 +153,53 @@ fn goto_cjs(
             .as_deref()
             .unwrap_or_else(|| token.text.as_str().trim_matches('"'));
 
-        tracing::info!(
-            "Goto definition {:?} {} {:?} {:?}",
-            triple_term_str,
-            st,
-            token,
-            triple
-        );
+        tracing::info!("Goto definition {:?} {}", triple_term_str, st,);
 
         // Components: navigate to the component's own source file at the exact @id span.
-        if let Some(component) = res.0.components.get(st) {
-            tracing::info!("Component from {}", component.source_file);
+        let found_target = if let Some(component) = res.0.components.get(st) {
+            Some((component.source_file.as_str(), component.iri_span.clone()))
+        } else if let Some(module) = res.0.modules.get(st) {
+            Some((module.source_file.as_str(), module.iri_span.clone()))
+        } else if let Some((file, span)) = res.0.parameters.get(st) {
+            Some((file.as_str(), span.clone()))
+        } else {
+            None
+        };
 
-            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(std::path::Path::new(
-                &component.source_file,
-            )) {
+        tracing::info!(
+            "CJS from {:?} {:?}",
+            found_target,
+            resolve_iri_to_url(st, &res.1.import_paths),
+        );
+        if let Some((file, span)) = found_target {
+            if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(std::path::Path::new(file)) {
                 let range = res
                     .0
                     .file_sources
-                    .get(&component.source_file)
-                    .map(|src| span_to_lsp_range(src, &component.iri_span))
+                    .get(file)
+                    .map(|src| span_to_lsp_range(src, &span))
                     .unwrap_or_default();
                 req.0.push(Location { uri, range });
                 continue;
             }
         }
 
-        // Modules: navigate to the module source file at the exact @id span.
-        if let Some(module) = res.0.modules.get(st) {
-            tracing::info!("Module from {}", module.source_file);
-            if let Ok(uri) =
-                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(&module.source_file))
-            {
-                let range = res
-                    .0
-                    .file_sources
-                    .get(&module.source_file)
-                    .map(|src| span_to_lsp_range(src, &module.iri_span))
-                    .unwrap_or_default();
-                req.0.push(Location { uri, range });
+        let iri_no_fragment = st.split('#').next().unwrap_or(st);
+        if let Some(t) = resolve_iri_to_url(iri_no_fragment, &res.1.import_paths) {
+            tracing::info!("target {}", t.as_str());
+            if available.iter().any(|l| l.0 == t) {
+                req.0.push(Location {
+                    uri: t,
+                    range: Range::default(),
+                });
                 continue;
-            }
-        }
-
-        // Parameters: navigate to the parameter's defining file at the exact @id span.
-        if let Some((source_file, iri_span)) = res.0.parameters.get(st) {
-            tracing::info!("Parameter from {}", source_file);
-            if let Ok(uri) =
-                swls_core::lsp_types::Url::from_file_path(std::path::Path::new(source_file))
-            {
-                let range = res
-                    .0
-                    .file_sources
-                    .get(source_file)
-                    .map(|src| span_to_lsp_range(src, iri_span))
-                    .unwrap_or_default();
-                req.0.push(Location { uri, range });
-                continue;
+            } else {
+                tracing::info!("Not available");
             }
         }
 
         if triple_term_str.is_none() {
             // Import IRIs: strip any fragment, then resolve to a local file path.
-            let iri_no_fragment = st.split('#').next().unwrap_or(st);
-            if let Some(path) = resolve_iri_to_path(iri_no_fragment, &res.1.import_paths) {
-                tracing::debug!("goto_cjs import IRI resolved to {:?}", path);
-                if let Ok(uri) = swls_core::lsp_types::Url::from_file_path(&path) {
-                    req.0.push(Location {
-                        uri,
-                        range: Range::default(),
-                    });
-                    continue;
-                }
-            }
-
             let target = resolve_iri(&label.as_str(), st);
             if let Ok(uri) = swls_core::lsp_types::Url::parse(&target) {
                 req.0.push(Location {
@@ -240,10 +215,8 @@ fn goto_cjs(
 }
 
 mod fs {
-    use std::path::{Path, PathBuf};
-
     use components_rs::error::{ComponentsJsError, Result};
-    use swls_core::prelude::Fs;
+    use swls_core::{lsp_types::Url, prelude::Fs};
 
     use crate::Registry;
 
@@ -252,25 +225,19 @@ mod fs {
     #[async_trait::async_trait]
     impl components_rs::fs::Fs for LocalFs {
         /// Read the entire contents of a file as a UTF-8 string.
-        async fn read_to_string(&self, path: &Path) -> Result<String> {
-            if let Ok(url) = swls_core::lsp_types::Url::from_file_path(path) {
-                self.0
-                     .0
-                    .read_file(&url)
-                    .await
-                    .ok_or(ComponentsJsError::General(format!(
-                        "Failed to read file {}",
-                        url.as_str()
-                    )))
-            } else {
-                Result::Err(ComponentsJsError::General(
-                    "Failed to convert to url".to_string(),
-                ))
-            }
+        async fn read_to_string(&self, url: &Url) -> Result<String> {
+            self.0
+                 .0
+                .read_file(&url)
+                .await
+                .ok_or(ComponentsJsError::General(format!(
+                    "Failed to read file {}",
+                    url.as_str()
+                )))
         }
 
         /// List the immediate children of a directory.
-        async fn read_dir(&self, path: &Path) -> Result<Vec<components_rs::fs::FsDirEntry>> {
+        async fn read_dir(&self, path: &Url) -> Result<Vec<components_rs::fs::FsDirEntry>> {
             let entries = self
                 .0
                  .0
@@ -278,32 +245,43 @@ mod fs {
                 .await
                 .ok_or(ComponentsJsError::General(format!(
                     "Failed to read dir {:?}",
-                    path.as_os_str()
+                    path.as_str()
                 )))?;
             Ok(entries
                 .into_iter()
-                .map(|entry| components_rs::fs::FsDirEntry {
-                    name: entry.name,
-                    path: entry.path,
-                    is_dir: entry.is_dir,
+                .flat_map(|entry| {
+                    let entry_url = if entry.is_dir {
+                        Url::from_directory_path(&entry.path).map_err(|_| {
+                            ComponentsJsError::InvalidUrl(entry.path.display().to_string())
+                        })
+                    } else {
+                        Url::from_file_path(&entry.path).map_err(|_| {
+                            ComponentsJsError::InvalidUrl(entry.path.display().to_string())
+                        })
+                    };
+                    return Some(components_rs::fs::FsDirEntry {
+                        name: entry.name,
+                        path: entry_url.ok()?,
+                        is_dir: entry.is_dir,
+                    });
                 })
                 .collect())
         }
 
         /// Check whether `path` is a file.
-        async fn is_file(&self, path: &Path) -> bool {
+        async fn is_file(&self, path: &Url) -> bool {
             self.0 .0.is_file(path).await
         }
 
         /// Check whether `path` is a directory.
-        async fn is_dir(&self, path: &Path) -> bool {
+        async fn is_dir(&self, path: &Url) -> bool {
             self.0 .0.is_dir(path).await
         }
 
         /// Resolve symlinks and produce the canonical, absolute path.
         /// In environments without symlinks (e.g., WASM), returning the
         /// input path unchanged is acceptable.
-        async fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
+        async fn canonicalize(&self, path: &Url) -> Result<Url> {
             self.0
                  .0
                 .canonicalize(path)
@@ -314,7 +292,7 @@ mod fs {
         }
     }
 
-    pub async fn start_testing(fs: &Fs, path: &Path) -> Result<Registry> {
+    pub async fn start_testing(fs: &Fs, path: &Url) -> Result<Registry> {
         use components_rs::components::registry::ComponentRegistry;
         use components_rs::module_state::ModuleState;
 
@@ -416,7 +394,7 @@ fn build_cjs_quads(registry: &ComponentRegistry) -> Vec<Quad> {
 pub struct Registry(pub ComponentRegistry, pub ModuleState);
 impl Registry {
     pub fn empty() -> Self {
-        Self(ComponentRegistry::new(), ModuleState::default())
+        Self(ComponentRegistry::new(), ModuleState::empty())
     }
 }
 
@@ -429,15 +407,11 @@ fn start_jsonld<C: Client + Resource + Clone>(
 ) {
     let fs = fs.clone();
     tracing::info!("conffig {:?}", config);
-    if let Some(ws) = config
-        .workspaces
-        .first()
-        .and_then(|x| x.uri.to_file_path().ok())
-    {
-        tracing::info!("HERE 2 {:?}", ws.as_os_str());
+    if let Some(ws) = config.workspaces.first().map(|x| x.uri.clone()) {
+        tracing::info!("HERE 2 {:?}", ws.as_str());
         let commands = commands.clone();
         let thing = async move {
-            tracing::info!("HERE 3 {:?}", ws.as_os_str());
+            tracing::info!("HERE 3 {:?}", ws.as_str());
             if let Ok(reg) = start_testing(&fs, &ws).await {
                 let mut command_queue = CommandQueue::default();
                 command_queue.push(move |world: &mut World| {

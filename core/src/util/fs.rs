@@ -1,10 +1,6 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-
 use bevy_ecs::prelude::Resource;
 use derive_more::derive::AsRef;
+use std::{path::PathBuf, sync::Arc};
 
 #[derive(Resource, Clone, AsRef, Debug)]
 pub struct Fs(pub Arc<dyn FsTrait + Sync + Send>);
@@ -39,8 +35,8 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
     async fn glob_read(&self, url: &str) -> Option<Vec<File>>;
     async fn write_file(&self, url: &crate::lsp_types::Url, content: &str) -> Option<()>;
 
-    async fn read_dir(&self, path: &Path) -> Option<Vec<FsDirEntry>>;
-    async fn is_file(&self, path: &Path) -> bool;
-    async fn is_dir(&self, path: &Path) -> bool;
-    async fn canonicalize(&self, path: &Path) -> Option<PathBuf>;
+    async fn read_dir(&self, path: &crate::lsp_types::Url) -> Option<Vec<FsDirEntry>>;
+    async fn is_file(&self, path: &crate::lsp_types::Url) -> bool;
+    async fn is_dir(&self, path: &crate::lsp_types::Url) -> bool;
+    async fn canonicalize(&self, path: &crate::lsp_types::Url) -> Option<crate::lsp_types::Url>;
 }

@@ -22,6 +22,9 @@ pub enum ComponentsJsError {
     #[error("Missing required field '{field}' in {location}")]
     MissingField { field: String, location: String },
 
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(String),
+
     #[error("{0}")]
     General(String),
 }

@@ -7,7 +7,6 @@ use std::{
 
 use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use rudof_rdf::rdf_core::term::Triple;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,

@@ -50,11 +50,11 @@ oxrdf = "0.3.0"
  iri_s = "0.2.9"
  shacl_validation = { version = "0.2.9", default-features = false, features = [] }
 
-# shacl_rdf        = { path = "/tmp/rudof/shacl_rdf" }
-# shacl_ir         = { path = "/tmp/rudof/shacl_ir" }
-# shacl_ast        = { path = "/tmp/rudof/shacl_ast" }
-# prefixmap        = { path = "/tmp/rudof/prefixmap" }
-# iri_s            = { path = "/tmp/rudof/iri_s" }
-# rudof_rdf        = { path = "/tmp/rudof/rudof_rdf", default-features = false }
-# shacl_validation = { path = "/tmp/rudof/shacl_validation", default-features = false }
-
+# shacl_rdf        = { path = "/home/silvius/Projects/rudof/shacl_rdf" }
+# shacl_ir         = { path = "/home/silvius/Projects/rudof/shacl_ir" }
+# rudof_rdf        = { path = "/home/silvius/Projects/rudof/rudof_rdf", default-features = false }
+# shacl_ast        = { path = "/home/silvius/Projects/rudof/shacl_ast" }
+# prefixmap        = { path = "/home/silvius/Projects/rudof/prefixmap" }
+# iri_s            = { path = "/home/silvius/Projects/rudof/iri_s" }
+# shacl_validation = { path = "/home/silvius/Projects/rudof/shacl_validation", default-features = false }
+#

@@ -659,6 +659,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
@@ -2507,7 +2508,9 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.1.8"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de16eae8442b3a2f0a2c8e0743421989b0b7a77bced3ed00832289607000de2a"
 dependencies = [
  "async-trait",
  "logos",

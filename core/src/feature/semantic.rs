@@ -1,7 +1,4 @@
-use bevy_ecs::{
-    prelude::*,
-    schedule::{And, ScheduleLabel},
-};
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 
 use crate::{

@@ -25,7 +25,7 @@ tracing.workspace      = true
 
 swls-lov.workspace           = true
 swls-lang-rdf-base.workspace = true
-swls-core = { workspace = true, features = ["shapes", "tokio"] }
+swls-core = { workspace = true, features = ["shapes"] }
 rdf-parsers.workspace = true
 rowan   = "0.16.1"
 

@@ -15,9 +15,9 @@
 
 use std::collections::HashMap;
 use std::ops::Range;
-use std::path::{Path, PathBuf};
 
 use rdf_parsers::jsonld::convert::{parse_json, JsonLdVal};
+use url::Url;
 
 use crate::components::types::*;
 use crate::context::expand::{self, ContextResolver, ExpandedNode};
@@ -114,7 +114,7 @@ pub struct ComponentRegistry {
     /// `(source_file, iri_span)` for goto-definition without searching every file.
     pub parameters: HashMap<String, (String, Range<usize>)>,
     /// Raw source text of every component file that was loaded, keyed by the
-    /// absolute file path (same strings used in `CjsComponent::source_file` and
+    /// absolute file URL (same strings used in `CjsComponent::source_file` and
     /// `CjsModule::source_file`).  Used by the LSP to convert `iri_span` byte
     /// offsets to LSP line/column positions without re-reading files from disk.
     pub file_sources: HashMap<String, String>,
@@ -162,18 +162,18 @@ impl ComponentRegistry {
         state: &ModuleState,
     ) -> Result<()> {
         let mut all_nodes: HashMap<String, CollectedNode> = HashMap::new();
-        let mut visited_files: std::collections::HashSet<PathBuf> =
+        let mut visited_files: std::collections::HashSet<Url> =
             std::collections::HashSet::new();
         let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
         let mut id_source_files: HashMap<String, String> = HashMap::new();
         let mut file_sources: HashMap<String, String> = HashMap::new();
 
         for version_map in state.component_modules.values() {
-            for component_path in version_map.values() {
-                if cfs::exists(fs, component_path).await {
+            for component_url in version_map.values() {
+                if cfs::exists(fs, component_url).await {
                     self.collect_nodes_from_file(
                         fs,
-                        component_path,
+                        component_url,
                         state,
                         &mut all_nodes,
                         &mut visited_files,
@@ -185,7 +185,7 @@ impl ComponentRegistry {
                 } else {
                     tracing::warn!(
                         "Component file does not exist: {}",
-                        component_path.display()
+                        component_url.as_str()
                     );
                 }
             }
@@ -206,29 +206,29 @@ impl ComponentRegistry {
     fn collect_nodes_from_file<'a>(
         &'a self,
         fs: &'a dyn Fs,
-        path: &'a Path,
+        url: &'a Url,
         state: &'a ModuleState,
         all_nodes: &'a mut HashMap<String, CollectedNode>,
-        visited: &'a mut std::collections::HashSet<PathBuf>,
+        visited: &'a mut std::collections::HashSet<Url>,
         id_spans: &'a mut HashMap<String, Range<usize>>,
         id_source_files: &'a mut HashMap<String, String>,
         file_sources: &'a mut HashMap<String, String>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
             let canonical = fs
-                .canonicalize(path)
+                .canonicalize(url)
                 .await
-                .unwrap_or_else(|_| path.to_path_buf());
+                .unwrap_or_else(|_| url.clone());
             if visited.contains(&canonical) {
                 return Ok(());
             }
             visited.insert(canonical.clone());
 
-            tracing::debug!("Loading component file: {}", path.display());
+            tracing::debug!("Loading component file: {}", url.as_str());
 
-            let contents = fs.read_to_string(path).await?;
+            let contents = fs.read_to_string(url).await?;
             let Some(doc) = parse_json(&contents) else {
-                tracing::warn!("Failed to parse component file: {}", path.display());
+                tracing::warn!("Failed to parse component file: {}", url.as_str());
                 return Ok(());
             };
 
@@ -241,7 +241,7 @@ impl ComponentRegistry {
             collect_id_spans(&doc, &resolver, id_spans);
 
             let nodes = expand::extract_graph_nodes(&doc, &state.contexts)?;
-            let source = path.display().to_string();
+            let source = url.to_string();
 
             collect_id_sources(&doc, &resolver, &source, id_source_files);
             file_sources.insert(source.clone(), contents);
@@ -301,7 +301,7 @@ impl ComponentRegistry {
         resolver: &'a ContextResolver,
         state: &'a ModuleState,
         all_nodes: &'a mut HashMap<String, CollectedNode>,
-        visited: &'a mut std::collections::HashSet<PathBuf>,
+        visited: &'a mut std::collections::HashSet<Url>,
         id_spans: &'a mut HashMap<String, Range<usize>>,
         id_source_files: &'a mut HashMap<String, String>,
         file_sources: &'a mut HashMap<String, String>,
@@ -322,11 +322,11 @@ impl ComponentRegistry {
             }
 
             for iri in import_iris {
-                if let Some(local_path) = resolve_iri_to_path(&iri, &state.import_paths) {
-                    if cfs::exists(fs, &local_path).await {
+                if let Some(local_url) = resolve_iri_to_url(&iri, &state.import_paths) {
+                    if cfs::exists(fs, &local_url).await {
                         self.collect_nodes_from_file(
                             fs,
-                            &local_path,
+                            &local_url,
                             state,
                             all_nodes,
                             visited,
@@ -635,24 +635,20 @@ fn collect_import_iris(value: &JsonLdVal, resolver: &ContextResolver, out: &mut 
     }
 }
 
-/// Resolve an IRI to a local file path using the import_paths mapping.
-pub fn resolve_iri_to_path(
+/// Resolve an IRI to a local file URL using the import_paths mapping.
+pub fn resolve_iri_to_url(
     iri: &str,
-    import_paths: &std::collections::HashMap<String, PathBuf>,
-) -> Option<PathBuf> {
+    import_paths: &std::collections::HashMap<String, Url>,
+) -> Option<Url> {
     for (prefix_iri, local_dir) in import_paths {
         if iri.starts_with(prefix_iri.as_str()) {
             let suffix = &iri[prefix_iri.len()..];
-            return Some(local_dir.join(suffix));
+            return local_dir.join(suffix).ok();
         }
     }
-    // Handle file:// URIs: strip scheme + optional host component so that
-    // both "file:///home/..." and "file:////home/..." (4 slashes) produce a
-    // valid absolute path "/home/...".
-
-    if let Some(rest) = iri.strip_prefix("file://") {
-        let clean = rest.trim_start_matches('/');
-        return Some(PathBuf::from(format!("/{clean}")));
+    // If the IRI is already a file:// URL, parse it directly.
+    if iri.starts_with("file://") {
+        return Url::parse(iri).ok();
     }
     None
 }

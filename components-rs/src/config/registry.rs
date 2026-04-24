@@ -10,11 +10,11 @@
 
 use std::collections::HashMap;
 use std::ops::Range;
-use std::path::Path;
 
 use rdf_parsers::jsonld::convert::{parse_json, JsonLdVal};
+use url::Url;
 
-use crate::components::registry::{collect_id_spans, resolve_iri_to_path};
+use crate::components::registry::{collect_id_spans, resolve_iri_to_url};
 use crate::components::types::*;
 use crate::context::expand::ContextResolver;
 use crate::error::Result;
@@ -55,15 +55,15 @@ impl ConfigRegistry {
     pub fn load_config_file<'a>(
         &'a mut self,
         fs: &'a dyn Fs,
-        path: &'a Path,
+        url: &'a Url,
         state: &'a ModuleState,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
         Box::pin(async move {
-            tracing::debug!("Loading config file: {}", path.display());
+            tracing::debug!("Loading config file: {}", url.as_str());
 
-            let contents = fs.read_to_string(path).await?;
+            let contents = fs.read_to_string(url).await?;
             let Some(doc) = parse_json(&contents) else {
-                tracing::warn!("Failed to parse config file: {}", path.display());
+                tracing::warn!("Failed to parse config file: {}", url.as_str());
                 return Ok(());
             };
 
@@ -76,7 +76,7 @@ impl ConfigRegistry {
             let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
             collect_id_spans(&doc, &resolver, &mut id_spans);
 
-            self.process_imports(fs, &doc, &resolver, state, path).await?;
+            self.process_imports(fs, &doc, &resolver, state, url).await?;
 
             let entries: Vec<&JsonLdVal> = if let Some(graph) = doc.get("@graph") {
                 match graph.as_array() {
@@ -90,7 +90,7 @@ impl ConfigRegistry {
             };
 
             for entry in entries {
-                if let Some(config) = self.parse_config_entry(entry, &resolver, path, &id_spans) {
+                if let Some(config) = self.parse_config_entry(entry, &resolver, url, &id_spans) {
                     self.configs.push(config);
                 }
             }
@@ -105,7 +105,7 @@ impl ConfigRegistry {
         doc: &JsonLdVal,
         resolver: &ContextResolver,
         state: &ModuleState,
-        source_path: &Path,
+        source_url: &Url,
     ) -> Result<()> {
         if let Some(import_val) = doc.get("import") {
             let iris: Vec<String> = match import_val {
@@ -121,9 +121,9 @@ impl ConfigRegistry {
                     .unwrap_or_default(),
             };
             for iri in iris {
-                if let Some(local_path) = resolve_iri_to_path(&iri, &state.import_paths) {
-                    if cfs::exists(fs, &local_path).await && local_path != source_path {
-                        self.load_config_file(fs, &local_path, state).await?;
+                if let Some(local_url) = resolve_iri_to_url(&iri, &state.import_paths) {
+                    if cfs::exists(fs, &local_url).await && &local_url != source_url {
+                        self.load_config_file(fs, &local_url, state).await?;
                     }
                 }
             }
@@ -135,7 +135,7 @@ impl ConfigRegistry {
         &self,
         value: &JsonLdVal,
         resolver: &ContextResolver,
-        source_path: &Path,
+        source_url: &Url,
         id_spans: &HashMap<String, Range<usize>>,
     ) -> Option<ConfigInstance> {
         let id_str = value.get("@id")?.as_str()?;
@@ -172,7 +172,7 @@ impl ConfigRegistry {
             iri,
             component_type_iri: type_iri,
             parameters,
-            source_file: source_path.display().to_string(),
+            source_file: source_url.to_string(),
             iri_span,
         })
     }
@@ -180,7 +180,7 @@ impl ConfigRegistry {
     async fn load_config_directory(
         &mut self,
         fs: &dyn Fs,
-        dir: &Path,
+        dir: &Url,
         state: &ModuleState,
     ) -> Result<()> {
         if !fs.is_dir(dir).await {
@@ -188,12 +188,12 @@ impl ConfigRegistry {
         }
 
         let files = cfs::walk_dir(fs, dir).await?;
-        for path in files {
-            let is_config = path
+        for url in files {
+            let is_config = std::path::Path::new(url.path())
                 .extension()
                 .is_some_and(|ext| ext == "jsonld" || ext == "json");
             if is_config {
-                self.load_config_file(fs, &path, state).await?;
+                self.load_config_file(fs, &url, state).await?;
             }
         }
 

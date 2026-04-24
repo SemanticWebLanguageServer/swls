@@ -57,7 +57,7 @@ pub fn spawn_or_insert(
 }
 
 pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver>) {
-    while let Ok(Some(mut com)) = receiver.0.try_next() {
+    while let Ok(mut com) = receiver.0.try_recv() {
         commands.append(&mut com);
     }
 }

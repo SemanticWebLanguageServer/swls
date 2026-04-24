@@ -9,18 +9,22 @@
 //!
 //! The default [`OsFs`] implementation (enabled by the `tokio` feature) delegates to
 //! `tokio::fs` and is suitable for a native language server process.
-
-use std::path::{Path, PathBuf};
+//!
+//! All paths are represented as [`url::Url`] with the `file://` scheme.  Directory URLs
+//! **always** end with a trailing `/` so that [`Url::join`] appends correctly.
 
 use async_trait::async_trait;
+use url::Url;
 
 use crate::error::Result;
 
 /// Entry returned by [`Fs::read_dir`].
+///
+/// `path` is a `file://` URL. For directory entries it ends with `/`.
 #[derive(Debug, Clone)]
 pub struct FsDirEntry {
     pub name: String,
-    pub path: PathBuf,
+    pub path: Url,
     pub is_dir: bool,
 }
 
@@ -29,35 +33,35 @@ pub struct FsDirEntry {
 #[async_trait]
 pub trait Fs: Send + Sync {
     /// Read the entire contents of a file as a UTF-8 string.
-    async fn read_to_string(&self, path: &Path) -> Result<String>;
+    async fn read_to_string(&self, url: &Url) -> Result<String>;
 
     /// List the immediate children of a directory.
-    async fn read_dir(&self, path: &Path) -> Result<Vec<FsDirEntry>>;
+    async fn read_dir(&self, url: &Url) -> Result<Vec<FsDirEntry>>;
 
-    /// Check whether `path` is a file.
-    async fn is_file(&self, path: &Path) -> bool;
+    /// Check whether `url` is a file.
+    async fn is_file(&self, url: &Url) -> bool;
 
-    /// Check whether `path` is a directory.
-    async fn is_dir(&self, path: &Path) -> bool;
+    /// Check whether `url` is a directory.
+    async fn is_dir(&self, url: &Url) -> bool;
 
-    /// Resolve symlinks and produce the canonical, absolute path.
+    /// Resolve symlinks and produce the canonical, absolute URL.
+    /// Directory URLs are returned with a trailing `/`.
     /// In environments without symlinks (e.g., WASM), returning the
-    /// input path unchanged is acceptable.
-    async fn canonicalize(&self, path: &Path) -> Result<PathBuf>;
+    /// input URL unchanged is acceptable.
+    async fn canonicalize(&self, url: &Url) -> Result<Url>;
 }
 
 // ── Convenience helpers built on top of the trait ────────────────────────
 
-/// Check whether a path exists (file or directory).
-pub async fn exists(fs: &dyn Fs, path: &Path) -> bool {
-    fs.is_file(path).await || fs.is_dir(path).await
+/// Check whether a URL exists (file or directory).
+pub async fn exists(fs: &dyn Fs, url: &Url) -> bool {
+    fs.is_file(url).await || fs.is_dir(url).await
 }
 
-/// Recursively walk a directory, returning all file paths.
-/// Follows directories (like `walkdir` with follow_links).
-pub async fn walk_dir(fs: &dyn Fs, root: &Path) -> Result<Vec<PathBuf>> {
+/// Recursively walk a directory, returning all file URLs.
+pub async fn walk_dir(fs: &dyn Fs, root: &Url) -> Result<Vec<Url>> {
     let mut result = Vec::new();
-    let mut stack = vec![root.to_path_buf()];
+    let mut stack = vec![root.clone()];
 
     while let Some(dir) = stack.pop() {
         if !fs.is_dir(&dir).await {
@@ -86,41 +90,80 @@ pub async fn walk_dir(fs: &dyn Fs, root: &Path) -> Result<Vec<PathBuf>> {
 pub struct OsFs;
 
 #[cfg(feature = "tokio")]
+fn url_to_path(url: &Url) -> crate::error::Result<std::path::PathBuf> {
+    url.to_file_path()
+        .map_err(|_| crate::error::ComponentsJsError::InvalidUrl(url.to_string()))
+}
+
+#[cfg(feature = "tokio")]
 #[async_trait]
 impl Fs for OsFs {
-    async fn read_to_string(&self, path: &Path) -> Result<String> {
+    async fn read_to_string(&self, url: &Url) -> Result<String> {
+        let path = url_to_path(url)?;
         Ok(tokio::fs::read_to_string(path).await?)
     }
 
-    async fn read_dir(&self, path: &Path) -> Result<Vec<FsDirEntry>> {
+    async fn read_dir(&self, url: &Url) -> Result<Vec<FsDirEntry>> {
+        let path = url_to_path(url)?;
         let mut entries = Vec::new();
-        let mut rd = tokio::fs::read_dir(path).await?;
+        let mut rd = tokio::fs::read_dir(&path).await?;
         while let Some(entry) = rd.next_entry().await? {
             let metadata = entry.metadata().await?;
+            let is_dir = metadata.is_dir();
+            let entry_path = entry.path();
+            let entry_url = if is_dir {
+                Url::from_directory_path(&entry_path).map_err(|_| {
+                    crate::error::ComponentsJsError::InvalidUrl(entry_path.display().to_string())
+                })?
+            } else {
+                Url::from_file_path(&entry_path).map_err(|_| {
+                    crate::error::ComponentsJsError::InvalidUrl(entry_path.display().to_string())
+                })?
+            };
             entries.push(FsDirEntry {
                 name: entry.file_name().to_string_lossy().into_owned(),
-                path: entry.path(),
-                is_dir: metadata.is_dir(),
+                path: entry_url,
+                is_dir,
             });
         }
         Ok(entries)
     }
 
-    async fn is_file(&self, path: &Path) -> bool {
-        tokio::fs::metadata(path)
-            .await
-            .map(|m| m.is_file())
-            .unwrap_or(false)
+    async fn is_file(&self, url: &Url) -> bool {
+        match url_to_path(url) {
+            Ok(path) => tokio::fs::metadata(path)
+                .await
+                .map(|m| m.is_file())
+                .unwrap_or(false),
+            Err(_) => false,
+        }
     }
 
-    async fn is_dir(&self, path: &Path) -> bool {
-        tokio::fs::metadata(path)
+    async fn is_dir(&self, url: &Url) -> bool {
+        match url_to_path(url) {
+            Ok(path) => tokio::fs::metadata(path)
+                .await
+                .map(|m| m.is_dir())
+                .unwrap_or(false),
+            Err(_) => false,
+        }
+    }
+
+    async fn canonicalize(&self, url: &Url) -> Result<Url> {
+        let path = url_to_path(url)?;
+        let canonical = tokio::fs::canonicalize(&path).await?;
+        let is_dir = tokio::fs::metadata(&canonical)
             .await
             .map(|m| m.is_dir())
-            .unwrap_or(false)
-    }
-
-    async fn canonicalize(&self, path: &Path) -> Result<PathBuf> {
-        Ok(tokio::fs::canonicalize(path).await?)
+            .unwrap_or(false);
+        if is_dir {
+            Url::from_directory_path(&canonical).map_err(|_| {
+                crate::error::ComponentsJsError::InvalidUrl(canonical.display().to_string())
+            })
+        } else {
+            Url::from_file_path(&canonical).map_err(|_| {
+                crate::error::ComponentsJsError::InvalidUrl(canonical.display().to_string())
+            })
+        }
     }
 }

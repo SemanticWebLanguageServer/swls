@@ -321,7 +321,6 @@ pub fn jsonld_lov_undefined_prefix_completion(
     >,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
-    config: Res<ServerConfig>,
 ) {
     for (source, rope, word, prefixes, mut req, lang) in &mut query {
         prefix_completion_helper(
@@ -340,7 +339,6 @@ pub fn jsonld_lov_undefined_prefix_completion(
             },
             lovs.iter(),
             prefix_cc.iter(),
-            &config.config.local,
             lang,
         );
     }

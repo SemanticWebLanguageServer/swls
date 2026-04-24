@@ -232,7 +232,6 @@ pub fn sparql_lov_undefined_prefix_completion(
     )>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
-    config: Res<ServerConfig>,
 ) {
     for (word, el, prefixes, mut req, lang) in &mut query {
         let turtle = el.0.value();
@@ -254,7 +253,6 @@ pub fn sparql_lov_undefined_prefix_completion(
             },
             lovs.iter(),
             prefix_cc.iter(),
-            &config.config.local,
             lang,
         );
     }

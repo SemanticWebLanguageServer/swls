@@ -16,7 +16,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+
+use url::Url;
 
 use crate::error::{ComponentsJsError, Result};
 use crate::fs::Fs;
@@ -76,19 +77,36 @@ impl LsdModule {
     }
 }
 
-/// Read package.json files from all given module paths.
+/// Join `segment` onto `base`, ensuring the result is treated as a directory URL.
+/// If `segment` is empty, returns `base` unchanged.
+fn join_dir(base: &Url, segment: &str) -> Option<Url> {
+    if segment.is_empty() {
+        return Some(base.clone());
+    }
+    let seg = if segment.ends_with('/') {
+        segment.to_string()
+    } else {
+        format!("{}/", segment)
+    };
+    base.join(&seg).ok()
+}
+
+/// Read package.json files from all given module directory URLs.
 pub async fn read_package_jsons(
     fs: &dyn Fs,
-    module_paths: &[PathBuf],
-) -> Result<HashMap<PathBuf, PackageJson>> {
+    module_paths: &[Url],
+) -> Result<HashMap<Url, PackageJson>> {
     let mut result = HashMap::new();
     for module_path in module_paths {
-        let pkg_path = module_path.join("package.json");
-        if fs.is_file(&pkg_path).await {
-            let contents = fs.read_to_string(&pkg_path).await?;
+        let pkg_url = match module_path.join("package.json") {
+            Ok(u) => u,
+            Err(_) => continue,
+        };
+        if fs.is_file(&pkg_url).await {
+            let contents = fs.read_to_string(&pkg_url).await?;
             let pkg: PackageJson =
                 serde_json::from_str(&contents).map_err(|e| ComponentsJsError::JsonParse {
-                    path: pkg_path.display().to_string(),
+                    path: pkg_url.to_string(),
                     source: e,
                 })?;
             result.insert(module_path.clone(), pkg);
@@ -100,7 +118,7 @@ pub async fn read_package_jsons(
 /// Preprocess a package.json: expand `lsd:module: true` into full IRI,
 /// auto-detect components and config directories.
 /// Mirrors `ModuleStateBuilder.preprocessPackageJson`.
-pub async fn preprocess_package_json(fs: &dyn Fs, package_path: &Path, pkg: &mut PackageJson) {
+pub async fn preprocess_package_json(fs: &dyn Fs, package_path: &Url, pkg: &mut PackageJson) {
     let needs_expansion = matches!(pkg.lsd_module, Some(LsdModule::Bool(true)));
     if !needs_expansion {
         return;
@@ -111,13 +129,13 @@ pub async fn preprocess_package_json(fs: &dyn Fs, package_path: &Path, pkg: &mut
     pkg.lsd_module = Some(LsdModule::Iri(module_iri.clone()));
 
     let base_path = pkg.lsd_base_path.as_deref().unwrap_or("");
+    let base_dir = join_dir(package_path, base_path).unwrap_or_else(|| package_path.clone());
 
     // Auto-detect components/components.jsonld
-    let components_file = package_path
-        .join(base_path)
-        .join("components/components.jsonld");
-    if fs.is_file(&components_file).await {
-        pkg.lsd_components = Some(format!("{base_path}components/components.jsonld"));
+    if let Ok(components_file) = base_dir.join("components/components.jsonld") {
+        if fs.is_file(&components_file).await {
+            pkg.lsd_components = Some(format!("{base_path}components/components.jsonld"));
+        }
     }
 
     // Compute major version for IRI construction
@@ -125,37 +143,38 @@ pub async fn preprocess_package_json(fs: &dyn Fs, package_path: &Path, pkg: &mut
     let base_iri = format!("{module_iri}/^{major}.0.0/");
 
     // Auto-detect context
-    let context_file = package_path
-        .join(base_path)
-        .join("components/context.jsonld");
-    if fs.is_file(&context_file).await {
-        let mut contexts = HashMap::new();
-        contexts.insert(
-            format!("{base_iri}components/context.jsonld"),
-            format!("{base_path}components/context.jsonld"),
-        );
-        pkg.lsd_contexts = Some(contexts);
+    if let Ok(context_file) = base_dir.join("components/context.jsonld") {
+        if fs.is_file(&context_file).await {
+            let mut contexts = HashMap::new();
+            contexts.insert(
+                format!("{base_iri}components/context.jsonld"),
+                format!("{base_path}components/context.jsonld"),
+            );
+            pkg.lsd_contexts = Some(contexts);
+        }
     }
 
     // Auto-detect import paths
     let mut import_paths = HashMap::new();
-    let components_dir = package_path.join(base_path).join("components");
-    if fs.is_dir(&components_dir).await {
-        import_paths.insert(
-            format!("{base_iri}components/"),
-            format!("{base_path}components/"),
-        );
+    if let Ok(components_dir) = base_dir.join("components/") {
+        if fs.is_dir(&components_dir).await {
+            import_paths.insert(
+                format!("{base_iri}components/"),
+                format!("{base_path}components/"),
+            );
+        }
     }
-    let config_dir = package_path.join(base_path).join("config");
-    if fs.is_dir(&config_dir).await {
-        import_paths.insert(format!("{base_iri}config/"), format!("{base_path}config/"));
+    if let Ok(config_dir) = base_dir.join("config/") {
+        if fs.is_dir(&config_dir).await {
+            import_paths.insert(format!("{base_iri}config/"), format!("{base_path}config/"));
+        }
     }
     pkg.lsd_import_paths = Some(import_paths);
 }
 
 /// Preprocess all package.json files.
-pub async fn preprocess_all(fs: &dyn Fs, package_jsons: &mut HashMap<PathBuf, PackageJson>) {
-    let keys: Vec<PathBuf> = package_jsons.keys().cloned().collect();
+pub async fn preprocess_all(fs: &dyn Fs, package_jsons: &mut HashMap<Url, PackageJson>) {
+    let keys: Vec<Url> = package_jsons.keys().cloned().collect();
     for path in keys {
         if let Some(pkg) = package_jsons.get_mut(&path) {
             preprocess_package_json(fs, &path, pkg).await;

@@ -33,3 +33,4 @@ clap = { version = "4", features = ["derive"], optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 anyhow = { version = "1", optional = true }
 rdf-parsers.workspace = true
+url = "2"

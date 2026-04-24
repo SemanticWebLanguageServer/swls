@@ -11,6 +11,7 @@ use components_rs::module_state::ModuleState;
 use rdf_parsers::jsonld::convert::{convert_with_loader, ContextLoader, JsonLdVal};
 use rdf_parsers::jsonld::{Lang, Rule, SyntaxKind};
 use rdf_parsers::IncrementalBias;
+use url::Url;
 
 #[derive(Parser)]
 #[command(name = "components-js")]
@@ -50,7 +51,11 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let fs = OsFs;
 
-    let state = ModuleState::build(&fs, &cli.project_path).await?;
+    let abs_path = std::fs::canonicalize(&cli.project_path)?;
+    let project_url = Url::from_directory_path(&abs_path)
+        .map_err(|_| anyhow::anyhow!("Invalid project path: {}", cli.project_path.display()))?;
+
+    let state = ModuleState::build(&fs, &project_url).await?;
 
     let mut comp_registry = ComponentRegistry::new();
     comp_registry

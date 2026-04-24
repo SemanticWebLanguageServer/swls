@@ -118,7 +118,6 @@ pub fn prefix_completion_helper<'a>(
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
     lovs: impl Iterator<Item = &'a LocalPrefix>,
     prefix_cc: impl Iterator<Item = &'a PrefixEntry>,
-    config: &LocalConfig,
     lang: &DynLang,
 ) {
     let mut suggested = HashSet::new();

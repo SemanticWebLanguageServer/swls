@@ -6,18 +6,18 @@
 //! 1. Walk all ancestor `node_modules/` directories (via [`crate::discovery`]).
 //! 2. Parse every `package.json` that has `lsd:` fields.
 //! 3. Build three lookup tables consumed by the registries:
-//!    - `component_modules` — maps module IRI → path to `components.jsonld`
+//!    - `component_modules` — maps module IRI → URL to `components.jsonld`
 //!    - `contexts` — maps context IRI → parsed [`rdf_parsers::jsonld::convert::JsonLdVal`]
-//!    - `import_paths` — maps IRI prefix → local directory (for resolving `rdfs:seeAlso` imports)
+//!    - `import_paths` — maps IRI prefix → local directory URL (for resolving `rdfs:seeAlso` imports)
 //!
 //! The state is read-only after construction; pass `&state` into
 //! [`crate::components::registry::ComponentRegistry`] and
 //! [`crate::config::registry::ConfigRegistry`].
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 
 use rdf_parsers::jsonld::convert::{parse_json, JsonLdVal};
+use url::Url;
 
 use crate::discovery::node_modules;
 use crate::discovery::package_json::{self, get_module_iri, PackageJson};
@@ -26,30 +26,41 @@ use crate::fs::Fs;
 
 /// Represents the fully-resolved state of all discoverable CJS modules.
 /// Mirrors the TypeScript `IModuleState`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ModuleState {
-    /// Path to the root project.
-    pub main_module_path: PathBuf,
-    /// All ancestor paths used for node_modules searching.
-    pub node_module_import_paths: Vec<PathBuf>,
-    /// All discovered node module directories.
-    pub node_module_paths: Vec<PathBuf>,
-    /// Parsed package.json by module path.
-    pub package_jsons: HashMap<PathBuf, PackageJson>,
-    /// Component modules: module IRI → (major version → absolute components.jsonld path).
-    pub component_modules: HashMap<String, HashMap<u64, PathBuf>>,
+    /// URL of the root project directory.
+    pub main_module_path: Url,
+    /// All ancestor URLs used for node_modules searching.
+    pub node_module_import_paths: Vec<Url>,
+    /// All discovered node module directory URLs.
+    pub node_module_paths: Vec<Url>,
+    /// Parsed package.json by module directory URL.
+    pub package_jsons: HashMap<Url, PackageJson>,
+    /// Component modules: module IRI → (major version → absolute components.jsonld URL).
+    pub component_modules: HashMap<String, HashMap<u64, Url>>,
     /// Contexts: context IRI → parsed content of context file.
     pub contexts: HashMap<String, JsonLdVal>,
-    /// Import paths: IRI prefix → absolute local directory path.
-    pub import_paths: HashMap<String, PathBuf>,
+    /// Import paths: IRI prefix → absolute local directory URL.
+    pub import_paths: HashMap<String, Url>,
 }
 
 impl ModuleState {
-    /// Build the full module state from a project root path.
-    pub async fn build(fs: &dyn Fs, main_module_path: &Path) -> Result<Self> {
+    pub fn empty() -> Self {
+        Self {
+            main_module_path: Url::parse("file:///tmp/").unwrap(),
+            node_module_import_paths: Vec::new(),
+            node_module_paths: Vec::new(),
+            package_jsons: HashMap::new(),
+            component_modules: HashMap::new(),
+            contexts: HashMap::new(),
+            import_paths: HashMap::new(),
+        }
+    }
+    /// Build the full module state from a project root URL.
+    pub async fn build(fs: &dyn Fs, main_module_path: &Url) -> Result<Self> {
         let main_module_path = fs.canonicalize(main_module_path).await?;
 
-        tracing::info!("Building module state from: {}", main_module_path.display());
+        tracing::info!("Building module state from: {}", main_module_path.as_str());
 
         let node_module_import_paths =
             node_modules::build_node_module_import_paths(&main_module_path);
@@ -84,11 +95,11 @@ impl ModuleState {
     }
 }
 
-/// Build the component modules map: module IRI → (major version → absolute path to components.jsonld).
+/// Build the component modules map: module IRI → (major version → absolute URL to components.jsonld).
 fn build_component_modules(
-    package_jsons: &HashMap<PathBuf, PackageJson>,
-) -> Result<HashMap<String, HashMap<u64, PathBuf>>> {
-    let mut modules: HashMap<String, HashMap<u64, PathBuf>> = HashMap::new();
+    package_jsons: &HashMap<Url, PackageJson>,
+) -> Result<HashMap<String, HashMap<u64, Url>>> {
+    let mut modules: HashMap<String, HashMap<u64, Url>> = HashMap::new();
     let mut versions: HashMap<String, HashMap<u64, semver::Version>> = HashMap::new();
 
     for (module_path, pkg) in package_jsons {
@@ -102,9 +113,12 @@ fn build_component_modules(
             continue;
         };
 
-        let major = version.major;
-        let absolute_path = module_path.join(components_rel);
+        let absolute_path = match module_path.join(components_rel) {
+            Ok(u) => u,
+            Err(_) => continue,
+        };
 
+        let major = version.major;
         let entry = modules.entry(module_iri.clone()).or_default();
         let ver_entry = versions.entry(module_iri.clone()).or_default();
 
@@ -125,7 +139,7 @@ fn build_component_modules(
 /// Build the contexts map: context IRI → parsed content.
 async fn build_component_contexts(
     fs: &dyn Fs,
-    package_jsons: &HashMap<PathBuf, PackageJson>,
+    package_jsons: &HashMap<Url, PackageJson>,
 ) -> Result<HashMap<String, JsonLdVal>> {
     let mut contexts: HashMap<String, JsonLdVal> = HashMap::new();
     let mut ctx_versions: HashMap<String, semver::Version> = HashMap::new();
@@ -139,7 +153,10 @@ async fn build_component_contexts(
         };
 
         for (ctx_iri, rel_path) in ctx_map {
-            let file_path = module_path.join(rel_path);
+            let file_url = match module_path.join(rel_path) {
+                Ok(u) => u,
+                Err(_) => continue,
+            };
 
             if let Some(existing_ver) = ctx_versions.get(ctx_iri) {
                 if &version <= existing_ver {
@@ -147,18 +164,18 @@ async fn build_component_contexts(
                 }
             }
 
-            match fs.read_to_string(&file_path).await {
+            match fs.read_to_string(&file_url).await {
                 Ok(contents) => match parse_json(&contents) {
                     Some(parsed) => {
                         contexts.insert(ctx_iri.clone(), parsed);
                         ctx_versions.insert(ctx_iri.clone(), version.clone());
                     }
                     None => {
-                        tracing::warn!("Failed to parse context file {}", file_path.display());
+                        tracing::warn!("Failed to parse context file {}", file_url.as_str());
                     }
                 },
                 Err(e) => {
-                    tracing::warn!("Failed to read context file {}: {}", file_path.display(), e);
+                    tracing::warn!("Failed to read context file {}: {}", file_url.as_str(), e);
                 }
             }
         }
@@ -167,11 +184,11 @@ async fn build_component_contexts(
     Ok(contexts)
 }
 
-/// Build the import paths map: IRI prefix → absolute directory path.
+/// Build the import paths map: IRI prefix → absolute directory URL.
 fn build_component_import_paths(
-    package_jsons: &HashMap<PathBuf, PackageJson>,
-) -> Result<HashMap<String, PathBuf>> {
-    let mut import_paths: HashMap<String, PathBuf> = HashMap::new();
+    package_jsons: &HashMap<Url, PackageJson>,
+) -> Result<HashMap<String, Url>> {
+    let mut import_paths: HashMap<String, Url> = HashMap::new();
     let mut path_versions: HashMap<String, semver::Version> = HashMap::new();
 
     for (module_path, pkg) in package_jsons {
@@ -183,7 +200,19 @@ fn build_component_import_paths(
         };
 
         for (iri_prefix, rel_path) in ip_map {
-            let abs_path = module_path.join(rel_path);
+            // Ensure the relative path is treated as a directory by adding trailing slash.
+            let rel_dir = if rel_path.ends_with('/') {
+                rel_path.clone()
+            } else {
+                format!("{}/", rel_path)
+            };
+            let abs_url = match module_path.join(&rel_dir) {
+                Ok(u) => u,
+                Err(e) => {
+                    tracing::warn!("Failed to join import path: {}", e);
+                    continue;
+                }
+            };
 
             if let Some(existing_ver) = path_versions.get(iri_prefix) {
                 if &version <= existing_ver {
@@ -191,7 +220,7 @@ fn build_component_import_paths(
                 }
             }
 
-            import_paths.insert(iri_prefix.clone(), abs_path);
+            import_paths.insert(iri_prefix.clone(), abs_url);
             path_versions.insert(iri_prefix.clone(), version.clone());
         }
     }
