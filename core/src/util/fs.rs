@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use derive_more::derive::AsRef;
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
+use tower_lsp::lsp_types::Url;
 
 #[derive(Resource, Clone, AsRef, Debug)]
 pub struct Fs(pub Arc<dyn FsTrait + Sync + Send>);
@@ -13,7 +14,7 @@ pub struct File {
 #[derive(Debug, Clone)]
 pub struct FsDirEntry {
     pub name: String,
-    pub path: PathBuf,
+    pub path: Url,
     pub is_dir: bool,
 }
 

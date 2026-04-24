@@ -310,21 +310,10 @@ mod fs {
                 )))?;
             Ok(entries
                 .into_iter()
-                .flat_map(|entry| {
-                    let entry_url = if entry.is_dir {
-                        Url::from_directory_path(&entry.path).map_err(|_| {
-                            ComponentsJsError::InvalidUrl(entry.path.display().to_string())
-                        })
-                    } else {
-                        Url::from_file_path(&entry.path).map_err(|_| {
-                            ComponentsJsError::InvalidUrl(entry.path.display().to_string())
-                        })
-                    };
-                    return Some(components_rs::fs::FsDirEntry {
-                        name: entry.name,
-                        path: entry_url.ok()?,
-                        is_dir: entry.is_dir,
-                    });
+                .map(|entry| components_rs::fs::FsDirEntry {
+                    name: entry.name,
+                    path: entry.path,
+                    is_dir: entry.is_dir,
                 })
                 .collect())
         }

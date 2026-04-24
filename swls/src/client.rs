@@ -83,9 +83,16 @@ impl FsTrait for BinFs {
         let mut rd = tokio::fs::read_dir(path).await.ok()?;
         while let Some(entry) = rd.next_entry().await.ok()? {
             let metadata = entry.metadata().await.ok()?;
+
+            let path = if metadata.is_file() {
+                Url::from_file_path(entry.path())
+            } else {
+                Url::from_directory_path(entry.path())
+            }
+            .ok()?;
             entries.push(FsDirEntry {
                 name: entry.file_name().to_string_lossy().into_owned(),
-                path: entry.path(),
+                path,
                 is_dir: metadata.is_dir(),
             });
         }
