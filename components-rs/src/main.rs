@@ -1,5 +1,6 @@
-use std::future::Future;
 use std::fs::read_to_string;
+use std::future::Future;
+use std::os::unix::process;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
@@ -55,6 +56,7 @@ async fn main() -> anyhow::Result<()> {
     let project_url = Url::from_directory_path(&abs_path)
         .map_err(|_| anyhow::anyhow!("Invalid project path: {}", cli.project_path.display()))?;
 
+    println!("Looking at project url {}", project_url.as_str());
     let state = ModuleState::build(&fs, &project_url).await?;
 
     let mut comp_registry = ComponentRegistry::new();
@@ -199,8 +201,7 @@ async fn main() -> anyhow::Result<()> {
             let syntax = parse.syntax::<Lang>();
 
             let mut loader = Loader { state };
-            let (jsonld_model, _ctx) =
-                convert_with_loader(&syntax, &mut loader, Some(path)).await;
+            let (jsonld_model, _ctx) = convert_with_loader(&syntax, &mut loader, Some(path)).await;
 
             for t in &jsonld_model.triples {
                 println!("{}", t.0);

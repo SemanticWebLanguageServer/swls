@@ -360,7 +360,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
 fn parse_jsonld_system<C: Client + Resource + Clone>(
     query: Query<
         (Entity, &Source, &Label, Option<&Wrapped<PrevParseInfo>>),
-        (Changed<Source>, With<JsonLdLang>),
+        (Changed<Source>, With<JsonLdLang>, With<Open>),
     >,
     mut commands: Commands,
     sender: Res<CommandSender>,

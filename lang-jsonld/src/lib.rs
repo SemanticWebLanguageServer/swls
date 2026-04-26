@@ -19,10 +19,10 @@ use components_rs::{
 use oxigraph::model::{GraphName, Literal, NamedNode, Quad};
 use swls_core::{
     lang::{Lang, LangHelper},
-    lsp_types::SemanticTokenType,
+    lsp_types::{SemanticTokenType, Url},
     prelude::{goto_definition::GotoDefinitionRequest, *},
     util::resolve_iri,
-    Startup,
+    Started,
 };
 use swls_lang_rdf_base::register_rdf_lang;
 use swls_lang_turtle::lang::parser::TurtleParseError;
@@ -89,7 +89,7 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
         schedule.add_systems(format_jsonld_system);
     });
 
-    world.schedule_scope(Startup, |_, schedule| {
+    world.schedule_scope(Started, |_, schedule| {
         schedule.add_systems((start_jsonld::<C>,));
     });
 
@@ -166,7 +166,7 @@ fn expand_iri_inner(
     value.to_string()
 }
 
-#[tracing::instrument(skip(query, res, available))]
+#[tracing::instrument(skip(query, res))]
 fn goto_cjs(
     mut query: Query<
         (
@@ -178,7 +178,6 @@ fn goto_cjs(
         ),
         With<JsonLdLang>,
     >,
-    available: Query<&Label, With<JsonLdLang>>,
     res: Res<Registry>,
 ) {
     use swls_core::lsp_types::{Location, Range};
@@ -276,7 +275,10 @@ fn goto_cjs(
 }
 
 mod fs {
-    use components_rs::error::{ComponentsJsError, Result};
+    use components_rs::{
+        error::{ComponentsJsError, Result},
+        fs::FsDirEntry,
+    };
     use swls_core::{lsp_types::Url, prelude::Fs};
 
     use crate::Registry;
@@ -328,17 +330,25 @@ mod fs {
             self.0 .0.is_dir(path).await
         }
 
-        /// Resolve symlinks and produce the canonical, absolute path.
-        /// In environments without symlinks (e.g., WASM), returning the
-        /// input path unchanged is acceptable.
-        async fn canonicalize(&self, path: &Url) -> Result<Url> {
-            self.0
+        async fn glob(&self, base: &Url, pattern: &str) -> Result<Vec<FsDirEntry>> {
+            let entries = self
+                .0
                  .0
-                .canonicalize(path)
+                .glob(base, pattern)
                 .await
-                .ok_or(ComponentsJsError::General(
-                    "Failed to canonicalize".to_string(),
-                ))
+                .ok_or(ComponentsJsError::General(format!(
+                    "Failed to read dir {:?} {}",
+                    base.as_str(),
+                    pattern
+                )))?;
+            Ok(entries
+                .into_iter()
+                .map(|entry| components_rs::fs::FsDirEntry {
+                    name: entry.name,
+                    path: entry.path,
+                    is_dir: entry.is_dir,
+                })
+                .collect())
         }
     }
 
@@ -448,7 +458,7 @@ impl Registry {
     }
 }
 
-#[tracing::instrument(skip(fs, client, config))]
+#[tracing::instrument(skip(fs, client, config, commands))]
 fn start_jsonld<C: Client + Resource + Clone>(
     fs: Res<Fs>,
     client: Res<C>,
@@ -457,7 +467,13 @@ fn start_jsonld<C: Client + Resource + Clone>(
 ) {
     let fs = fs.clone();
     tracing::info!("conffig {:?}", config);
-    if let Some(ws) = config.workspaces.first().map(|x| x.uri.clone()) {
+    if let Some(ws) = config.workspaces.first().and_then(|x| {
+        if x.uri.as_str().ends_with('/') {
+            Some(x.uri.clone())
+        } else {
+            Url::parse(&format!("{}/", x.uri.as_str())).ok()
+        }
+    }) {
         tracing::info!("HERE 2 {:?}", ws.as_str());
         let commands = commands.clone();
         let thing = async move {

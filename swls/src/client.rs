@@ -112,18 +112,34 @@ impl FsTrait for BinFs {
             !path.as_str().ends_with('/')
         }
     }
-    async fn canonicalize(&self, path: &Url) -> Option<Url> {
-        let path = path.to_file_path().ok()?;
-        let canonical = tokio::fs::canonicalize(&path).await.ok()?;
-        let is_dir = tokio::fs::metadata(&canonical)
-            .await
-            .map(|m| m.is_dir())
-            .unwrap_or(false);
-        if is_dir {
-            Url::from_directory_path(&canonical).ok()
-        } else {
-            Url::from_file_path(&canonical).ok()
+
+    async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>> {
+        let base_path = base.to_file_path().ok()?;
+        let full_pattern = base_path.join(pattern).to_string_lossy().into_owned();
+
+        let mut entries = Vec::new();
+        let paths = glob::glob(&full_pattern).ok()?;
+        for path in paths {
+            let path = path.ok()?;
+            let is_dir = path.is_dir();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+
+            let entry_url = if is_dir {
+                Url::from_directory_path(&path).ok()?
+            } else {
+                Url::from_file_path(&path).ok()?
+            };
+            entries.push(FsDirEntry {
+                name,
+                path: entry_url,
+                is_dir,
+            });
         }
+
+        Some(entries)
     }
 }
 

@@ -147,7 +147,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
                 if !found {
                     if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                        debug!(
+                        info!(
                             "Remote lov for prefix {} {}",
                             prefix.prefix,
                             prefix.url.as_str()

@@ -44,11 +44,13 @@ pub trait Fs: Send + Sync {
     /// Check whether `url` is a directory.
     async fn is_dir(&self, url: &Url) -> bool;
 
-    /// Resolve symlinks and produce the canonical, absolute URL.
-    /// Directory URLs are returned with a trailing `/`.
-    /// In environments without symlinks (e.g., WASM), returning the
-    /// input URL unchanged is acceptable.
-    async fn canonicalize(&self, url: &Url) -> Result<Url>;
+    /// Return all entries whose paths match `pattern` relative to `base`.
+    ///
+    /// `pattern` uses the same glob syntax as the platform-native glob (e.g.
+    /// `node_modules/*/package.json`, `node_modules/@*/*/package.json`).
+    /// Implementations should delegate to a native glob facility rather than
+    /// hand-rolling their own matching.
+    async fn glob(&self, base: &Url, pattern: &str) -> Result<Vec<FsDirEntry>>;
 }
 
 // ── Convenience helpers built on top of the trait ────────────────────────
@@ -98,6 +100,39 @@ fn url_to_path(url: &Url) -> crate::error::Result<std::path::PathBuf> {
 #[cfg(feature = "tokio")]
 #[async_trait]
 impl Fs for OsFs {
+    async fn glob(&self, base: &Url, pattern: &str) -> Result<Vec<FsDirEntry>> {
+        let base_path = url_to_path(base)?;
+        let full_pattern = base_path.join(pattern).to_string_lossy().into_owned();
+
+        let mut entries = Vec::new();
+        let paths = glob::glob(&full_pattern)
+            .map_err(|e| crate::error::ComponentsJsError::General(e.to_string()))?;
+        for path in paths {
+            let path = path.map_err(|e| e.into_error())?;
+            let is_dir = path.is_dir();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let entry_url = if is_dir {
+                Url::from_directory_path(&path).map_err(|_| {
+                    crate::error::ComponentsJsError::InvalidUrl(path.display().to_string())
+                })?
+            } else {
+                Url::from_file_path(&path).map_err(|_| {
+                    crate::error::ComponentsJsError::InvalidUrl(path.display().to_string())
+                })?
+            };
+            entries.push(FsDirEntry {
+                name,
+                path: entry_url,
+                is_dir,
+            });
+        }
+
+        Ok(entries)
+    }
+
     async fn read_to_string(&self, url: &Url) -> Result<String> {
         let path = url_to_path(url)?;
         Ok(tokio::fs::read_to_string(path).await?)
@@ -146,24 +181,6 @@ impl Fs for OsFs {
                 .map(|m| m.is_dir())
                 .unwrap_or(false),
             Err(_) => false,
-        }
-    }
-
-    async fn canonicalize(&self, url: &Url) -> Result<Url> {
-        let path = url_to_path(url)?;
-        let canonical = tokio::fs::canonicalize(&path).await?;
-        let is_dir = tokio::fs::metadata(&canonical)
-            .await
-            .map(|m| m.is_dir())
-            .unwrap_or(false);
-        if is_dir {
-            Url::from_directory_path(&canonical).map_err(|_| {
-                crate::error::ComponentsJsError::InvalidUrl(canonical.display().to_string())
-            })
-        } else {
-            Url::from_file_path(&canonical).map_err(|_| {
-                crate::error::ComponentsJsError::InvalidUrl(canonical.display().to_string())
-            })
         }
     }
 }

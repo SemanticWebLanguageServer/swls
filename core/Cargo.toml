@@ -15,7 +15,7 @@ homepage.workspace = true
 [features]
 default = ["shapes", "tokio"]
 shapes = []
-tokio = ["tower-lsp/runtime-tokio"]
+tokio = ["tower-lsp/runtime-tokio", "sparql_service", "mie"]
 agnostic = ["tower-lsp/runtime-agnostic"]
 
 
@@ -42,13 +42,17 @@ oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=fa
 
 oxrdf = "0.3.0"
 
- shacl_rdf = "0.2.9"
- shacl_ir = "0.2.9"
- rudof_rdf = { version= "0.2.9", default-features = false }
- shacl_ast = "0.2.9"
- prefixmap = "0.2.9"
- iri_s = "0.2.9"
- shacl_validation = { version = "0.2.9", default-features = false, features = [] }
+ shacl_rdf = "=0.2.9"
+ shacl_ir = "=0.2.9"
+ rudof_rdf = { version= "=0.2.9", default-features = false }
+ shacl_ast = "=0.2.9"
+ prefixmap = "=0.2.9"
+ shacl_validation = { version = "=0.2.9", default-features = false, features = [] }
+iri_s = "=0.2.9"
+
+# Pin transient version
+sparql_service = { version = "=0.2.9", optional = true}
+mie = { version = "=0.2.9", optional = true}
 
 # shacl_rdf        = { path = "/home/silvius/Projects/rudof/shacl_rdf" }
 # shacl_ir         = { path = "/home/silvius/Projects/rudof/shacl_ir" }

@@ -215,14 +215,10 @@ impl ComponentRegistry {
         file_sources: &'a mut HashMap<String, String>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
-            let canonical = fs
-                .canonicalize(url)
-                .await
-                .unwrap_or_else(|_| url.clone());
-            if visited.contains(&canonical) {
+            if visited.contains(url) {
                 return Ok(());
             }
-            visited.insert(canonical.clone());
+            visited.insert(url.clone());
 
             tracing::debug!("Loading component file: {}", url.as_str());
 

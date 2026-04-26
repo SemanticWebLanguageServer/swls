@@ -6,6 +6,7 @@ use tower_lsp::lsp_types::Url;
 #[derive(Resource, Clone, AsRef, Debug)]
 pub struct Fs(pub Arc<dyn FsTrait + Sync + Send>);
 
+#[derive(Debug)]
 pub struct File {
     pub name: String,
     pub content: String,
@@ -39,5 +40,6 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
     async fn read_dir(&self, path: &crate::lsp_types::Url) -> Option<Vec<FsDirEntry>>;
     async fn is_file(&self, path: &crate::lsp_types::Url) -> bool;
     async fn is_dir(&self, path: &crate::lsp_types::Url) -> bool;
-    async fn canonicalize(&self, path: &crate::lsp_types::Url) -> Option<crate::lsp_types::Url>;
+
+    async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>>;
 }

@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::error::{ComponentsJsError, Result};
+use crate::error::Result;
 use crate::fs::Fs;
 
 const LSD_BUNDLES_PREFIX: &str = "https://linkedsoftwaredependencies.org/bundles/npm/";
@@ -96,22 +96,33 @@ pub async fn read_package_jsons(
     fs: &dyn Fs,
     module_paths: &[Url],
 ) -> Result<HashMap<Url, PackageJson>> {
+    tracing::info!("[package_json] read_package_jsons called with {} paths", module_paths.len());
     let mut result = HashMap::new();
     for module_path in module_paths {
         let pkg_url = match module_path.join("package.json") {
             Ok(u) => u,
-            Err(_) => continue,
+            Err(e) => {
+                tracing::warn!("[package_json] failed to join package.json onto {}: {}", module_path.as_str(), e);
+                continue;
+            }
         };
-        if fs.is_file(&pkg_url).await {
-            let contents = fs.read_to_string(&pkg_url).await?;
-            let pkg: PackageJson =
-                serde_json::from_str(&contents).map_err(|e| ComponentsJsError::JsonParse {
-                    path: pkg_url.to_string(),
-                    source: e,
-                })?;
-            result.insert(module_path.clone(), pkg);
-        }
+        let contents = match fs.read_to_string(&pkg_url).await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::debug!("[package_json] read failed for {}: {}", pkg_url.as_str(), e);
+                continue;
+            }
+        };
+        let pkg: PackageJson = match serde_json::from_str(&contents) {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::warn!("[package_json] skipping {}: {}", pkg_url.as_str(), e);
+                continue;
+            }
+        };
+        result.insert(module_path.clone(), pkg);
     }
+    tracing::info!("[package_json] read_package_jsons parsed {} package.json files", result.len());
     Ok(result)
 }
 

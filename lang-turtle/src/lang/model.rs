@@ -111,7 +111,6 @@ impl TurtleExt for Turtle {
         let mut builder = TriplesBuilder::new(self, base);
 
         for t in &self.triples {
-            tracing::info!("Ingesting triple {}", t.value());
             if let Err(e) = builder.ingest(t) {
                 tracing::error!("Failed parsing triple {}: {:?}", t.value(), e);
             }

@@ -61,17 +61,14 @@ impl ModuleState {
     }
     /// Build the full module state from a project root URL.
     pub async fn build(fs: &dyn Fs, main_module_path: &Url) -> Result<Self> {
-        let main_module_path = fs.canonicalize(main_module_path).await?;
-
         tracing::info!(
             "[CJS] Building module state from: {}",
             main_module_path.as_str()
         );
 
-        let node_module_import_paths =
-            node_modules::build_node_module_import_paths(&main_module_path);
+        let node_module_import_paths = vec![main_module_path.clone()];
         let node_module_paths =
-            node_modules::build_node_module_paths(fs, &node_module_import_paths).await?;
+            node_modules::build_node_module_paths(fs, &node_module_import_paths, false).await?;
 
         tracing::info!("Discovered {} node module paths", node_module_paths.len());
 
@@ -91,7 +88,7 @@ impl ModuleState {
         );
 
         Ok(ModuleState {
-            main_module_path,
+            main_module_path: main_module_path.clone(),
             node_module_import_paths,
             node_module_paths,
             package_jsons,

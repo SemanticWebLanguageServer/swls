@@ -18,7 +18,7 @@ required-features = ["cli"]
 
 [features]
 default = ["tokio"]
-tokio = ["dep:tokio"]
+tokio = ["dep:tokio", "dep:glob"]
 cli = ["dep:clap", "dep:anyhow", "dep:tracing-subscriber", "tokio"]
 
 [dependencies]
@@ -29,6 +29,7 @@ thiserror = "2"
 tracing.workspace = true
 async-trait = "0.1"
 tokio = { version = "1", features = ["rt", "macros", "fs"], optional = true }
+glob = { version = "0.3", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 anyhow = { version = "1", optional = true }
