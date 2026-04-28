@@ -13,7 +13,7 @@ use crate::systems::TypeId;
 pub struct Types(pub HashMap<Cow<'static, str>, HashSet<TypeId>>);
 impl Types {
     #[tracing::instrument(skip(self, hierarchy))]
-    pub fn clean_up(&mut self, hierarchy: &TypeHierarchy<'_>) {
+    pub fn clean_up(&mut self, hierarchy: &TypeHierarchy) {
         for sets in self.0.values_mut() {
             let new_set = sets
                 .iter()
@@ -34,7 +34,7 @@ impl Types {
             *sets = new_set;
         }
 
-        tracing::info!(
+        tracing::debug!(
             "found {} typed entities",
             self.iter().filter(|x| !x.1.is_empty()).count()
         );
@@ -65,20 +65,20 @@ impl Types {
 /// }
 /// ```
 #[derive(Resource, Debug, Default)]
-pub struct TypeHierarchy<'a> {
-    numbers: HashMap<Cow<'a, str>, TypeId>,
-    nodes: Vec<Cow<'a, str>>,
+pub struct TypeHierarchy {
+    numbers: HashMap<Cow<'static, str>, TypeId>,
+    nodes: Vec<Cow<'static, str>>,
     subclass: Vec<HashSet<TypeId>>,
     superclass: Vec<HashSet<TypeId>>,
 }
 
-impl<'a> TypeHierarchy<'a> {
+impl TypeHierarchy {
     pub fn get_id(&mut self, class: &str) -> TypeId {
         if let Some(id) = self.numbers.get(class) {
             *id
         } else {
             let new_id = TypeId(self.nodes.len());
-            let class_cow: Cow<'a, str> = Cow::Owned(class.to_string());
+            let class_cow: Cow<'static, str> = Cow::Owned(class.to_string());
             self.nodes.push(class_cow.clone());
             self.numbers.insert(class_cow, new_id);
             self.subclass.push(HashSet::new());
@@ -96,7 +96,7 @@ impl<'a> TypeHierarchy<'a> {
         self.superclass[to.0].insert(class);
     }
 
-    pub fn iter_subclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+    pub fn iter_subclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'static, str>> + 'b {
         self.iter_subclass_ids(id)
             .map(|id| self.nodes[id.0].clone())
     }
@@ -120,11 +120,14 @@ impl<'a> TypeHierarchy<'a> {
         })
     }
 
-    pub fn type_name(&self, id: TypeId) -> Cow<'a, str> {
+    pub fn type_name(&self, id: TypeId) -> Cow<'static, str> {
         self.nodes[id.0].clone()
     }
 
-    pub fn iter_superclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+    pub fn iter_superclass<'b>(
+        &'b self,
+        id: TypeId,
+    ) -> impl Iterator<Item = Cow<'static, str>> + 'b {
         self.iter_superclass_ids(id)
             .map(|id| self.nodes[id.0].clone())
     }

@@ -120,7 +120,7 @@ impl TurtleExt for Turtle {
     }
 
     fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples2<'a> {
-        tracing::info!("Results in {} triples", triples.len());
+        tracing::debug!("Results in {} triples", triples.len());
         let base = match &self.base {
             Some(Spanned(Base(_, Spanned(named_node, span)), _)) => {
                 NamedNodeExt::expand_step(named_node, self, HashSet::new())

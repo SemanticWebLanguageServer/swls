@@ -143,7 +143,7 @@ impl Lang for TurtleLang {
             let output = Self::semantic_token_type(kind)
                 .map(|t| vec![(t, span.clone())])
                 .unwrap_or_default();
-            tracing::info!("token kind {:?} {:?} {:?}", this_kind, span, output);
+            tracing::trace!("token kind {:?} {:?} {:?}", this_kind, span, output);
             output
         }
     }

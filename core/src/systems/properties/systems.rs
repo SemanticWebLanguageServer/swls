@@ -20,7 +20,7 @@ pub fn complete_class(
         &Types,
         &mut CompletionRequest,
     )>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
 ) {
     for (token, triple, prefixes, types, mut request) in &mut query {
@@ -67,7 +67,7 @@ pub fn complete_class(
 
 pub fn hover_class(
     mut query: Query<(&TripleComponent, &Prefixes, &mut HoverRequest)>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
 ) {
     for (triple, prefixes, mut request) in &mut query {
@@ -99,7 +99,7 @@ pub fn complete_properties(
         &mut CompletionRequest,
         &DynLang,
     )>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
     config: Res<ServerConfig>,
 ) {

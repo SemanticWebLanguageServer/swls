@@ -30,7 +30,7 @@ pub fn setup_schedule(world: &mut World) {
 #[tracing::instrument(skip(query, hierarchy))]
 fn inlay_types(
     query: Query<(&Triples, &Types, &RopeC, &Prefixes, &mut InlayRequest)>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
 ) {
     for (triples, types, rope, prefixes, mut request) in query {
         let subjects: HashSet<_> = triples.subjects().flatten().collect();

@@ -17,7 +17,7 @@ pub struct TypeId(pub usize);
 #[instrument(skip(query, hierarchy))]
 pub fn extract_type_hierarchy(
     query: Query<&Triples, (Changed<Triples>, Without<Dirty>)>,
-    mut hierarchy: ResMut<TypeHierarchy<'static>>,
+    mut hierarchy: ResMut<TypeHierarchy>,
 ) {
     for triples in &query {
         let class_terms = triples
@@ -56,7 +56,7 @@ pub fn extract_type_hierarchy(
 
 pub fn infer_types(
     mut query: Query<(&Triples, &mut Types), (Changed<Triples>, With<Open>)>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
     ontologies: Res<Ontologies>,
 ) {
     for (triples, mut types) in &mut query {
@@ -153,7 +153,7 @@ pub fn infer_current_type(
 #[instrument(skip(query, hierarchy))]
 pub fn hover_types(
     mut query: Query<(&TripleComponent, &Types, &Prefixes, &mut HoverRequest)>,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
 ) {
     for (triple, types, pref, mut hover) in &mut query {
         let Some(term) = triple.term() else { continue };

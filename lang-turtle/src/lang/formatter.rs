@@ -8,7 +8,7 @@ use swls_core::{
     lsp_types::FormattingOptions,
     prelude::{spanned, Spanned},
 };
-use tracing::{info, trace, warn};
+use tracing::{trace, warn};
 
 use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
@@ -319,7 +319,7 @@ pub fn format_turtle(
     let buf: Buf = Cursor::new(Vec::new());
     let mut state = FormatState::new(config, buf, comments, source);
     match state.write_turtle(turtle) {
-        Ok(_) => info!("Format successful"),
+        Ok(_) => tracing::debug!("Format successful"),
         Err(e) => {
             warn!("Format unsuccessful {:?}", e);
             return None;

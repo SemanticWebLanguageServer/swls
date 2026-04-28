@@ -167,6 +167,9 @@ impl ComponentRegistry {
         let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
         let mut id_source_files: HashMap<String, String> = HashMap::new();
         let mut file_sources: HashMap<String, String> = HashMap::new();
+        // Cache resolved ContextResolvers keyed by the @context value so files
+        // sharing the same context IRI don't rebuild the resolver from scratch.
+        let mut resolver_cache: HashMap<String, ContextResolver> = HashMap::new();
 
         for version_map in state.component_modules.values() {
             for component_url in version_map.values() {
@@ -180,6 +183,7 @@ impl ComponentRegistry {
                         &mut id_spans,
                         &mut id_source_files,
                         &mut file_sources,
+                        &mut resolver_cache,
                     )
                     .await?;
                 } else {
@@ -213,6 +217,7 @@ impl ComponentRegistry {
         id_spans: &'a mut HashMap<String, Range<usize>>,
         id_source_files: &'a mut HashMap<String, String>,
         file_sources: &'a mut HashMap<String, String>,
+        resolver_cache: &'a mut HashMap<String, ContextResolver>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
             if visited.contains(url) {
@@ -229,7 +234,14 @@ impl ComponentRegistry {
             };
 
             let resolver = if let Some(ctx) = doc.get("@context") {
-                ContextResolver::from_context_value(ctx, &state.contexts)?
+                let key = context_cache_key(ctx);
+                if let Some(cached) = resolver_cache.get(&key) {
+                    cached.clone()
+                } else {
+                    let r = ContextResolver::from_context_value(ctx, &state.contexts)?;
+                    resolver_cache.insert(key, r.clone());
+                    r
+                }
             } else {
                 ContextResolver::new()
             };
@@ -281,6 +293,7 @@ impl ComponentRegistry {
                 id_spans,
                 id_source_files,
                 file_sources,
+                resolver_cache,
             )
             .await?;
 
@@ -301,6 +314,7 @@ impl ComponentRegistry {
         id_spans: &'a mut HashMap<String, Range<usize>>,
         id_source_files: &'a mut HashMap<String, String>,
         file_sources: &'a mut HashMap<String, String>,
+        resolver_cache: &'a mut HashMap<String, ContextResolver>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a + Send>> {
         Box::pin(async move {
             let mut import_iris = Vec::new();
@@ -329,6 +343,7 @@ impl ComponentRegistry {
                             id_spans,
                             id_source_files,
                             file_sources,
+                            resolver_cache,
                         )
                         .await?;
                     }
@@ -574,10 +589,15 @@ impl ComponentRegistry {
     pub fn finalize(&mut self) {
         let component_iris: Vec<String> = self.components.keys().cloned().collect();
         for iri in component_iris {
-            let inherited_params = self.collect_inherited_params(&iri, &mut Vec::new());
+            let inherited_params =
+                self.collect_inherited_params(&iri, &mut std::collections::HashSet::new());
             if let Some(comp) = self.components.get_mut(&iri) {
+                // Build a set of already-present parameter IRIs so the dedup
+                // check is O(1) instead of O(existing_params).
+                let existing: std::collections::HashSet<String> =
+                    comp.parameters.iter().map(|p| p.iri.clone()).collect();
                 for param in inherited_params {
-                    if !comp.parameters.iter().any(|p| p.iri == param.iri) {
+                    if !existing.contains(&param.iri) {
                         comp.parameters.push(param);
                     }
                 }
@@ -595,11 +615,14 @@ impl ComponentRegistry {
         }
     }
 
-    fn collect_inherited_params(&self, iri: &str, visited: &mut Vec<String>) -> Vec<CjsParameter> {
-        if visited.contains(&iri.to_string()) {
+    fn collect_inherited_params(
+        &self,
+        iri: &str,
+        visited: &mut std::collections::HashSet<String>,
+    ) -> Vec<CjsParameter> {
+        if !visited.insert(iri.to_string()) {
             return vec![];
         }
-        visited.push(iri.to_string());
 
         let Some(comp) = self.components.get(iri) else {
             return vec![];
@@ -613,6 +636,20 @@ impl ComponentRegistry {
             params.extend(self.collect_inherited_params(parent_iri, visited));
         }
         params
+    }
+}
+
+/// Produce a stable string key for a `@context` value so resolved
+/// [`ContextResolver`]s can be cached across files that share the same context.
+fn context_cache_key(val: &JsonLdVal) -> String {
+    match val {
+        JsonLdVal::Str(s) => s.clone(),
+        JsonLdVal::Array(arr) => arr
+            .iter()
+            .map(|(v, _)| context_cache_key(v))
+            .collect::<Vec<_>>()
+            .join("\x00"),
+        _ => format!("{val:?}"),
     }
 }
 

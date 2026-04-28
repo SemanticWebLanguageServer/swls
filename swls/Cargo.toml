@@ -19,6 +19,7 @@ futures.workspace      = true
 reqwest.workspace      = true
 ropey.workspace        = true
 serde_json.workspace   = true
+serde.workspace   = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 tower-lsp.workspace    = true
@@ -38,3 +39,6 @@ glob = "0.3.3"
 [features]
 shapes = ["swls-core/shapes"]
 default = ["tower-lsp/runtime-tokio"]
+
+[build-dependencies]
+vergen = { version = "8.1", features = ["build", "git2", "git"] }

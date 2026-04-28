@@ -20,21 +20,21 @@ pub fn cjs_loader(
     mut found: Local<HashSet<String>>,
 ) {
     for r in requests {
-        tracing::info!("jsonld loader {}", r.url.as_str());
+        tracing::debug!("jsonld loader {}", r.url.as_str());
 
         if found.contains(r.url.as_str()) {
             continue;
         }
 
         if let Some(val) = res.1.contexts.get(r.url.as_str()) {
-            tracing::info!("jsonld loader {} found context", r.url.as_str());
+            tracing::debug!("jsonld loader {} found context", r.url.as_str());
             found.insert(r.url.as_str().to_string());
 
             let mut found = false;
 
             for (e, l) in json_ld_vals.iter() {
                 if l.as_str() == r.url.as_str() {
-                    tracing::info!("Found entity {}", r.url);
+                    tracing::debug!("Found entity {}", r.url);
                     found = true;
                     commander.entity(e).insert(Wrapped(val.clone()));
                 }
@@ -42,14 +42,12 @@ pub fn cjs_loader(
 
             if !found {
                 if let Ok(l) = Url::parse(r.url.as_str()) {
-                    tracing::info!("Spawning {}", r.url);
+                    tracing::debug!("Spawning {}", r.url);
                     commander.spawn((Label(l), Wrapped(val.clone())));
                 }
             }
         } else {
-            let mut keys: Vec<_> = res.1.contexts.keys().collect();
-            keys.sort();
-            tracing::info!("no context found in {:?}", keys);
+            tracing::warn!("no context found for {}", r.url.as_str());
         }
     }
 }

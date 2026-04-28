@@ -4,7 +4,7 @@ use bevy_ecs::prelude::*;
 use rdf_parsers::{turtle::SyntaxKind, PrevParseInfo};
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::{
     lang::parser::{parse_new, TurtleNode},
@@ -69,14 +69,14 @@ pub fn parse_turtle_system(
         let (turtle, errors, new_prev, syntax, node) =
             parse_new(source.0.as_str(), label.as_str(), prev);
 
-        info!(
+        tracing::debug!(
             "{} triples ({} parse errors)",
             turtle.triples.len(),
             errors.len()
         );
         if open.is_some() {
             for e in &errors {
-                info!("Parse error {:?}: {}", e.range, e.msg);
+                tracing::debug!("Parse error {:?}: {}", e.range, e.msg);
             }
         }
 
@@ -131,7 +131,7 @@ pub fn derive_triples_system<L>(
                 commands.entity(entity).insert(Triples(Arc::new(triples)));
             }
             Err(e) => {
-                info!("derive_triples: error for {}: {:?}", label.as_str(), e);
+                tracing::warn!("derive_triples: error for {}: {:?}", label.as_str(), e);
             }
         }
     }

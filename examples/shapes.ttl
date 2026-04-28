@@ -134,6 +134,7 @@
       [ sh:node <http://w3id.org/rml/shapes/IterableFieldShape> ]
     );
     sh:path rml:field;
+    sh:description "";
   ];
   sh:targetClass rml:LogicalViewJoin;
   sh:targetObjectsOf rml:innerJoin, rml:leftJoin.

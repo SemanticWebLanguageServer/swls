@@ -8,7 +8,7 @@ use swls_lang_turtle::{
     ecs::parse::derive_triples_system,
     lang::{model::NamedNodeExt, parser::TurtleParseError},
 };
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::TriGLang;
 
@@ -127,7 +127,7 @@ fn parse_trig_system(
 
         let cst_tokens = extract_trig_cst_tokens(&syntax);
 
-        info!(
+        tracing::debug!(
             "{} triples ({} parse errors)",
             trig_model.triples.len(),
             errors.len()

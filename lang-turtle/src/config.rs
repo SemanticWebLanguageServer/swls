@@ -21,7 +21,7 @@ pub fn extract_known_shapes_from_config<C: Client + ClientSync + Resource + Clon
         let sender = sender.0.clone();
 
         let fut = async move {
-            tracing::info!("A FUTURE IS STARTING");
+            tracing::debug!("A FUTURE IS STARTING");
             let Some(files) = find(&on, &fs, &c).await else {
                 return;
             };
@@ -75,7 +75,7 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
         let sender = sender.0.clone();
 
         let fut = async move {
-            tracing::info!("A FUTURE IS STARTING");
+            tracing::debug!("A FUTURE IS STARTING");
             let Some(files) = find(&on, &fs, &c).await else {
                 return;
             };
@@ -88,7 +88,7 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                     continue;
                 };
 
-                tracing::info!(
+                tracing::debug!(
                     "Adding local prefix from ontologies config location {} prefix {}",
                     url,
                     prefix

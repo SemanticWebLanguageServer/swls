@@ -25,7 +25,7 @@ impl DefinedClass {
         title
     }
 
-    pub fn full_docs(&self, hierarchy: &TypeHierarchy<'_>, pref: &Prefixes) -> String {
+    pub fn full_docs(&self, hierarchy: &TypeHierarchy, pref: &Prefixes) -> String {
         let mut docs = String::new();
         for d in &self.descriptions {
             if !docs.is_empty() {

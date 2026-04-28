@@ -44,7 +44,7 @@ mod system {
         for (triple, triples, label, rope, mut req) in &mut query {
             let target = triple.kind();
             let Some(term) = triple.term() else { continue };
-            tracing::info!("Found term '{}' with kind {:?}", term.value, target);
+            tracing::debug!("Found term '{}' with kind {:?}", term.value, target);
 
             if target == TermKind::Iri {
                 for (proj_triples, proj_rope, proj_label) in &project {

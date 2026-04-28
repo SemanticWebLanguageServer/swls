@@ -15,6 +15,7 @@
 //! [`crate::config::registry::ConfigRegistry`].
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use rdf_parsers::jsonld::convert::{parse_json, JsonLdVal};
 use url::Url;
@@ -39,7 +40,8 @@ pub struct ModuleState {
     /// Component modules: module IRI → (major version → absolute components.jsonld URL).
     pub component_modules: HashMap<String, HashMap<u64, Url>>,
     /// Contexts: context IRI → parsed content of context file.
-    pub contexts: HashMap<String, JsonLdVal>,
+    /// Wrapped in Arc so it can be shared cheaply across async tasks.
+    pub contexts: Arc<HashMap<String, JsonLdVal>>,
     /// Import paths: IRI prefix → absolute local directory URL.
     pub import_paths: HashMap<String, Url>,
     /// Context URLs: full context IRI → absolute local file URL (from lsd:contexts).
@@ -54,7 +56,7 @@ impl ModuleState {
             node_module_paths: Vec::new(),
             package_jsons: HashMap::new(),
             component_modules: HashMap::new(),
-            contexts: HashMap::new(),
+            contexts: Arc::new(HashMap::new()),
             import_paths: HashMap::new(),
             context_urls: HashMap::new(),
         }
@@ -76,7 +78,7 @@ impl ModuleState {
         package_json::preprocess_all(fs, &mut package_jsons).await;
 
         let component_modules = build_component_modules(&package_jsons)?;
-        let contexts = build_component_contexts(fs, &package_jsons).await?;
+        let contexts = Arc::new(build_component_contexts(fs, &package_jsons).await?);
         let import_paths = build_component_import_paths(&package_jsons)?;
         let context_urls = build_component_context_urls(&package_jsons)?;
 

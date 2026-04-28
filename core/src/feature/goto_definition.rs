@@ -61,7 +61,7 @@ mod system {
             tracing::debug!("kind {:?}", target);
             if target == TermKind::Iri {
                 for (triples, rope, label) in &project {
-                    tracing::info!("Looking into buffer {}", label.as_str());
+                    tracing::debug!("Looking into buffer {}", label.as_str());
                     let subs: HashSet<_> = triples
                         .iter()
                         .map(|x| x.s())

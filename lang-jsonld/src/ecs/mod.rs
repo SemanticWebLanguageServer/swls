@@ -1,4 +1,4 @@
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
 use bevy_ecs::{
     prelude::*, schedule::ScheduleLabel, system::RunSystemOnce as _, world::CommandQueue,
@@ -19,9 +19,9 @@ use swls_core::{
     prelude::*,
 };
 use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
-use tracing::{info, instrument};
+use tracing::instrument;
 
-use crate::{cjs, JsonLdLang};
+use crate::{cjs, JsonLdLang, Registry};
 
 pub mod completion;
 pub use completion::setup_completion;
@@ -37,11 +37,22 @@ pub struct ContextCache(pub HashMap<String, String>);
 #[derive(Component, Debug, Default, Clone)]
 pub struct JsonLdActiveContext(pub ActiveContext);
 
-/// Resolves `@context` URLs by first checking open documents in the ECS world,
-/// then falling back to the [`ContextCache`] of previously-fetched remote contexts.
-/// Missing URLs are recorded so the caller can fetch them asynchronously.
+/// Resolves `@context` URLs for a single document parse.
+///
+/// Resolution order:
+/// 1. Per-invocation [`local_cache`](Self::local_cache) — avoids re-fetching
+///    the same URL twice within one document's context chain.
+/// 2. [`cjs_contexts`](Self::cjs_contexts) — the pre-loaded CJS context map from
+///    [`ModuleState`].  Returning the value here avoids the full ECS round-trip
+///    (spawn entity → run `FetchLabel` → wait for oneshot channel) for the
+///    common case where every `.jsonld` file references the same CJS context URL.
+/// 3. ECS world / network fallback — for contexts not known at startup.
 struct WorldContextLoader {
     sender: CommandSender,
+    /// Pre-loaded CJS contexts shared from [`ModuleState::contexts`].
+    cjs_contexts: Arc<HashMap<String, JsonLdVal>>,
+    /// Cache of already-resolved contexts within this loader's lifetime.
+    local_cache: HashMap<String, JsonLdVal>,
 }
 
 impl ContextLoader for WorldContextLoader {
@@ -49,15 +60,33 @@ impl ContextLoader for WorldContextLoader {
         &'a mut self,
         url: &'a str,
     ) -> Pin<Box<dyn Future<Output = Option<rdf_parsers::jsonld::convert::JsonLdVal>> + 'a>> {
-        info!("context loader load val {}", url);
-        let cs = self.sender.clone();
+        // 1. Per-invocation cache.
+        if let Some(val) = self.local_cache.get(url) {
+            let val = val.clone();
+            return Box::pin(std::future::ready(Some(val)));
+        }
 
+        // 2. CJS contexts — direct map lookup, no ECS round-trip needed.
+        if let Some(result) = self.cjs_contexts.get(url).map(|ctx_doc| {
+            if let Some(ctx) = ctx_doc.get("@context") {
+                ctx.clone()
+            } else {
+                ctx_doc.clone()
+            }
+        }) {
+            self.local_cache.insert(url.to_string(), result.clone());
+            return Box::pin(std::future::ready(Some(result)));
+        }
+
+        // 3. ECS world / network fallback.
+        tracing::debug!("context loader load val {}", url);
+        let cs = self.sender.clone();
         let url = url.to_string();
         Box::pin(async move {
             let (sender, receiver) = futures::channel::oneshot::channel::<Result<String, _>>();
             let mut command_queue = CommandQueue::default();
             let url2 = url.clone();
-            tracing::info!("Trying to find context {}", url.as_str());
+            tracing::debug!("Trying to find context {}", url.as_str());
             command_queue.push(move |world: &mut World| {
                 world.spawn(ContextRequest {
                     url: url2,
@@ -69,7 +98,7 @@ impl ContextLoader for WorldContextLoader {
             let _ = cs.unbounded_send(command_queue);
 
             let v = receiver.await.ok()?;
-            info!("context loader got response for {}", url);
+            tracing::debug!("context loader got response for {}", url);
             match v {
                 Ok(s) => parse_jsonld_for_context(&s),
                 Err(x) => {
@@ -87,7 +116,7 @@ impl ContextLoader for WorldContextLoader {
         })
     }
     fn load<'a>(&'a mut self, url: &'a str) -> Pin<Box<dyn Future<Output = Option<String>> + 'a>> {
-        info!("context loader load string {}", url);
+        tracing::debug!("context loader load string {}", url);
         Box::pin(std::future::ready(None))
     }
 }
@@ -123,10 +152,10 @@ pub struct FetchLabel;
 fn return_empty(requests: Query<(Entity, &mut ContextRequest)>, mut commander: Commands) {
     for (e, mut r) in requests {
         if let Some(sender) = r.on_ready.take() {
-            tracing::info!("loader sending empty {}", r.url);
+            tracing::debug!("loader sending empty {}", r.url);
             let _ = sender.send(Result::Ok(String::new()));
         } else {
-            tracing::info!("loader cannot send empty {}", r.url);
+            tracing::debug!("loader cannot send empty {}", r.url);
         }
         commander.entity(e).despawn();
     }
@@ -137,7 +166,19 @@ fn fetch_from_world(
     documents: Query<(&Label, Option<&Wrapped<JsonLdVal>>, Option<&Source>)>,
     mut commander: Commands,
 ) {
-    let mut should_reparse = false;
+    // NOTE: do NOT call run_schedule(ParseLabel) here even when a
+    // Wrapped<JsonLdVal> context entity is found.  The value has already been
+    // delivered to the waiting async task via the oneshot channel; that task
+    // will call run_schedule(ParseLabel) itself when it finishes inserting the
+    // Element.  Calling ParseLabel here is premature and was the source of a
+    // cascading loop: the persistent context entity (Wrapped<JsonLdVal>,
+    // created by cjs_loader and never despawned) would be found again by every
+    // subsequent load_val call, each triggering another ParseLabel which could
+    // re-fire parse_jsonld_system, spawning more tasks that each called
+    // load_val again.  With the WorldContextLoader now returning CJS contexts
+    // directly from cjs_contexts (no ContextRequest spawned), this code path
+    // is unreachable for CJS contexts.  Removing the ParseLabel trigger here
+    // closes the loop for any future code that might recreate the pattern.
     for (entity, mut request) in requests.iter_mut() {
         for (labels, jsonld_val, s) in documents {
             if labels.as_str() == request.url.as_str() {
@@ -145,17 +186,16 @@ fn fetch_from_world(
                     let o = match (jsonld_val, s) {
                         (Some(val), _) => {
                             let char_count = format!("{:?}", val).len();
-                            tracing::info!(
+                            tracing::debug!(
                                 "loader fetch_from_world sent {} (found val {} {})",
                                 request.url,
                                 jsonld_val.is_some(),
                                 char_count
                             );
-                            should_reparse = true;
                             sender.send(Result::Err(val.as_ref().clone()))
                         }
                         (_, Some(source)) => {
-                            tracing::info!(
+                            tracing::debug!(
                                 "loader fetch_from_world sent {} (found val false {})",
                                 request.url,
                                 source.len()
@@ -163,23 +203,20 @@ fn fetch_from_world(
                             sender.send(Result::Ok(source.to_string()))
                         }
                         _ => {
-                            tracing::info!(
+                            tracing::debug!(
                                 "loader fetch_from_world sent {} (empty string)",
                                 request.url,
                             );
                             sender.send(Result::Ok("".to_string()))
                         }
                     };
-                    tracing::info!("Sent succesful {:?}", o);
+                    tracing::debug!("Sent successful {:?}", o);
                 }
                 if let Ok(mut e) = commander.get_entity(entity) {
                     e.despawn();
                 }
             }
         }
-    }
-    if should_reparse {
-        commander.run_schedule(ParseLabel);
     }
 }
 
@@ -248,7 +285,7 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                                 language_id: Some("jsonld".to_string()),
                                 entity: e,
                             });
-                            tracing::info!("Found local file, rerunning the deriving {}", url);
+                            tracing::debug!("Found local file, rerunning the deriving {}", url);
                             let _ = world.run_system_once(derive_jsonld_triples::<C>);
                         }
                     });
@@ -313,50 +350,70 @@ fn collect_errors(node: &rowan::SyntaxNode<Lang>) -> Vec<TurtleParseError> {
     errors
 }
 
+/// Re-derive JSON-LD triples for every open JSON-LD document.
+///
+/// All documents are processed sequentially inside **one** spawned task.  A
+/// single [`CommandQueue`] is sent at the end that inserts all derived elements
+/// at once and runs [`ParseLabel`] exactly once.  This means
+/// `derive_triples_system`, `load_store`, and `derive_ontologies` each execute
+/// once for the whole batch instead of once per document — the dominant cost
+/// during initial CJS workspace loading.
 pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
     query: Query<(Entity, &Wrapped<GreenNode>, &Label, &Source), With<JsonLdLang>>,
     sender: Res<CommandSender>,
     client: Res<C>,
+    registry: Res<Registry>,
 ) {
-    for (e, gn, label, source) in query {
-        let base = label.0.to_string();
-        let span = 0..source.0.len();
-        let mut sender = sender.clone();
-        let gn = gn.0.clone();
-        let c2 = client.clone();
-        client.spawn_local(async move {
+    // Collect owned data up front so we can move it into the async block.
+    let items: Vec<(Entity, rowan::GreenNode, String, usize)> = query
+        .iter()
+        .map(|(e, gn, label, source)| {
+            (e, gn.0.clone(), label.0.to_string(), source.0.len())
+        })
+        .collect();
+
+    if items.is_empty() {
+        return;
+    }
+
+    let cjs_contexts = registry.1.contexts.clone();
+    let mut sender_clone = sender.clone();
+    let c2 = client.clone();
+
+    client.spawn_local(async move {
+        let mut all_results: Vec<(Entity, Element<JsonLdLang>, JsonLdActiveContext)> =
+            Vec::with_capacity(items.len());
+
+        for (e, gn, base, span_len) in items {
             let mut loader = WorldContextLoader {
-                sender: sender.clone(),
+                sender: sender_clone.clone(),
+                cjs_contexts: cjs_contexts.clone(),
+                local_cache: HashMap::new(),
             };
             let syntax = rowan::SyntaxNode::new_root(gn);
-            let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
+            let (jsonld_model, ctx) =
+                convert_with_loader(&syntax, &mut loader, Some(base)).await;
 
-            info!("{} triples", jsonld_model.triples.len(),);
+            tracing::debug!("{} triples", jsonld_model.triples.len());
+            let element = Element::<JsonLdLang>(spanned(jsonld_model, 0..span_len));
+            all_results.push((e, element, JsonLdActiveContext(ctx)));
+        }
 
-            for t in &jsonld_model.triples {
-                info!("{}", t.value());
+        // Insert all elements and run ParseLabel once so derive_ontologies
+        // only executes once regardless of how many documents were processed.
+        let mut command_queue = CommandQueue::default();
+        command_queue.push(move |world: &mut World| {
+            for (e, element, ctx) in all_results {
+                world.entity_mut(e).insert((element, ctx));
             }
-
-            let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
-
-            let mut command_queue = CommandQueue::default();
-            command_queue.push(move |world: &mut World| {
-                world
-                    .entity_mut(e)
-                    .insert((element, JsonLdActiveContext(ctx)));
-                // Re-run ParseLabel so that derive_triples_system and
-                // derive_jsonld_prefixes see the newly-inserted element
-                // (they react to Changed<Element<JsonLdLang>>).  Without
-                // this, those systems only fire on the *next* user edit.
-                world.run_schedule(ParseLabel);
-            });
-            let _ = sender.0.send(command_queue).await;
-            c2.send_request::<InlayHintRefreshRequest>(()).await;
+            world.run_schedule(ParseLabel);
         });
-    }
+        let _ = sender_clone.0.send(command_queue).await;
+        c2.send_request::<InlayHintRefreshRequest>(()).await;
+    });
 }
 
-#[instrument(skip(query, sender, commands, client))]
+#[instrument(skip(query, sender, commands, client, registry))]
 fn parse_jsonld_system<C: Client + Resource + Clone>(
     query: Query<
         (Entity, &Source, &Label, Option<&Wrapped<PrevParseInfo>>),
@@ -365,7 +422,10 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
     mut commands: Commands,
     sender: Res<CommandSender>,
     client: Res<C>,
+    registry: Res<Registry>,
 ) {
+    let cjs_contexts = registry.1.contexts.clone();
+
     for (entity, source, label, prev) in &query {
         let (parse, new_prev) = rdf_parsers::parse_incremental(
             Rule::new(SyntaxKind::JsonldDoc),
@@ -379,24 +439,22 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
         let errors = collect_errors(&syntax);
         let cst_tokens = extract_jsonld_cst_tokens(&syntax);
 
-        let mut loader = WorldContextLoader {
-            sender: sender.clone(),
-        };
-
         let gn = parse.green_node.clone();
         let base = label.0.to_string();
         let span = 0..source.0.len();
         let e = entity.clone();
         let mut sender = sender.clone();
+        let cjs_contexts = cjs_contexts.clone();
         client.spawn_local(async move {
+            let mut loader = WorldContextLoader {
+                sender: sender.clone(),
+                cjs_contexts,
+                local_cache: HashMap::new(),
+            };
             let syntax = rowan::SyntaxNode::new_root(gn.clone());
             let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
 
-            info!("{} triples", jsonld_model.triples.len(),);
-
-            for t in &jsonld_model.triples {
-                info!("{}", t.value());
-            }
+            tracing::debug!("{} triples", jsonld_model.triples.len());
 
             let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
 

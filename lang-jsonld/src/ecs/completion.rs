@@ -362,7 +362,7 @@ pub fn jsonld_property_completion(
         ),
         With<JsonLdLang>,
     >,
-    hierarchy: Res<TypeHierarchy<'static>>,
+    hierarchy: Res<TypeHierarchy>,
     registry: Res<Registry>,
 ) {
     for (token, triple, types, active_ctx, prefixes, mut request) in &mut query {

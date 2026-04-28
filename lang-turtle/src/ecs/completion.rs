@@ -275,7 +275,7 @@ foa
 
     #[test_log::test]
     fn completion_event_works_multiple_files() {
-        info!("Testing multiple files");
+        tracing::debug!("Testing multiple files");
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
         let t1_1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.

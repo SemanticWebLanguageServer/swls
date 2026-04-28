@@ -10,7 +10,7 @@ use sophia_api::{
     quad::Quad,
     term::Term as _,
 };
-use tracing::{debug, error, info, span};
+use tracing::{debug, error, span};
 
 use super::setup::FromPrefix;
 use crate::{
@@ -98,7 +98,7 @@ pub fn open_imports<C: Client + Resource>(
                     });
                     let _ = sender.unbounded_send(command_queue);
                 } else {
-                    info!("No content found for {}", object);
+                    tracing::warn!("No content found for {}", object);
                 }
             };
             client.spawn(fut);
@@ -147,7 +147,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
                 if !found {
                     if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                        info!(
+                        tracing::debug!(
                             "Remote lov for prefix {} {}",
                             prefix.prefix,
                             prefix.url.as_str()
@@ -248,7 +248,7 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(
 }
 
 async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
-    tracing::info!("A FUTURE IS STARTING");
+    tracing::debug!("Fetching LOV for prefix {}", prefix.prefix);
     if prefix.prefix.to_ascii_lowercase() == prefix.prefix {
         if let Some(body) = fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c).await {
             let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
@@ -264,14 +264,14 @@ async fn local_lov<C: Client + Resource>(
     fs: Fs,
     c: C,
 ) {
-    info!(
+    tracing::debug!(
         "Using local {} {} Label {}",
         local.name,
         local.namespace,
         label.as_str()
     );
     let content = if local.content.is_empty() {
-        info!("Fetching from LOV {}", local.name);
+        tracing::debug!("Fetching from LOV {}", local.name);
         if let Some(body) = fetch_lov_body(&local.name, &local.namespace, c).await {
             Cow::Owned(body)
         } else {

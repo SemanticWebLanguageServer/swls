@@ -186,7 +186,7 @@ fn derive_triples(
                 commands.entity(entity).insert(Triples(Arc::new(triples)));
             }
             Err(e) => {
-                info!("derive_triples error for {}: {:?}", label.as_str(), e);
+                tracing::warn!("derive_triples error for {}: {:?}", label.as_str(), e);
             }
         }
     }

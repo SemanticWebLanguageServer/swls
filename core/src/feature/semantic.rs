@@ -58,7 +58,7 @@ pub fn semantic_tokens_system(
     mut query: Query<(&RopeC, &TokenTypesComponent, &mut HighlightRequest)>,
     res: Res<SemanticTokensDict>,
 ) {
-    tracing::info!("semantic_tokens_system called");
+    tracing::debug!("semantic_tokens_system called");
     for (rope, types, mut req) in &mut query {
         let rope = &rope.0;
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());

@@ -141,7 +141,7 @@ pub fn get_current_triple(
             .filter(|x| x.1.contains(&offset))
             .min_by_key(|x| x.1.end - x.1.start)
         {
-            tracing::info!(
+            tracing::debug!(
                 "Narrowest triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",
                 offset,
                 target,
@@ -186,7 +186,7 @@ pub fn get_current_triple(
                 } else {
                     lang.default_position()
                 };
-                tracing::info!(
+                tracing::debug!(
                     "Triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",
                     offset,
                     target,

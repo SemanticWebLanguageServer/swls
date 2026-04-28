@@ -129,16 +129,16 @@ pub fn derive_ontologies(
     query: Query<(), Added<Triples>>,
     store: Res<Store>,
     mut resource: ResMut<Ontologies>,
-    mut hierarchy: ResMut<TypeHierarchy<'static>>,
+    mut hierarchy: ResMut<TypeHierarchy>,
 ) {
     if !query.is_empty() {
         if let Some(classes) = find_classes(&store.0) {
-            tracing::info!("Derive {} classes", classes.len());
+            tracing::debug!("Derive {} classes", classes.len());
             resource.classes = classes;
         }
 
         if let Some(properties) = find_properties(&store.0) {
-            tracing::info!("Derive {} properties", properties.len());
+            tracing::debug!("Derive {} properties", properties.len());
             for p in properties.values() {
                 for domain in &p.domains {
                     let _ = hierarchy.get_id(domain.as_str());

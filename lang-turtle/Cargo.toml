@@ -14,7 +14,6 @@ homepage.workspace = true
 [dependencies]
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
-bevy_tasks.workspace   = true
 futures.workspace      = true
 ropey.workspace        = true
 serde.workspace        = true

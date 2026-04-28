@@ -8,10 +8,9 @@ homepage = "https://github.com/semanticweblanguageserver/swls"
 
 [workspace.dependencies]
 async-trait = "0.1.89"
-bevy_ecs = { version = "0.17.3", default-features = false, features = [
-  "multi_threaded",
+bevy_ecs = { version = "0.18", default-features = true, features = [
+  "multi_threaded"
 ] }
-bevy_tasks = { version = "0.17.3", features = ["multi_threaded"] }
 chumsky = "0.9.0"
 derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut", "is_variant"] }
 futures = { version = "0.3.31", features = ["alloc", "executor"], default-features = false }

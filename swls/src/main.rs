@@ -9,7 +9,16 @@ use futures::{channel::mpsc::unbounded, StreamExt as _};
 use swls::{client::BinFs, timings, TowerClient};
 use swls_core::{lsp_types::SemanticTokenType, prelude::*};
 use tower_lsp::{LspService, Server};
-use tracing::{debug, info, level_filters::LevelFilter};
+use tracing::{debug, level_filters::LevelFilter};
+
+fn version() -> String {
+    let base = option_env!("APP_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
+    let git = option_env!("VERGEN_GIT_SHA").unwrap_or("unknown");
+    let branch = option_env!("VERGEN_GIT_BRANCH").unwrap_or("unknown");
+    let date = option_env!("VERGEN_BUILD_DATE").unwrap_or("unknown");
+
+    format!("Semantic Web Language Server version={base} (git={git} branch={branch} date={date})")
+}
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
@@ -33,6 +42,10 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     swls_lang_trig::setup_world::<C>(&mut world);
     swls_lang_jsonld::setup_world::<C>(&mut world);
 
+    // world.schedule_scope(ParseLabel, |_, schedule| {
+    //     schedule.add_systems(print_world);
+    // });
+    //
     let (tx, mut rx) = unbounded();
     let sender = CommandSender(tx);
     world.insert_resource(sender.clone());
@@ -78,9 +91,13 @@ fn setup_global_subscriber() {
 
 #[tokio::main]
 async fn main() {
-    std::panic::set_hook(Box::new(|_panic_info| {
+    if std::env::args().any(|arg| arg == "--version" || arg == "-V") {
+        println!("{}", version());
+        return;
+    }
+    std::panic::set_hook(Box::new(|panic_info| {
         let backtrace = std::backtrace::Backtrace::capture();
-        info!("My backtrace: {:#?}", backtrace);
+        tracing::error!("panic: {}\n{:#?}", panic_info, backtrace);
     }));
 
     let _ = setup_global_subscriber();
@@ -90,14 +107,15 @@ async fn main() {
     let stdout = tokio::io::stdout();
 
     let local = tokio::task::LocalSet::new();
-    local.run_until(async {
-        let (service, socket) = LspService::build(|client| {
-            let (sender, rt) = setup_world(TowerClient::new(client.clone()));
-            Backend::new(sender, client, rt)
-        })
-        .finish();
+    local
+        .run_until(async {
+            let (service, socket) = LspService::build(|client| {
+                let (sender, rt) = setup_world(TowerClient::new(client.clone()));
+                Backend::new(sender, client, rt)
+            })
+            .finish();
 
-        Server::new(stdin, stdout, socket).serve(service).await;
-    })
-    .await;
+            Server::new(stdin, stdout, socket).serve(service).await;
+        })
+        .await;
 }

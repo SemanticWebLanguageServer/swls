@@ -121,7 +121,7 @@ pub mod systems;
 /// All systems defined in [`crate`] are added to the [`World`].
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<SemanticTokensDict>();
-    world.init_resource::<TypeHierarchy<'static>>();
+    world.init_resource::<TypeHierarchy>();
     world.init_resource::<Ontologies>();
     world.insert_resource(OntologyExtractor::new());
 

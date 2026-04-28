@@ -2,6 +2,17 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 
+[ ] a sh:NodeShape;
+  sh:property [
+    sh:name "";
+    sh: "";
+  ].
+
 <abc> a "test"^^xsd:datatime, foaf:Agent.
 <me> foaf:knows <abc>.
+[ ] a sh:NodeShape;
+  sh:property [ ].
+
+[ ] a sh:NodeShape;
+  sh:property [ sh:name "" ].
 

@@ -122,7 +122,7 @@ pub fn prefix_completion_helper<'a>(
 ) {
     let mut suggested = HashSet::new();
     let text = lang.unquote(&word.text);
-    tracing::info!("completion helper {:?}", word);
+    tracing::debug!("completion helper {:?}", word);
 
     completions.extend(
         lovs.map(|x| PrefixLike::Local(&x))

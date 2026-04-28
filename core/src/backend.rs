@@ -237,7 +237,7 @@ impl LanguageServer for Backend {
         debug!("semantic tokens full");
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
-            info!("Didn't find entity {} stopping", uri);
+            debug!("Didn't find entity {} stopping", uri);
             return Ok(None);
         };
 
@@ -370,7 +370,7 @@ impl LanguageServer for Backend {
             .run_schedule::<HoverRequest>(entity, HoverLabel, (request, PositionComponent(pos)))
             .await
         {
-            tracing::info!("hover\n{:?}", hover.0);
+            tracing::debug!("hover returned {} items", hover.0.len());
             if hover.0.len() > 0 {
                 return Ok(Some(crate::lsp_types::Hover {
                     contents: crate::lsp_types::HoverContents::Markup(MarkupContent {
@@ -389,7 +389,7 @@ impl LanguageServer for Backend {
         debug!("Inlay hints called");
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
-            info!("Didn't find entity {}", uri);
+            debug!("Didn't find entity {}", uri);
             return Ok(None);
         };
 
@@ -409,7 +409,7 @@ impl LanguageServer for Backend {
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
-            info!("Didn't find entity {}", uri);
+            debug!("Didn't find entity {}", uri);
             return Ok(None);
         };
 
@@ -462,7 +462,7 @@ impl LanguageServer for Backend {
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
-            info!("Didn't find entity {}", params.text_document.uri.as_str());
+            debug!("Didn't find entity {}", params.text_document.uri.as_str());
             return;
         };
 
@@ -527,7 +527,7 @@ impl LanguageServer for Backend {
             )
             .await
             .map(|x| {
-                tracing::info!("response {:?}", x.0);
+                tracing::debug!("goto definition: {} locations", x.0.len());
                 GotoDefinitionResponse::Array(x.0)
             });
 

@@ -215,7 +215,7 @@ fn goto_cjs(
             .or(context_expanded.as_deref())
             .unwrap_or(raw_token);
 
-        tracing::info!("Goto definition {:?} {}", triple_term_str, st,);
+        tracing::debug!("Goto definition {:?} {}", triple_term_str, st,);
 
         // Components: navigate to the component's own source file at the exact @id span.
         let found_target = if let Some(component) = res.0.components.get(st) {
@@ -228,7 +228,7 @@ fn goto_cjs(
             None
         };
 
-        tracing::info!(
+        tracing::debug!(
             "CJS from {:?} {:?}",
             found_target,
             resolve_iri_to_url(st, &res.1.import_paths),
@@ -250,7 +250,7 @@ fn goto_cjs(
         let resolved = resolve_iri_to_url(iri_no_fragment, &res.1.import_paths)
             .or_else(|| res.1.context_urls.get(iri_no_fragment).cloned());
         if let Some(t) = resolved {
-            tracing::info!("target {}", t.as_str());
+            tracing::debug!("target {}", t.as_str());
             req.0.push(Location {
                 uri: t,
                 range: Range::default(),
@@ -466,7 +466,7 @@ fn start_jsonld<C: Client + Resource + Clone>(
     commands: Res<CommandSender>,
 ) {
     let fs = fs.clone();
-    tracing::info!("conffig {:?}", config);
+    tracing::debug!("loading CJS registry, config: {:?}", config);
     if let Some(ws) = config.workspaces.first().and_then(|x| {
         if x.uri.as_str().ends_with('/') {
             Some(x.uri.clone())
@@ -474,10 +474,10 @@ fn start_jsonld<C: Client + Resource + Clone>(
             Url::parse(&format!("{}/", x.uri.as_str())).ok()
         }
     }) {
-        tracing::info!("HERE 2 {:?}", ws.as_str());
+        tracing::debug!("CJS workspace root: {:?}", ws.as_str());
         let commands = commands.clone();
         let thing = async move {
-            tracing::info!("HERE 3 {:?}", ws.as_str());
+            tracing::debug!("Starting CJS registry build for {:?}", ws.as_str());
             if let Ok(reg) = start_testing(&fs, &ws).await {
                 let mut command_queue = CommandQueue::default();
                 command_queue.push(move |world: &mut World| {
@@ -487,7 +487,7 @@ fn start_jsonld<C: Client + Resource + Clone>(
                     let store_clone = world.get_resource::<swls_core::store::Store>();
                     //
                     if let Some(store) = store_clone {
-                        tracing::info!("Derive store found adding {} triples", quads.len());
+                        tracing::debug!("Derive store found adding {} triples", quads.len());
                         let mut loader = store.0.bulk_loader();
                         let _ = loader.load_quads(quads.into_iter());
                         let _ = loader.commit();
@@ -501,7 +501,7 @@ fn start_jsonld<C: Client + Resource + Clone>(
         };
         client.spawn(thing);
     } else {
-        tracing::info!("Restiry thing failed");
+        tracing::warn!("No workspace root found, skipping CJS registry build");
     }
 }
 

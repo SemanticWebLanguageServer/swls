@@ -10,7 +10,7 @@ use shacl_validation::{
     validation_report::result::ValidationResult,
 };
 use sophia_api::quad::Quad as _;
-use tracing::{info, info_span, instrument};
+use tracing::{info_span, instrument};
 
 use crate::{lsp_types::TextDocumentItem, prelude::*, util};
 
@@ -44,7 +44,7 @@ pub fn derive_shapes(
         let Some(shacl_ir) = ShaclSchemaIR::compile(&schema).ok() else {
             continue;
         };
-        info!("Found shacl ir with {} shapes", shacl_ir.iter().count());
+        tracing::debug!("Found shacl ir with {} shapes", shacl_ir.iter().count());
 
         commands.entity(e).insert(ShaclShapes::new(shacl_ir));
     }
@@ -73,7 +73,7 @@ pub fn validate_shapes(
     }
 
     for (rope, label, links, item, prefixes, triples) in &query {
-        info!("Validate shapes {}", label.as_str());
+        tracing::debug!("Validate shapes {}", label.as_str());
         let client: &mut DiagnosticPublisher = &mut client;
         let mut diagnostics: Vec<crate::lsp_types::Diagnostic> = Vec::new();
 
