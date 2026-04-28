@@ -3,8 +3,7 @@ name = "swls-lang-trig"
 description = "TriG language support for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "trig"]
 categories = ["development-tools", "parser-implementations"]
-
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true

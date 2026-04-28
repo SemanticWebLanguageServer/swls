@@ -3,8 +3,7 @@ name = "swls-lang-rdf-base"
 description = "Shared setup helpers for RDF language support in swls"
 keywords = ["lsp", "semantic-web", "rdf"]
 categories = ["development-tools"]
-
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true

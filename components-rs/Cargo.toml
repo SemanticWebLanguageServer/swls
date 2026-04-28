@@ -1,6 +1,6 @@
 [package]
 name = "components-rs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.75"
 description = "Static analysis tooling for Components.js dependency injection projects"

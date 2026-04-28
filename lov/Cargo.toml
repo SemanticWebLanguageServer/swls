@@ -4,8 +4,7 @@ name = "swls-lov"
 description = "Linked Open Vocabularies (LOV) data and types for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "lov", "ontology"]
 categories = ["development-tools"]
-
-version.workspace = true
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true

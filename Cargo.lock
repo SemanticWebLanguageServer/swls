@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "components-rs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3707,7 +3707,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swls"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3747,7 +3747,7 @@ dependencies = [
 
 [[package]]
 name = "swls-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bevy_ecs",
  "chrono",
@@ -3780,7 +3780,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-jsonld"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3811,7 +3811,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-sparql"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3854,7 +3854,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-turtle"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3876,7 +3876,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lov"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bevy_ecs",
 ]

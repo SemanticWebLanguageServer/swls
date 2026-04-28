@@ -4,8 +4,7 @@ name = "swls-core"
 description = "Core LSP infrastructure for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "shacl", "sparql"]
 categories = ["development-tools"]
-
-version.workspace = true
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
