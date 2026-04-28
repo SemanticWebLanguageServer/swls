@@ -10,6 +10,12 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
+[features]
+default = ["agnostic"]
+shapes = []
+tokio = ["swls-core/tokio"]
+agnostic = ["swls-core/agnostic"]
+
 [dependencies]
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
@@ -23,7 +29,7 @@ tracing.workspace      = true
 
 swls-lov.workspace           = true
 swls-lang-rdf-base.workspace = true
-swls-core = { workspace = true, features = ["shapes"] }
+swls-core = { workspace = true }
 rdf-parsers.workspace = true
 rowan   = "0.16.1"
 
