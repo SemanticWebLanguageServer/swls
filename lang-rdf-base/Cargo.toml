@@ -11,7 +11,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["agnostic"]
+default = ["tokio"]
 shapes = []
 tokio = ["swls-core/tokio"]
 agnostic = ["swls-core/agnostic"]

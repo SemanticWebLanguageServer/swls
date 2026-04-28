@@ -31,7 +31,7 @@ use swls_core::{
     lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url},
     prelude::{
         diagnostics::{DiagnosticItem, DiagnosticPublisher},
-        File, Fs, FsTrait,
+        File, Fs, FsDirEntry, FsTrait,
     },
     setup_schedule_labels,
     systems::{handle_tasks, spawn_or_insert},
@@ -81,6 +81,7 @@ impl TestClient {
     }
 }
 
+use swls_core::lsp_types::request::Request;
 #[tower_lsp::async_trait]
 impl Client for TestClient {
     async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> () {
@@ -96,6 +97,17 @@ impl Client for TestClient {
     ) -> () {
         let mut lock = self.diagnostics.lock().await;
         lock.push((uri, diags));
+    }
+
+    async fn send_request<R: Request + Sync + Send + 'static>(
+        &self,
+        _params: R::Params,
+    ) -> Option<R::Result>
+    where
+        R::Params: Sync + Send + 'static,
+        R::Result: Sync + Send + 'static,
+    {
+        None
     }
 }
 
@@ -216,6 +228,20 @@ impl FsTrait for TestFs {
             fs::create_dir_all(parent).await.ok()?;
         }
         fs::write(fp, content.as_bytes()).await.ok()
+    }
+
+    async fn read_dir(&self, path: &swls_core::lsp_types::Url) -> Option<Vec<FsDirEntry>> {
+        None
+    }
+    async fn is_file(&self, path: &swls_core::lsp_types::Url) -> bool {
+        true
+    }
+    async fn is_dir(&self, path: &swls_core::lsp_types::Url) -> bool {
+        false
+    }
+
+    async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>> {
+        None
     }
 }
 
