@@ -10,6 +10,9 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
+[features]
+default = ["swls-core/agnostic"]
+
 [dependencies]
 bevy_ecs.workspace = true
 tracing.workspace = true
