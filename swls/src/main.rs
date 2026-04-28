@@ -13,8 +13,8 @@ use tracing::{debug, level_filters::LevelFilter};
 
 fn version() -> String {
     let base = option_env!("APP_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    let git = option_env!("VERGEN_GIT_SHA").unwrap_or("unknown");
-    let branch = option_env!("VERGEN_GIT_BRANCH").unwrap_or("unknown");
+    let git = option_env!("GIT_HASH").unwrap_or("unknown");
+    let branch = option_env!("GIT_BRANCH").unwrap_or("unknown");
     let date = option_env!("VERGEN_BUILD_DATE").unwrap_or("unknown");
 
     format!("Semantic Web Language Server version={base} (git={git} branch={branch} date={date})")
