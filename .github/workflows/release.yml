@@ -29,6 +29,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build LSP Binary
+        env:
+          APP_VERSION: ${{ github.ref_name }}
         run: cargo build --release -p swls
 
       - name: Rename binary for release
