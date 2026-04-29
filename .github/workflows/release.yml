@@ -11,12 +11,39 @@ on:
 
 jobs:
   build:
-    name: Build Native LSP Binary
+    name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.platform }}
-    
+
     strategy:
+      fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # Linux
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: linux-x86_64
+
+          - platform: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            name: linux-aarch64
+
+          # macOS
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            name: macos-x86_64
+
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            name: macos-arm64
+
+          # Windows
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: windows-x86_64
+
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
+            name: windows-arm64
 
     steps:
       - name: Checkout repository
@@ -28,27 +55,45 @@ jobs:
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      # Linux ARM needs cross
+      - name: Install cross (Linux ARM only)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cargo install cross
+
       - name: Build LSP Binary
         env:
           APP_VERSION: ${{ github.ref_name }}
-        run: cargo build --release -p swls
+        shell: bash
+        run: |
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            cross build --release -p swls --target ${{ matrix.target }}
+          else
+            cargo build --release -p swls --target ${{ matrix.target }}
+          fi
 
       - name: Rename binary for release
         shell: bash
         run: |
           mkdir -p release
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            cp target/release/swls release/swls-linux-x86_64
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            cp target/release/swls release/swls-macos-x86_64
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            cp target/release/swls.exe release/swls-windows-x86_64.exe
+
+          BIN_NAME="swls"
+          EXT=""
+
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            BIN_NAME="swls.exe"
+            EXT=".exe"
           fi
+
+          cp target/${{ matrix.target }}/release/$BIN_NAME \
+             release/swls-${{ matrix.name }}$EXT
 
       - name: Upload Native Binary
         uses: actions/upload-artifact@v4
         with:
-          name: swls-${{ runner.os }}-x86_64
+          name: swls-${{ matrix.name }}
           path: release/*
   
   create-release:
