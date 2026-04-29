@@ -16,7 +16,7 @@ derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut", "is_v
 futures = { version = "0.3.31", features = ["alloc", "executor"], default-features = false }
 lazy_static = "1.5"
 logos = "0.15.1"
-reqwest = { version = "0.12", features = ["blocking", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 ropey = "1.6.1"
 # rdf-parsers = "0.1.8"
 rdf-parsers = { version = "0.1.9" }
