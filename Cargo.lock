@@ -3620,6 +3620,7 @@ name = "swls-lang-rdf-base"
 version = "0.1.1"
 dependencies = [
  "bevy_ecs",
+ "rdf-parsers",
  "swls-core",
  "tracing",
 ]

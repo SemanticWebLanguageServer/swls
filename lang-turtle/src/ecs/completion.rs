@@ -10,10 +10,8 @@ use swls_core::{
 use swls_lov::LocalPrefix;
 use tracing::debug;
 
-use crate::{
-    lang::model::{NamedNodeExt, TurtleExt},
-    TurtleLang,
-};
+use crate::TurtleLang;
+use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 
 pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(

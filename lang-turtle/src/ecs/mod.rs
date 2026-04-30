@@ -5,7 +5,8 @@ use completion::{
 use format::format_turtle_system;
 use swls_core::prelude::*;
 
-use crate::{lang::model::NamedNodeExt, TurtleLang};
+use crate::TurtleLang;
+use swls_lang_rdf_base::traits::NamedNodeExt;
 
 mod code_action;
 mod completion;

@@ -10,7 +10,7 @@ use swls_core::{
 };
 use tracing::{trace, warn};
 
-use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
+use swls_lang_rdf_base::traits::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
 type Buf = Cursor<Vec<u8>>;
 struct FormatState<'a> {
@@ -338,7 +338,7 @@ mod tests {
     use rowan::NodeOrToken;
     use swls_core::prelude::Spanned;
 
-    use crate::lang::{formatter::format_turtle, model::Turtle, parser::parse_new};
+    use crate::lang::{formatter::format_turtle, parser::parse_new, Turtle};
 
     fn parse_turtle(inp: &str, url: &swls_core::lsp_types::Url) -> (Turtle, Vec<Spanned<String>>) {
         let (turtle, errs, _, syntax, _) = parse_new(inp, url.as_str(), None);

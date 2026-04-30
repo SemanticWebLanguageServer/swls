@@ -17,7 +17,7 @@ use swls_core::{
     prelude::*,
     systems::{prefix::prefix_completion_helper, PrefixEntry},
 };
-use swls_lang_turtle::lang::model::{NamedNodeExt, TurtleExt};
+use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 use swls_lov::LocalPrefix;
 
 use crate::Sparql;

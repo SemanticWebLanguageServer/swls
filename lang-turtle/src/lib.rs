@@ -6,9 +6,12 @@ use bevy_ecs::{component::Component, resource::Resource, world::World};
 use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
-    prelude::*,
+    prelude::{
+        semantic::{basic_semantic_tokens, semantic_tokens_system},
+        *,
+    },
 };
-use swls_lang_rdf_base::register_rdf_lang;
+use swls_lang_rdf_base::{register_rdf_lang, semantic_tokens};
 
 pub mod config;
 pub mod ecs;
@@ -32,7 +35,7 @@ impl LangHelper for TurtleHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<TurtleLang, TurtleHelper>(world, "turtle", &[".ttl"]);
+    register_rdf_lang::<TurtleLang, TurtleHelper>(world, &["turtle"], &[".ttl"]);
 
     world.schedule_scope(swls_core::Startup, |_, schedule| {
         schedule.add_systems((

@@ -1,18 +1,4 @@
 {
-  "@context": "context.jsonld",
-  "@type": "Person",
-  "@graph": [
-    {
-      "@id": "https://example.com/alice",
-      "name": "Alice",
-      "url": "https://alice.example.com",
-      "knows": { "@id": "https://example.com/bob" }
-    },
-    {
-      "@id": "https://example.com/bob",
-      "@type": "Person",
-      "name": "Bob",
-      "knows": { "@id": "https://example.com/alice" }
-    }
-  ]
+  "@context": { "foaf": "http://xmlns.com/foaf/0.1/" },
+  "foaf:account": "foaf:testing"
 }

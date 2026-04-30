@@ -30,7 +30,10 @@ pub trait Client: Clone + ClientSync {
 
 pub trait ClientSync {
     fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F);
-    fn spawn_local<F: std::future::Future<Output = ()> + 'static>(&self, fut: F);
+    fn spawn_local<F, Fut>(&self, f: F)
+    where
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: std::future::Future<Output = ()> + 'static;
     fn fetch(
         &self,
         url: &str,

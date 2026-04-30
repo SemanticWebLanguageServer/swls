@@ -2,7 +2,7 @@ pub mod formatter;
 pub mod model;
 pub mod parser;
 
-use model::Turtle;
+use rdf_parsers::model::Turtle;
 use swls_core::lsp_types::Url;
 
 /// Compatibility shim for conformance tests and other callers expecting the old parse_source API.

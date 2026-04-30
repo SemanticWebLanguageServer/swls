@@ -6,6 +6,7 @@
   sh:property [
     sh:name "";
     sh: "";
+    sh:path <>;
   ].
 
 <abc> a "test"^^xsd:datatime, foaf:Agent.

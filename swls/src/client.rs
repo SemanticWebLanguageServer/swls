@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf, pin::Pin};
 
 use bevy_ecs::resource::Resource;
+use futures::channel::mpsc::UnboundedSender;
 use futures::FutureExt;
 use swls_core::prelude::FsDirEntry;
 use swls_core::{
@@ -17,6 +18,10 @@ pub mod reqwest {
         Error, StatusCode, Url,
     };
 }
+use std::future::Future;
+
+pub(crate) type LocalFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
+pub type Job = Box<dyn FnOnce() -> LocalFuture + Send>;
 
 // TODO: use other tmp file location
 #[derive(Debug)]
@@ -146,12 +151,14 @@ impl FsTrait for BinFs {
 #[derive(Resource, Clone)]
 pub struct TowerClient {
     client: tower_lsp::Client,
+    sender: UnboundedSender<Job>,
     handle: tokio::runtime::Handle,
 }
 impl TowerClient {
-    pub fn new(client: tower_lsp::Client) -> Self {
+    pub fn new(client: tower_lsp::Client, sender: UnboundedSender<Job>) -> Self {
         Self {
             client,
+            sender,
             handle: tokio::runtime::Handle::current(),
         }
     }
@@ -229,8 +236,16 @@ impl ClientSync for TowerClient {
         .boxed();
     }
 
-    fn spawn_local<F: std::future::Future<Output = ()> + 'static>(&self, fut: F) {
-        tokio::task::spawn_local(fut);
+    fn spawn_local<F, Fut>(&self, f: F)
+    where
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: std::future::Future<Output = ()> + 'static,
+    {
+        let _ = self.sender.unbounded_send(Box::new(move || {
+            Box::pin(async move {
+                f().await;
+            })
+        }));
     }
 }
 

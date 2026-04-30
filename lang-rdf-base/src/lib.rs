@@ -1,8 +1,10 @@
+pub mod traits;
 pub mod triples;
 
 use bevy_ecs::{
     component::Component, event::EntityEvent, observer::On, system::Commands, world::World,
 };
+use rdf_parsers::model::Turtle;
 use swls_core::{
     feature::{
         diagnostics::publish_diagnostics,
@@ -26,10 +28,10 @@ use swls_core::{
 /// - `H`: The language helper (e.g. `TurtleHelper`). Must implement `Default`.
 pub fn register_rdf_lang<L, H>(
     world: &mut World,
-    language_id: &'static str,
+    language_id: &'static [&'static str],
     extensions: &'static [&'static str],
 ) where
-    L: Lang + Component + Default + Send + Sync + 'static,
+    L: Lang<Element = Turtle> + Component + Default + Send + Sync + 'static,
     L::ElementError: 'static + Clone,
     H: LangHelper + Default + Send + Sync + 'static,
 {
@@ -43,7 +45,11 @@ pub fn register_rdf_lang<L, H>(
 
     world.add_observer(move |trigger: On<CreateEvent>, mut commands: Commands| {
         let e = trigger.event();
-        let matches = e.language_id.as_deref() == Some(language_id)
+        let matches = trigger
+            .language_id
+            .as_ref()
+            .map(|lang_id| language_id.iter().any(|x| x == lang_id))
+            .unwrap_or_default()
             || extensions.iter().any(|ext| e.url.as_str().ends_with(ext));
         if matches {
             commands
@@ -59,6 +65,61 @@ pub fn register_rdf_lang<L, H>(
 
     world.schedule_scope(swls_core::feature::SemanticLabel, |_, schedule| {
         use bevy_ecs::schedule::IntoScheduleConfigs;
-        schedule.add_systems(basic_semantic_tokens::<L>.before(semantic_tokens_system));
+        schedule.add_systems((
+            basic_semantic_tokens::<L>.before(semantic_tokens_system),
+            semantic_tokens::<L>
+                .after(basic_semantic_tokens::<L>)
+                .before(semantic_tokens_system),
+        ));
     });
+}
+
+pub use tokens::semantic_tokens;
+mod tokens {
+    use bevy_ecs::prelude::*;
+    use rdf_parsers::model::{BlankNode, NamedNode, Term, Turtle};
+    use swls_core::lsp_types::SemanticTokenType;
+    use swls_core::prelude::semantic::*;
+    use swls_core::prelude::*;
+
+    fn add_term(term: &Spanned<Term>, ttc: &mut TokenTypesComponent, kind: SemanticTokenType) {
+        match term.value() {
+            Term::NamedNode(NamedNode::Prefixed { prefix, .. }) => {
+                let skip = prefix.len();
+                let (start, end) = (term.span().start, term.span().end);
+                ttc.push(spanned(kind, start + skip + 1..end));
+            }
+            Term::Variable(_) | Term::NamedNode(_) | Term::BlankNode(BlankNode::Named(_, _)) => {
+                ttc.push(spanned(kind, term.span().clone()));
+            }
+            Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
+                for po in pos {
+                    for o in &po.object {
+                        add_term(o, ttc, kind.clone());
+                    }
+                }
+            }
+            Term::Collection(spanneds) => {
+                for e in spanneds {
+                    add_term(e, ttc, kind.clone());
+                }
+            }
+            _ => return,
+        }
+    }
+
+    pub fn semantic_tokens<L: Lang<Element = Turtle> + Component>(
+        query: Query<(&Element<L>, &mut TokenTypesComponent), With<HighlightRequest>>,
+    ) {
+        for (turtle, mut ttc) in query {
+            for t in &turtle.triples {
+                add_term(&t.subject, &mut ttc, SemanticTokenType::ENUM_MEMBER);
+                for po in &t.po {
+                    for o in &po.object {
+                        add_term(o, &mut ttc, SemanticTokenType::ENUM_MEMBER);
+                    }
+                }
+            }
+        }
+    }
 }

@@ -139,11 +139,15 @@ impl ClientSync for TestClient {
         self.executor.spawn(Sendable(fut)).detach();
     }
 
-    fn spawn_local<F: std::future::Future<Output = ()> + 'static>(&self, fut: F) {
+    fn spawn_local<F, Fut>(&self, f: F)
+    where
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: std::future::Future<Output = ()> + 'static,
+    {
         self.tasks_running.fetch_add(1, Ordering::AcqRel);
         let tr = self.tasks_running.clone();
         let fut = async move {
-            fut.await;
+            f().await;
             tr.fetch_sub(1, Ordering::AcqRel);
         };
         self.executor.spawn(Sendable(fut)).detach();

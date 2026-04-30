@@ -23,7 +23,7 @@ impl LangHelper for TriGHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<TriGLang, TriGHelper>(world, "trig", &[".trig"]);
+    register_rdf_lang::<TriGLang, TriGHelper>(world, &["trig"], &[".trig"]);
     setup_parsing(world);
     setup_completion(world);
 

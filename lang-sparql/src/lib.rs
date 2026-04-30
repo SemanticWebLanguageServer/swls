@@ -11,7 +11,7 @@ use crate::ecs::{setup_completion, setup_parse};
 pub mod lang;
 
 pub fn setup_world(world: &mut World) {
-    register_rdf_lang::<Sparql, SparqlHelper>(world, "sparql", &[".sq"]);
+    register_rdf_lang::<Sparql, SparqlHelper>(world, &["sparql"], &[".sq"]);
     setup_parse(world);
     setup_completion(world);
 }

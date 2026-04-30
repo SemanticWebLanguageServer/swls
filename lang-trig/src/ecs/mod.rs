@@ -4,10 +4,8 @@ use bevy_ecs::prelude::*;
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::{GreenNode, NodeOrToken};
 use swls_core::prelude::*;
-use swls_lang_turtle::{
-    ecs::parse::derive_triples_system,
-    lang::{model::NamedNodeExt, parser::TurtleParseError},
-};
+use swls_lang_rdf_base::traits::NamedNodeExt;
+use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::instrument;
 
 use crate::TriGLang;

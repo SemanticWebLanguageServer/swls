@@ -4,6 +4,7 @@ use bevy_ecs::prelude::*;
 use rdf_parsers::{turtle::SyntaxKind, PrevParseInfo};
 use rowan::NodeOrToken;
 use swls_core::prelude::*;
+use swls_lang_rdf_base::traits::TurtleExt;
 use tracing::instrument;
 
 use crate::{
@@ -119,11 +120,10 @@ pub fn derive_triples_system<L>(
     mut commands: Commands,
 ) where
     L: swls_core::lang::Lang + Component,
-    L::Element: crate::lang::model::TurtleExt,
+    L::Element: TurtleExt,
 {
     use std::sync::Arc;
 
-    use crate::lang::model::TurtleExt;
     for (entity, label, element) in &query {
         match element.0.value().get_simple_triples() {
             Ok(tripl) => {

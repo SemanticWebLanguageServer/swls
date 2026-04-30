@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use swls_core::{lsp_types::Url, prelude::*, util::fs::File};
 
-use crate::lang::model::{NamedNodeExt, Turtle, TurtleExt};
+use swls_lang_rdf_base::traits::{NamedNodeExt, Turtle, TurtleExt};
 
 /// Finds a resource.
 /// If the location starts with http, it is a remote resource.
@@ -129,7 +129,7 @@ pub fn prefix_from_source(
     url: &Url,
     source: &str,
 ) -> Option<(Cow<'static, str>, Cow<'static, str>)> {
-    use crate::lang::{model::TurtleExt, parser::parse_new};
+    use crate::lang::parser::parse_new;
     let (turtle, _, _, _, _) = parse_new(source, url.as_str(), None);
 
     let triples = turtle.get_simple_triples().ok()?;

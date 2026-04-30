@@ -367,9 +367,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
     // Collect owned data up front so we can move it into the async block.
     let items: Vec<(Entity, rowan::GreenNode, String, usize)> = query
         .iter()
-        .map(|(e, gn, label, source)| {
-            (e, gn.0.clone(), label.0.to_string(), source.0.len())
-        })
+        .map(|(e, gn, label, source)| (e, gn.0.clone(), label.0.to_string(), source.0.len()))
         .collect();
 
     if items.is_empty() {
@@ -380,7 +378,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
     let mut sender_clone = sender.clone();
     let c2 = client.clone();
 
-    client.spawn_local(async move {
+    client.spawn_local(move || async move {
         let mut all_results: Vec<(Entity, Element<JsonLdLang>, JsonLdActiveContext)> =
             Vec::with_capacity(items.len());
 
@@ -391,8 +389,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
                 local_cache: HashMap::new(),
             };
             let syntax = rowan::SyntaxNode::new_root(gn);
-            let (jsonld_model, ctx) =
-                convert_with_loader(&syntax, &mut loader, Some(base)).await;
+            let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
 
             tracing::debug!("{} triples", jsonld_model.triples.len());
             let element = Element::<JsonLdLang>(spanned(jsonld_model, 0..span_len));
@@ -445,7 +442,7 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
         let e = entity.clone();
         let mut sender = sender.clone();
         let cjs_contexts = cjs_contexts.clone();
-        client.spawn_local(async move {
+        client.spawn_local(move || async move {
             let mut loader = WorldContextLoader {
                 sender: sender.clone(),
                 cjs_contexts,
@@ -502,7 +499,7 @@ fn derive_jsonld_prefixes(
     query: Query<(Entity, &Label, &Element<JsonLdLang>), Changed<Element<JsonLdLang>>>,
     mut commands: Commands,
 ) {
-    use swls_lang_turtle::lang::model::NamedNodeExt;
+    use swls_lang_rdf_base::traits::NamedNodeExt;
 
     for (entity, url, turtle) in &query {
         let prefixes: Vec<_> = turtle

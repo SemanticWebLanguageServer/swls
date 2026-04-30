@@ -20,3 +20,4 @@ agnostic = ["swls-core/agnostic"]
 bevy_ecs.workspace = true
 tracing.workspace = true
 swls-core = { workspace = true, features = ["shapes"] }
+rdf-parsers.workspace = true

@@ -6,8 +6,9 @@ use swls_core::{
     lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit},
     prelude::*,
 };
+use swls_lang_rdf_base::traits::NamedNodeExt as _;
 
-use crate::{lang::model::NamedNodeExt, TurtleLang};
+use crate::TurtleLang;
 
 pub fn organize_imports(
     mut query: Query<(&Element<TurtleLang>, &RopeC, &Label, &mut CodeActionRequest)>,
