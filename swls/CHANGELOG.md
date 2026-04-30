@@ -5,11 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.1.2 (2026-04-30)
+
+### Chore
+
+ - <csr-id-ce696b31e10c73e7a42c4427bc984876241a7a1b/> update changelogs
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 1 day passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Update changelogs ([`ce696b3`](https://github.com/SemanticWebLanguageServer/swls/commit/ce696b31e10c73e7a42c4427bc984876241a7a1b))
+</details>
 
 ## v0.1.1 (2026-04-29)
 
 <csr-id-4debbca4c3e1839781b7728951f91f2ba729165b/>
+<csr-id-759734f81769cf8dd9af543dcda417684b696958/>
+<csr-id-ff3b60d1bc6e6575309dfeb55f22ea94ff1f187a/>
 
 ### New Features
 
