@@ -171,18 +171,4 @@ async fn main() {
             Server::new(stdin, stdout, socket).serve(service).await;
         })
         .await;
-    // let (service, socket) = LspService::build(|client| {
-    //     let log_client = client.clone();
-    //     tokio::spawn(async move {
-    //         while let Some((ty, msg)) = rx.recv().await {
-    //             log_client.log_message(ty, msg).await;
-    //         }
-    //     });
-    //
-    //     let (sender, rt) = setup_world(TowerClient::new(client.clone(), job_tx));
-    //     Backend::new(sender, client, rt)
-    // })
-    // .finish();
-    //
-    // Server::new(stdin, stdout, socket).serve(service).await;
 }

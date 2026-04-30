@@ -132,7 +132,11 @@ impl LangHelper for JsonLdHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, &["jsonld", "json"], &[".jsonld"]);
+    register_rdf_lang::<JsonLdLang, JsonLdHelper>(
+        world,
+        &["jsonld", "json"],
+        &[".jsonld", ".json"],
+    );
     world.insert_resource(ContextCache::default());
     world.insert_resource(Registry::empty());
     setup_parsing::<C>(world);
