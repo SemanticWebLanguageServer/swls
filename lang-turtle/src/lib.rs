@@ -6,12 +6,9 @@ use bevy_ecs::{component::Component, resource::Resource, world::World};
 use swls_core::{
     lang::{Lang, LangHelper},
     lsp_types::SemanticTokenType,
-    prelude::{
-        semantic::{basic_semantic_tokens, semantic_tokens_system},
-        *,
-    },
+    prelude::*,
 };
-use swls_lang_rdf_base::{register_rdf_lang, semantic_tokens};
+use swls_lang_rdf_base::register_rdf_lang;
 
 pub mod config;
 pub mod ecs;

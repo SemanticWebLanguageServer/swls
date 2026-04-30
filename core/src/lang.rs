@@ -1,4 +1,6 @@
-use crate::{lsp_types::SemanticTokenType, prelude::TripleTarget};
+use std::{borrow::Cow, ops::Range};
+
+use crate::{lsp_types::SemanticTokenType, prelude::TripleTarget, util::offset_to_position};
 
 pub fn head() -> crate::lsp_types::Range {
     let start = crate::lsp_types::Position {
@@ -61,5 +63,46 @@ pub trait LangHelper: std::fmt::Debug {
     }
     fn supports_shape_validation(&self) -> bool {
         true
+    }
+
+    fn inlay_types_hint(
+        &self,
+        subject: &Range<usize>,
+        rope: &ropey::Rope,
+        last_type: Option<&Range<usize>>,
+        types: Vec<Cow<'_, str>>,
+    ) -> Option<crate::lsp_types::InlayHint> {
+        let (label, position) = if let Some(lt) = last_type {
+            if let Some(pos) = offset_to_position(lt.end, &rope) {
+                let label = format!(", {}", types.join(", "));
+                (label, pos)
+            } else {
+                return None;
+            }
+        } else {
+            let offset = if rope.get_char(subject.start) == Some('[') {
+                subject.start + 1
+            } else {
+                subject.end
+            };
+
+            if let Some(pos) = offset_to_position(offset, &rope) {
+                let label = format!(" a {};", types.join(", "));
+                (label, pos)
+            } else {
+                return None;
+            }
+        };
+
+        return Some(crate::lsp_types::InlayHint {
+            position,
+            label: crate::lsp_types::InlayHintLabel::String(label),
+            kind: None,
+            text_edits: None,
+            tooltip: None,
+            padding_left: None,
+            padding_right: None,
+            data: None,
+        });
     }
 }

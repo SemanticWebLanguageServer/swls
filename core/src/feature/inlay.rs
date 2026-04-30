@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{borrow::Cow, collections::HashSet};
 
 use bevy_ecs::{
     component::Component,
@@ -9,10 +9,7 @@ use bevy_ecs::{
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use sophia_api::{ns::rdf, prelude::Dataset};
 
-use crate::{
-    prelude::{Prefixes, RopeC, Triples, TypeHierarchy, Types},
-    util::offset_to_position,
-};
+use crate::prelude::{DynLang, Prefixes, RopeC, Triples, TypeHierarchy, Types};
 
 /// [`Component`] indicating that the current document is currently handling a Inlay request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
@@ -29,81 +26,45 @@ pub fn setup_schedule(world: &mut World) {
 
 #[tracing::instrument(skip(query, hierarchy))]
 fn inlay_types(
-    query: Query<(&Triples, &Types, &RopeC, &Prefixes, &mut InlayRequest)>,
+    query: Query<(
+        &Triples,
+        &Types,
+        &RopeC,
+        &Prefixes,
+        &DynLang,
+        &mut InlayRequest,
+    )>,
     hierarchy: Res<TypeHierarchy>,
 ) {
-    for (triples, types, rope, prefixes, mut request) in query {
+    for (triples, types, rope, prefixes, lang, mut request) in query {
         let subjects: HashSet<_> = triples.subjects().flatten().collect();
 
         let t = &mut request.0;
 
         for s in subjects {
             if let Some(types) = types.get(s.as_str()) {
-                let types: Vec<_> = types.iter().map(|e| hierarchy.type_name(*e)).collect();
                 let defined: HashSet<_> = triples.objects([s], [rdf::type_]).collect();
                 let defined_strings: HashSet<String> =
                     defined.iter().map(|x| x.value.to_string()).collect();
 
-                let mut inlay_str = String::new();
-                for t in &types {
-                    if defined_strings.contains(t.as_ref()) {
-                        continue;
-                    }
-                    if !inlay_str.is_empty() {
-                        inlay_str += ", ";
-                    }
-                    if let Some(short) = prefixes.shorten(t.as_ref()) {
-                        inlay_str += short.as_str();
-                    } else {
-                        inlay_str += t.as_ref();
-                    }
-                }
+                let types: Vec<_> = types
+                    .iter()
+                    .map(|e| hierarchy.type_name(*e))
+                    .filter(|t| !defined_strings.contains(t.as_ref()))
+                    .map(|t| prefixes.shorten(t.as_ref()).map(Cow::Owned).unwrap_or(t))
+                    .collect();
 
-                if inlay_str.is_empty() {
+                if types.is_empty() {
                     continue;
                 }
-                if let Some(pos) = defined.iter().max_by_key(|x| x.span.end) {
-                    if let Some(pos) = offset_to_position(pos.span.end, &rope) {
-                        t.push(crate::lsp_types::InlayHint {
-                            position: pos,
-                            label: crate::lsp_types::InlayHintLabel::String(format!(
-                                ", {}",
-                                inlay_str
-                            )),
-                            kind: None,
-                            text_edits: None,
-                            tooltip: None,
-                            padding_left: None,
-                            padding_right: None,
-                            data: None,
-                        });
-                    } else {
-                        tracing::warn!("Failed to convert pos to position {}", pos.span.end);
-                    }
-                } else {
-                    let offset = if rope.get_char(s.span.start) == Some('[') {
-                        s.span.start + 1
-                    } else {
-                        s.span.end
-                    };
 
-                    if let Some(pos) = offset_to_position(offset, &rope) {
-                        t.push(crate::lsp_types::InlayHint {
-                            position: pos,
-                            label: crate::lsp_types::InlayHintLabel::String(format!(
-                                " a {};",
-                                inlay_str
-                            )),
-                            kind: None,
-                            text_edits: None,
-                            tooltip: None,
-                            padding_left: None,
-                            padding_right: None,
-                            data: None,
-                        });
-                    } else {
-                        tracing::warn!("Failed to convert pos to position {}", s.span.end);
-                    }
+                if let Some(hint) = lang.inlay_types_hint(
+                    &s.span,
+                    rope,
+                    defined.iter().max_by_key(|x| x.span.end).map(|x| &x.span),
+                    types,
+                ) {
+                    t.push(hint);
                 }
             }
         }

@@ -4,6 +4,8 @@
 )]
 pub mod cjs;
 
+use std::{borrow::Cow, ops::Range};
+
 use bevy_ecs::{
     component::Component,
     query::With,
@@ -74,6 +76,58 @@ impl LangHelper for JsonLdHelper {
     }
     fn handles_prefix_completion(&self) -> bool {
         true
+    }
+
+    fn inlay_types_hint(
+        &self,
+        subject: &Range<usize>,
+        rope: &ropey::Rope,
+        last_type: Option<&Range<usize>>,
+        types: Vec<Cow<'_, str>>,
+    ) -> Option<swls_core::lsp_types::InlayHint> {
+        let (label, position) = if let Some(lt) = last_type {
+            if let Some(pos) = offset_to_position(lt.end, &rope) {
+                let label = format!(", {}", types.join(", "));
+                (label, pos)
+            } else {
+                return None;
+            }
+        } else {
+            let offset = if rope.get_char(subject.start) == Some('[') {
+                subject.start + 1
+            } else {
+                subject.end
+            };
+
+            if let Some(pos) = offset_to_position(offset + 1, &rope) {
+                let label = if types.len() == 1 {
+                    format!(r#" "@type": "{}";"#, types[0])
+                } else {
+                    format!(
+                        r#" "@type": [ {} ],"#,
+                        types
+                            .into_iter()
+                            .map(|x| format!("\"{}\"", x))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                };
+                (label, pos)
+            } else {
+                return None;
+            }
+        };
+
+        return Some(swls_core::lsp_types::InlayHint {
+            position,
+            label: swls_core::lsp_types::InlayHintLabel::String(label),
+            kind: None,
+            text_edits: None,
+            tooltip: None,
+            padding_left: None,
+            padding_right: None,
+            data: None,
+        });
     }
 }
 

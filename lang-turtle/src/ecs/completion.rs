@@ -228,7 +228,6 @@ mod tests {
     };
     use swls_test_utils::{create_file, setup_world, TestClient};
     use test_log::test;
-    use tracing::info;
 
     use crate::TurtleHelper;
 
