@@ -1,4 +1,5 @@
 [package]
+readme = "../README.md"
 name = "swls-lang-jsonld"
 description = "JSON-LD language support for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "json-ld", "linked-data"]

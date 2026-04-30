@@ -1,4 +1,5 @@
 [package]
+readme = "../README.md"
 name = "swls-lang-turtle"
 description = "Turtle/TriG language support for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "turtle", "trig"]

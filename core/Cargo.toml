@@ -1,5 +1,6 @@
 
 [package]
+readme = "../README.md"
 name = "swls-core"
 description = "Core LSP infrastructure for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "shacl", "sparql"]

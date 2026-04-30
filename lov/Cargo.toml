@@ -1,5 +1,6 @@
 
 [package]
+readme = "../README.md"
 name = "swls-lov"
 description = "Linked Open Vocabularies (LOV) data and types for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "lov", "ontology"]

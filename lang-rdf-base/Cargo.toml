@@ -1,4 +1,5 @@
 [package]
+readme = "../README.md"
 name = "swls-lang-rdf-base"
 description = "Shared setup helpers for RDF language support in swls"
 keywords = ["lsp", "semantic-web", "rdf"]

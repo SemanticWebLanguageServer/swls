@@ -6,7 +6,7 @@
 [![Visual Studio Marketplace Last Updated](https://img.shields.io/visual-studio-marketplace/last-updated/ajuvercr.semantic-web-lsp?label=VSCode%20Extension)](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp)
 
 This repo includes the source code for the semantic web language server.
-The language server provides IDE like functionality for semantic web languages, including Turtle, JSON-LD and SPARQL.
+The language server provides IDE like functionality for semantic web languages, including Turtle, TriG, JSON-LD and SPARQL.
 
 A live demo can be found [online](https://semanticweblanguageserver.github.io/swls/), built with monaco editors.
 
@@ -17,7 +17,6 @@ A live demo can be found [online](https://semanticweblanguageserver.github.io/sw
 - [lang-jsonld](https://semanticweblanguageserver.github.io/swls/docs/lang_jsonld/index.html)
 - [lang-sparql](https://semanticweblanguageserver.github.io/swls/docs/lang_sparql/index.html)
 - [lsp-bin](https://semanticweblanguageserver.github.io/swls/docs/swls/index.html)
-- [lsp-web](https://semanticweblanguageserver.github.io/swls/docs/lsp_web/index.html)
 
 
 ## Features
@@ -44,7 +43,7 @@ A live demo can be found [online](https://semanticweblanguageserver.github.io/sw
 
 ### Formatting
 
-- Format Turtle
+- Format Turtle and JSON-LD
 
 ### Highlighting
 
@@ -53,7 +52,7 @@ A live demo can be found [online](https://semanticweblanguageserver.github.io/sw
 
 ## Use the LSP
 
-Currently a fluwent install is possible for NeoVim and VSCode.
+Currently a fluent install is possible for NeoVim and VSCode.
 However the language server protocol enables swift integration into other editors.
 
 ### VS Code
@@ -74,70 +73,7 @@ PRs are much appreciated on the Jetbrains plugin.
 
 ### NeoVim
 
-To use the LSP you will always have to install the binary.
-So do that first:
-
-```
-cargo install --git https://github.com/SemanticWebLanguageServer/swls.git swls
-```
-Or locally
-```
-git clone https://github.com/SemanticWebLanguageServer/swls.git
-cargo install --path swls
-```
-
-Or download the latest binary from the Github releases.
-
-Configure the LSP in NeoVim.
-
-```lua
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "turtle", "sparql", "jsonld" },
-    callback = function()
-        vim.lsp.start({
-            name = "swls",
-            cmd = { "swls" },
-            root_dir = vim.fn.getcwd(),
-            init_options = {
-                sparql = false, -- disable sparql support
-                -- turtle = false,
-                -- jsonld = false,
-            },
-        })
-    end,
-})
-```
-
-You can configure the LSP to disable certain languages, this is useful as SPARQL is not fully supported yet, but comes bundled in the LSP.
-
-<details>
-<summary>Instructions for configuring an autocmd to detect and assign filetypes automatically.</summary>
-
-```lua
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
-    pattern = "*.ttl",
-    callback = function(args)
-        vim.bo[args.buf].filetype = "turtle"
-        vim.bo.commentstring = "# %s"
-    end,
-})
-
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
-    pattern = { "*.sq", "*.rq", "*.sparql" },
-    callback = function(args)
-        vim.bo[args.buf].filetype = "sparql"
-        vim.bo.commentstring = "# %s"
-    end,
-})
-
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
-    pattern = { "*.jsonld" },
-    callback = function(args)
-        vim.bo[args.buf].filetype = "jsonld"
-    end,
-})
-```
-</details>
+A NeoVim plugin is available at [SemanticWebLanguageServer/swls.nvim](https://github.com/SemanticWebLanguageServer/swls.nvim).
 
 
 ## Screenshots

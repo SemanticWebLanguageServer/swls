@@ -1,4 +1,5 @@
 [package]
+readme = "../README.md"
 name = "swls-token-helpers"
 description = "Token parsing helpers for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "parser", "token"]
