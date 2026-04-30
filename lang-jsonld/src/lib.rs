@@ -33,7 +33,7 @@ use crate::{
         derive_jsonld_triples, format_jsonld_system, setup_completion, setup_parsing, ContextCache,
         JsonLdActiveContext,
     },
-    fs::start_testing,
+    fs::build_registry,
 };
 
 #[derive(Component, Default)]
@@ -351,7 +351,7 @@ mod fs {
         }
     }
 
-    pub async fn start_testing(fs: &Fs, path: &Url) -> Result<Registry> {
+    pub async fn build_registry(fs: &Fs, path: &Url) -> Result<Registry> {
         use components_rs::components::registry::ComponentRegistry;
         use components_rs::module_state::ModuleState;
 
@@ -464,6 +464,9 @@ fn start_jsonld<C: Client + Resource + Clone>(
     config: Res<ServerConfig>,
     commands: Res<CommandSender>,
 ) {
+    if !config.config.jsonld.unwrap_or(true) {
+        return;
+    }
     let fs = fs.clone();
     tracing::debug!("loading CJS registry, config: {:?}", config);
     if let Some(ws) = config.workspaces.first().and_then(|x| {
@@ -477,7 +480,7 @@ fn start_jsonld<C: Client + Resource + Clone>(
         let commands = commands.clone();
         let thing = async move {
             tracing::debug!("Starting CJS registry build for {:?}", ws.as_str());
-            if let Ok(reg) = start_testing(&fs, &ws).await {
+            if let Ok(reg) = build_registry(&fs, &ws).await {
                 let mut command_queue = CommandQueue::default();
                 command_queue.push(move |world: &mut World| {
                     let quads = build_cjs_quads(&reg.0);

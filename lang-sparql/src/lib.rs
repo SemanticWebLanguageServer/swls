@@ -126,4 +126,7 @@ impl LangHelper for SparqlHelper {
     fn keyword(&self) -> &[&'static str] {
         SPARQL_KEYWORDS
     }
+    fn supports_shape_validation(&self) -> bool {
+        false
+    }
 }

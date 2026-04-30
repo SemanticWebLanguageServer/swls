@@ -59,4 +59,7 @@ pub trait LangHelper: std::fmt::Debug {
     fn handles_prefix_completion(&self) -> bool {
         false
     }
+    fn supports_shape_validation(&self) -> bool {
+        true
+    }
 }

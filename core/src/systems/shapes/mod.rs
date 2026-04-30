@@ -61,6 +61,7 @@ pub fn validate_shapes(
             &Wrapped<TextDocumentItem>,
             &Prefixes,
             &Triples,
+            &DynLang,
         ),
         (Changed<Triples>, With<Open>),
     >,
@@ -72,7 +73,10 @@ pub fn validate_shapes(
         return;
     }
 
-    for (rope, label, links, item, prefixes, triples) in &query {
+    for (rope, label, links, item, prefixes, triples, lang) in &query {
+        if !lang.supports_shape_validation() {
+            continue;
+        }
         tracing::debug!("Validate shapes {}", label.as_str());
         let client: &mut DiagnosticPublisher = &mut client;
         let mut diagnostics: Vec<crate::lsp_types::Diagnostic> = Vec::new();

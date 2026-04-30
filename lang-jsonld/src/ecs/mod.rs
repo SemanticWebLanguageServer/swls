@@ -420,7 +420,11 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
     sender: Res<CommandSender>,
     client: Res<C>,
     registry: Res<Registry>,
+    config: Res<ServerConfig>,
 ) {
+    if !config.config.jsonld.unwrap_or(true) {
+        return;
+    }
     let cjs_contexts = registry.1.contexts.clone();
 
     for (entity, source, label, prev) in &query {
