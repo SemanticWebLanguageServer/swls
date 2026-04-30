@@ -19,7 +19,7 @@ logos = "0.15.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 ropey = "1.6.1"
 # rdf-parsers = "0.1.8"
-rdf-parsers = { version = "0.1.9" }
+rdf-parsers = { version = "0.1.10" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 similar = "2.7"
