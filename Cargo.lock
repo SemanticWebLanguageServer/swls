@@ -2604,9 +2604,9 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d42ce7dcce508ed1699a935051e7e9e2c7e6e85262240d586a6b261f8e9a496c"
+checksum = "e19d4337f74796fa38c22995199cf79e1fadab12229bb5f16179c9afd57d668b"
 dependencies = [
  "async-trait",
  "logos",
