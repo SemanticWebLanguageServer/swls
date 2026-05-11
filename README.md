@@ -111,6 +111,12 @@ Bibtex:
 }
 ```
 
+## Support
+
+If SWLS helps your workflow, consider supporting development:
+
+☕ https://ko-fi.com/ajuvercr
+
 ## License
 
 Copyright &copy; 2025, IMEC - IDLab - UGent.
