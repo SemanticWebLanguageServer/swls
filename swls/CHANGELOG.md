@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.2.1 (2026-05-11)
 
+### Chore
+
+- Update rdf-parsers version as it introduced an error
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 10 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-lang-jsonld v0.1.4, swls v0.2.1 ([`e288690`](https://github.com/ajuvercr/jsonld-lsp/commit/e288690473bd8b1a81f67279ffa9772000d0b10c))
+</details>
+
 ## 0.2.0 (2026-04-30)
+
+<csr-id-4010646878a90b97a51b54bb0fb7b0d07aed3269/>
 
 ### Chore
 
