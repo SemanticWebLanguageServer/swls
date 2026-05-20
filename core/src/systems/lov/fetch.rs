@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use bevy_ecs::{prelude::*, world::CommandQueue};
+use bevy_ecs::{error::warn, prelude::*, world::CommandQueue};
 use serde::Deserialize;
 use sophia_api::{
     prelude::{Any, Dataset},
@@ -231,6 +231,36 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(
     namespace: &str,
     c: C,
 ) -> Option<String> {
+    // Try the LOV mirror first: one CDN request, no JSON parsing.
+    let mirror_url = format!(
+        "https://ajuvercr.github.io/lov-mirror/by-prefix/{}/ontology.ttl",
+        prefix
+    );
+    match c
+        .fetch(&mirror_url, &std::collections::HashMap::new())
+        .await
+    {
+        Ok(resp) if resp.status == 200 => {
+            tracing::warn!("Mirror hit for prefix {}", prefix);
+            return Some(resp.body);
+        }
+        Ok(resp) => {
+            tracing::warn!(
+                "Mirror miss for prefix {} (status {}), falling back to LOV API",
+                prefix,
+                resp.status
+            );
+        }
+        Err(e) => {
+            tracing::warn!(
+                "Mirror fetch failed for prefix {} ({:?}), falling back to LOV API",
+                prefix,
+                e
+            );
+        }
+    }
+
+    // Fall back to the LOV API: fetch vocabulary info to find the latest file URL.
     if namespace.ends_with('#') || namespace.ends_with('/') {
         if let Some(url) = extract_file_url(&prefix, &c).await {
             match c.fetch(&url, &std::collections::HashMap::new()).await {
