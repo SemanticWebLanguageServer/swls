@@ -10,7 +10,7 @@ use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
-    term::{matcher::TermMatcher, BnodeId, GraphName, IriRef, Term, TermKind},
+    term::{matcher::TermMatcher, BnodeId, GraphName, IriRef, Term, TermKind, VarName},
     MownStr,
 };
 use tracing::{debug, instrument};
@@ -513,7 +513,8 @@ impl<'a> Term for MyTerm<'a> {
     }
 
     fn variable(&self) -> Option<sophia_api::term::VarName<sophia_api::MownStr<'_>>> {
-        panic!("MyTerm does not supported variables")
+        self.is_variable()
+            .then(|| VarName::new_unchecked(MownStr::from_ref(&self.value)))
     }
 
     fn triple(&self) -> Option<[Self::BorrowTerm<'_>; 3]> {

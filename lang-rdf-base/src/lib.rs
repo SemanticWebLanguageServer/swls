@@ -89,9 +89,15 @@ mod tokens {
                 let (start, end) = (term.span().start, term.span().end);
                 ttc.push(spanned(kind, start + skip + 1..end));
             }
-            Term::Variable(_) | Term::NamedNode(_) | Term::BlankNode(BlankNode::Named(_, _)) => {
+            Term::Variable(_) | Term::NamedNode(_) => {
                 ttc.push(spanned(kind, term.span().clone()));
             }
+            // Named blank nodes (_:label) get their coloring from the CST pass
+            // (NAMESPACE+PROPERTY via BlankNodeLabel token kind in Turtle).  For
+            // JSON-LD, anonymous blank nodes have a Spanned span that covers the
+            // entire nested { } object, so stamping ENUM_MEMBER here would wipe
+            // out all inner coloring — inner triples handle their own content.
+            Term::BlankNode(BlankNode::Named(_, _)) => return,
             Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
                 for po in pos {
                     for o in &po.object {

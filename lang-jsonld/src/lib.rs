@@ -8,10 +8,11 @@ use std::{borrow::Cow, ops::Range};
 
 use bevy_ecs::{
     component::Component,
+    observer::On,
     query::With,
     resource::Resource,
     schedule::IntoScheduleConfigs,
-    system::{Query, Res, RunSystemOnce},
+    system::{Commands, Query, Res, RunSystemOnce},
     world::{CommandQueue, World},
 };
 use components_rs::{
@@ -132,10 +133,32 @@ impl LangHelper for JsonLdHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<JsonLdLang, JsonLdHelper>(
-        world,
-        &["jsonld", "json"],
-        &[".jsonld", ".json"],
+    register_rdf_lang::<JsonLdLang, JsonLdHelper>(world, &["jsonld"], &[".jsonld"]);
+
+    // For .json files and the "json" language ID, only activate JSON-LD when the
+    // source actually contains "@context" — plain JSON files should be left alone.
+    world.add_observer(
+        |trigger: On<CreateEvent>, mut commands: Commands, query: Query<&Source>| {
+            let e = trigger.event();
+            let is_json = trigger
+                .language_id
+                .as_ref()
+                .map(|l| l == "json")
+                .unwrap_or_default()
+                || e.url.as_str().ends_with(".json");
+            if !is_json {
+                return;
+            }
+            let entity = e.entity;
+            if let Ok(source) = query.get(entity) {
+                if source.0.contains("\"@context\"") {
+                    commands
+                        .entity(entity)
+                        .insert(JsonLdLang::default())
+                        .insert(DynLang(Box::new(JsonLdHelper::default())));
+                }
+            }
+        },
     );
     world.insert_resource(ContextCache::default());
     world.insert_resource(Registry::empty());
@@ -578,6 +601,7 @@ impl Lang for JsonLdLang {
     const LEGEND_TYPES: &'static [SemanticTokenType] = &[
         semantic_token::BOOLEAN,
         SemanticTokenType::COMMENT,
+        SemanticTokenType::ENUM_MEMBER,
         SemanticTokenType::KEYWORD,
         SemanticTokenType::NAMESPACE,
         SemanticTokenType::NUMBER,

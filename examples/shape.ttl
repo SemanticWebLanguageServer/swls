@@ -1,3 +1,4 @@
+@prefix mtg: <https://mtg.example.org/ontology#>.
 @prefix sh: <http://www.w3.org/ns/shacl#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix rml: <http://w3id.org/rml/>.
@@ -7,6 +8,8 @@
     sh: "";
     sh:path <>;
   ].
+
+[] a mtg:Card.
 
 <abc> a "test"^^xsd:datatime, foaf:Agent.
 <me> foaf:knows <abc>.
