@@ -61,11 +61,35 @@ pub fn prepare_rename(
                     TripleTarget::Object => &triple.triple.object.span,
                     TripleTarget::Graph => continue,
                 };
-                if let Some(range) = range_to_range(span, &rope.0) {
-                    let placeholder = match triple.term() {
-                        Some(t) => t.value.to_string(),
-                        None => continue,
-                    };
+
+                let start = if rope
+                    .0
+                    .get_char(span.start)
+                    .map(|x| "\"<".contains(x))
+                    .unwrap_or_default()
+                {
+                    span.start + 1
+                } else {
+                    span.start
+                };
+
+                let end = if rope
+                    .0
+                    .get_char(span.end - 1)
+                    .map(|x| "\">".contains(x))
+                    .unwrap_or_default()
+                {
+                    span.end - 1
+                } else {
+                    span.end
+                };
+
+                if start + 1 >= end {
+                    continue;
+                }
+
+                if let Some(range) = range_to_range(&(start..end), &rope.0) {
+                    let placeholder = rope.0.slice(start..end).to_string();
                     commands
                         .entity(e)
                         .insert(PrepareRenameRequest { range, placeholder });
