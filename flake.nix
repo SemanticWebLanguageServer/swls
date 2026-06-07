@@ -75,10 +75,6 @@
             member = ./swls;
           };
 
-          lsp-web = craneLib.callPackage ./nix-support/workspace-member-package.nix {
-            inherit workspace cargoArtifacts;
-            member = ./lsp-web;
-          };
         }
       );
 
