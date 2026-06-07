@@ -15,6 +15,8 @@
       (craneLib.fileset.commonCargoSources workspace.root)
       (lib.fileset.fileFilter (file: file.hasExt "ttl") workspace.root)
       (lib.fileset.fileFilter (file: file.hasExt "json") workspace.root)
+      (lib.fileset.fileFilter (file: file.hasExt "sparql") workspace.root)
+      (lib.fileset.fileFilter (file: file.hasExt "txt") workspace.root)
     ];
   };
 

@@ -31,7 +31,7 @@
               overlays = [ (import rust-overlay) ];
             };
 
-            craneLib = (crane.mkLib pkgs).overrideToolchain (pkgs: pkgs.rust-bin.stable."1.88.0".default);
+            craneLib = (crane.mkLib pkgs).overrideToolchain (pkgs: pkgs.rust-bin.stable.latest.default);
 
             self' = self // {
               packages = self.packages.${system} or { };
