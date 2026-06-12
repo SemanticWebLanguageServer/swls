@@ -83,13 +83,14 @@
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use prelude::SemanticTokensDict;
 use systems::{init_ontology_extractor, populate_known_ontologies, OntologyExtractor};
-pub use tower_lsp::lsp_types;
+pub use lsp_types;
 
 use crate::prelude::*;
 
-/// Main language tower_lsp server implementation.
+/// Main language server implementation.
 ///
-/// [`Backend`](struct@backend::Backend) implements [`LanguageServer`](tower_lsp::LanguageServer).
+/// [`Backend`](struct@backend::Backend) exposes transport-agnostic request handlers.
+/// The `swls` binary adapts these to `tower_lsp::LanguageServer`.
 /// Each incoming request a schedule is ran on the main [`World`].
 pub mod backend;
 

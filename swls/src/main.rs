@@ -4,6 +4,7 @@ use bevy_ecs::{resource::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
 use swls::{
     client::{BinFs, Job},
+    server::LspBackend,
     timings, TowerClient,
 };
 use swls_core::{
@@ -163,8 +164,9 @@ async fn main() {
                     }
                 });
 
-                let (sender, rt) = setup_world(TowerClient::new(client.clone(), job_tx));
-                Backend::new(sender, client, rt)
+                let tower_client = TowerClient::new(client.clone(), job_tx);
+                let (sender, tokens) = setup_world(tower_client.clone());
+                LspBackend::new(sender, tower_client, tokens)
             })
             .finish();
 

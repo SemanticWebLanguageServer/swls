@@ -2,7 +2,7 @@ use std::{collections::HashSet, ops::Deref};
 
 use bevy_ecs::prelude::*;
 use swls_lov::LocalPrefix;
-use tower_lsp::lsp_types::Range;
+use crate::lsp_types::Range;
 use tracing::{debug, instrument};
 
 use crate::{

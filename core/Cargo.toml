@@ -15,8 +15,8 @@ homepage.workspace = true
 [features]
 default = ["shapes", "tokio"]
 shapes = []
-tokio = ["tower-lsp/runtime-tokio", "sparql_service", "mie"]
-agnostic = ["tower-lsp/runtime-agnostic"]
+tokio = ["sparql_service", "mie"]
+agnostic = []
 
 
 [dependencies]
@@ -29,7 +29,8 @@ serde.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 tracing.workspace      = true
-tower-lsp.workspace = true
+async-trait.workspace  = true
+lsp-types.workspace    = true
 
 dirs = "6"
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }

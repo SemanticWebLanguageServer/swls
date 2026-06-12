@@ -13,10 +13,10 @@ use goto_type::GotoTypeRequest;
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
-use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::{debug, error, info, instrument};
 
 use crate::{
+    client::Client,
     feature::{
         code_action::{CodeActionRequest, Label as CodeActionLabel},
         goto_definition::GotoDefinitionRequest,
@@ -26,21 +26,40 @@ use crate::{
     Started, Startup,
 };
 
+/// Error returned by [`Backend`] request handlers.
+///
+/// No handler currently fails at the protocol level, so this type is uninhabited.
+/// It exists so handlers can return a transport-agnostic [`Result`] that front-ends
+/// map onto their own error type (e.g. `tower_lsp::jsonrpc::Error`) without `swls-core`
+/// depending on any transport crate.
 #[derive(Debug)]
-pub struct Backend {
+pub enum ServerError {}
+
+/// Transport-agnostic result type for [`Backend`] request handlers.
+pub type Result<T> = std::result::Result<T, ServerError>;
+
+/// Transport-agnostic LSP request handler.
+///
+/// `Backend` exposes inherent `async` methods mirroring the LSP requests. Front-ends
+/// (the `swls` binary's `tower_lsp` adapter, or a future wasm dispatcher) call these
+/// directly. It is generic over the [`Client`] used to send server-to-client messages.
+pub struct Backend<C> {
     entities: Arc<Mutex<HashMap<String, Entity>>>,
     sender: CommandSender,
-    #[allow(unused)]
-    client: tower_lsp::Client,
+    client: C,
     semantic_tokens: Vec<SemanticTokenType>,
 }
 
-impl Backend {
-    pub fn new(
-        sender: CommandSender,
-        client: tower_lsp::Client,
-        tokens: Vec<SemanticTokenType>,
-    ) -> Self {
+impl<C> std::fmt::Debug for Backend<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Backend")
+            .field("semantic_tokens", &self.semantic_tokens)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<C: Client> Backend<C> {
+    pub fn new(sender: CommandSender, client: C, tokens: Vec<SemanticTokenType>) -> Self {
         Self {
             entities: Default::default(),
             sender,
@@ -105,10 +124,9 @@ impl Backend {
     }
 }
 
-#[tower_lsp::async_trait]
-impl LanguageServer for Backend {
+impl<C: Client> Backend<C> {
     #[instrument(skip(self, init))]
-    async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
+    pub async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
 
         let workspaces = init.workspace_folders.clone().unwrap_or_default();
@@ -203,7 +221,7 @@ impl LanguageServer for Backend {
         })
     }
 
-    async fn initialized(&self, _params: InitializedParams) {
+    pub async fn initialized(&self, _params: InitializedParams) {
         self.run(|world| {
             tracing::info!("initialized");
             world.run_schedule(Started);
@@ -211,7 +229,7 @@ impl LanguageServer for Backend {
         .await;
     }
 
-    async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) -> () {
+    pub async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) -> () {
         self.run(move |world| {
             let mut config = world.resource_mut::<ServerConfig>();
             let WorkspaceFoldersChangeEvent { added, removed } = params.event;
@@ -230,7 +248,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn semantic_tokens_full(
+    pub async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
@@ -258,14 +276,14 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self))]
-    async fn shutdown(&self) -> Result<()> {
+    pub async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
 
         Ok(())
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
-    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+    pub async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await
@@ -289,7 +307,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn prepare_rename(
+    pub async fn prepare_rename(
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
@@ -316,7 +334,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
-    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+    pub async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await
@@ -347,7 +365,7 @@ impl LanguageServer for Backend {
         Ok(Some(WorkspaceEdit::new(change_map)))
     }
 
-    async fn hover(&self, params: HoverParams) -> Result<Option<crate::lsp_types::Hover>> {
+    pub async fn hover(&self, params: HoverParams) -> Result<Option<crate::lsp_types::Hover>> {
         let request: HoverRequest = HoverRequest::default();
 
         let Some(entity) = self
@@ -385,7 +403,7 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
-    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+    pub async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         debug!("Inlay hints called");
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
@@ -406,7 +424,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self))]
-    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+    pub async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             debug!("Didn't find entity {}", uri);
@@ -420,7 +438,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+    pub async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
@@ -460,7 +478,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn did_change(&self, params: DidChangeTextDocumentParams) {
+    pub async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
             debug!("Didn't find entity {}", params.text_document.uri.as_str());
             return;
@@ -487,7 +505,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+    pub async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let _ = params;
 
         self.run(move |world| {
@@ -499,7 +517,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
-    async fn goto_definition(
+    pub async fn goto_definition(
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
@@ -535,7 +553,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
-    async fn goto_type_definition(
+    pub async fn goto_type_definition(
         &self,
         params: GotoTypeDefinitionParams,
     ) -> Result<Option<GotoTypeDefinitionResponse>> {
@@ -568,7 +586,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+    pub async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             return Ok(None);
@@ -590,7 +608,7 @@ impl LanguageServer for Backend {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
-    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+    pub async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await
