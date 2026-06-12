@@ -5,6 +5,7 @@
 use std::ops::Range;
 
 pub mod client;
+pub mod server;
 pub mod timings;
 pub use client::TowerClient;
 

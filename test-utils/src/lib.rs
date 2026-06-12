@@ -82,7 +82,7 @@ impl TestClient {
 }
 
 use swls_core::lsp_types::request::Request;
-#[tower_lsp::async_trait]
+#[async_trait::async_trait]
 impl Client for TestClient {
     async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> () {
         let mut lock = self.logs.lock().await;
@@ -193,7 +193,7 @@ impl TestFs {
     pub async fn empty(&self) {}
 }
 
-#[tower_lsp::async_trait]
+#[async_trait::async_trait]
 impl FsTrait for TestFs {
     fn virtual_url(&self, url: &str) -> Option<swls_core::lsp_types::Url> {
         let mut pb = self.0.clone();

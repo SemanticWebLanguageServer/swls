@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::Resource;
 use derive_more::derive::AsRef;
 use std::sync::Arc;
-use tower_lsp::lsp_types::Url;
+use crate::lsp_types::Url;
 
 #[derive(Resource, Clone, AsRef, Debug)]
 pub struct Fs(pub Arc<dyn FsTrait + Sync + Send>);
@@ -19,7 +19,7 @@ pub struct FsDirEntry {
     pub is_dir: bool,
 }
 
-#[tower_lsp::async_trait]
+#[async_trait::async_trait]
 pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
     fn virtual_url(&self, url: &str) -> Option<crate::lsp_types::Url>;
     fn lov_url(&self, url: &str, prefix: &str) -> Option<crate::lsp_types::Url> {

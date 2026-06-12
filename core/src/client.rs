@@ -10,7 +10,7 @@ pub struct Resp {
     pub status: u16,
 }
 
-#[tower_lsp::async_trait]
+#[async_trait::async_trait]
 pub trait Client: Clone + ClientSync {
     async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> ();
     async fn publish_diagnostics(

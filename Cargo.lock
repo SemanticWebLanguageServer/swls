@@ -171,22 +171,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-codec-lite"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2527c30e3972d8ff366b353125dae828c4252a154dbe6063684f6c5e014760a3"
-dependencies = [
- "anyhow",
- "bytes",
- "futures-core",
- "futures-io",
- "futures-sink",
- "log",
- "pin-project-lite",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "async-executor"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -346,7 +330,7 @@ dependencies = [
  "serde",
  "slotmap",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror",
  "variadics_please",
 ]
 
@@ -420,7 +404,7 @@ dependencies = [
  "serde",
  "smallvec",
  "smol_str",
- "thiserror 2.0.18",
+ "thiserror",
  "uuid",
  "variadics_please",
  "wgpu-types",
@@ -743,7 +727,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.18",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1636,7 +1620,7 @@ dependencies = [
  "proptest",
  "reqwest",
  "serde",
- "thiserror 2.0.18",
+ "thiserror",
  "url",
 ]
 
@@ -1673,7 +1657,7 @@ dependencies = [
  "jni-sys",
  "log",
  "simd_cesu8",
- "thiserror 2.0.18",
+ "thiserror",
  "walkdir",
  "windows-link",
 ]
@@ -1895,7 +1879,7 @@ dependencies = [
  "iri_s",
  "serde",
  "serde_json",
- "thiserror 2.0.18",
+ "thiserror",
  "tracing",
  "yaml-rust2",
 ]
@@ -2040,7 +2024,7 @@ dependencies = [
  "sparesults",
  "spareval",
  "spargebra",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2068,7 +2052,7 @@ dependencies = [
  "oxiri",
  "oxrdf",
  "ryu-js",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2083,7 +2067,7 @@ dependencies = [
  "oxsdatatypes",
  "rand 0.9.4",
  "sha2",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2096,7 +2080,7 @@ dependencies = [
  "oxrdf",
  "oxrdfxml",
  "oxttl",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2109,7 +2093,7 @@ dependencies = [
  "oxiri",
  "oxrdf",
  "quick-xml",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2119,7 +2103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06fa874d87eae638daae9b4e3198864fe2cce68589f227c0b2cf5b62b1530516"
 dependencies = [
  "js-sys",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2132,7 +2116,7 @@ dependencies = [
  "oxilangtag",
  "oxiri",
  "oxrdf",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2335,7 +2319,7 @@ dependencies = [
  "iri_s",
  "proptest",
  "serde",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2466,7 +2450,7 @@ dependencies = [
  "rustc-hash 2.1.2",
  "rustls",
  "socket2",
- "thiserror 2.0.18",
+ "thiserror",
  "tokio",
  "tracing",
  "web-time",
@@ -2487,7 +2471,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.18",
+ "thiserror",
  "tinyvec",
  "tracing",
  "web-time",
@@ -2632,7 +2616,7 @@ checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
  "getrandom 0.2.17",
  "libredox",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -2835,7 +2819,7 @@ dependencies = [
  "spargebra",
  "tabled",
  "tempfile",
- "thiserror 2.0.18",
+ "thiserror",
  "tokio",
  "toml",
  "url",
@@ -3163,7 +3147,7 @@ dependencies = [
  "itertools",
  "prefixmap",
  "rudof_rdf",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3182,7 +3166,7 @@ dependencies = [
  "rudof_rdf",
  "shacl_ast",
  "shacl_rdf",
- "thiserror 2.0.18",
+ "thiserror",
  "tracing",
 ]
 
@@ -3200,7 +3184,7 @@ dependencies = [
  "regex",
  "rudof_rdf",
  "shacl_ast",
- "thiserror 2.0.18",
+ "thiserror",
  "tracing",
 ]
 
@@ -3224,7 +3208,7 @@ dependencies = [
  "shacl_rdf",
  "sparql_service",
  "tabled",
- "thiserror 2.0.18",
+ "thiserror",
  "toml",
  "tracing",
  "tracing-subscriber",
@@ -3335,7 +3319,7 @@ dependencies = [
  "resiter",
  "serde",
  "sophia_iri",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3345,7 +3329,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebacba4fa7baed53f89844a5c9e5962d6232a449d5b450b9de72bb67f0203332"
 dependencies = [
  "sophia_api",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3358,7 +3342,7 @@ dependencies = [
  "oxiri",
  "regex",
  "serde",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3397,7 +3381,7 @@ dependencies = [
  "memchr",
  "oxrdf",
  "quick-xml",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3420,7 +3404,7 @@ dependencies = [
  "sparesults",
  "spargebra",
  "sparopt",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3434,7 +3418,7 @@ dependencies = [
  "oxrdf",
  "peg",
  "rand 0.9.4",
- "thiserror 2.0.18",
+ "thiserror",
 ]
 
 [[package]]
@@ -3469,7 +3453,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sparesults",
- "thiserror 2.0.18",
+ "thiserror",
  "toml",
  "tracing",
 ]
@@ -3564,6 +3548,7 @@ dependencies = [
 name = "swls-core"
 version = "0.1.3"
 dependencies = [
+ "async-trait",
  "bevy_ecs",
  "chrono",
  "chumsky",
@@ -3572,6 +3557,7 @@ dependencies = [
  "futures",
  "iri_s",
  "lazy_static",
+ "lsp-types",
  "mie",
  "oxigraph",
  "oxrdf",
@@ -3589,7 +3575,6 @@ dependencies = [
  "sophia_api",
  "sparql_service",
  "swls-lov",
- "tower-lsp",
  "tracing",
 ]
 
@@ -3703,6 +3688,7 @@ version = "0.1.0"
 dependencies = [
  "async-executor",
  "async-std",
+ "async-trait",
  "bevy_ecs",
  "chumsky",
  "futures",
@@ -3711,7 +3697,6 @@ dependencies = [
  "serde_json",
  "sophia_api",
  "swls-core",
- "tower-lsp",
  "tracing",
 ]
 
@@ -3852,31 +3837,11 @@ checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl 1.0.69",
-]
-
-[[package]]
-name = "thiserror"
 version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
 dependencies = [
- "thiserror-impl 2.0.18",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
+ "thiserror-impl",
 ]
 
 [[package]]
@@ -4139,7 +4104,6 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b38fb0e6ce037835174256518aace3ca621c4f96383c56bb846cfc11b341910"
 dependencies = [
- "async-codec-lite",
  "async-trait",
  "auto_impl",
  "bytes",
@@ -4591,7 +4555,7 @@ dependencies = [
  "js-sys",
  "log",
  "serde",
- "thiserror 2.0.18",
+ "thiserror",
  "web-sys",
 ]
 
