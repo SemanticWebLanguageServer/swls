@@ -3579,6 +3579,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "swls-e2e-tests"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "futures",
+ "ropey",
+ "swls-core",
+ "swls-lang-jsonld",
+ "swls-lang-sparql",
+ "swls-lang-trig",
+ "swls-lang-turtle",
+ "swls-test-utils",
+ "test-log",
+ "tracing",
+]
+
+[[package]]
 name = "swls-lang-jsonld"
 version = "0.1.5"
 dependencies = [
