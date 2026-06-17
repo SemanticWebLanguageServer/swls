@@ -9,7 +9,7 @@ use crate::{
     store::Store,
     systems::{
         check_added_ontology_extract, derive_owl_imports_links, open_imports, prefix_diagnostics,
-        validate_shapes,
+        validate_namespace_properties, validate_shapes,
     },
 };
 
@@ -52,6 +52,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         // ── consumers: publish diagnostics from the fully-derived state ─────────
         validate_shapes.after(end),
         prefix_diagnostics.after(end),
+        validate_namespace_properties.after(end),
     ));
 
     // #[cfg(feature = "shapes")]

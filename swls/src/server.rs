@@ -134,4 +134,11 @@ impl LanguageServer for LspBackend {
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         lift(self.backend.code_action(params).await)
     }
+
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
+        lift(self.backend.execute_command(params).await)
+    }
 }

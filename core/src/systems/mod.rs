@@ -17,10 +17,15 @@ pub use prefix_diagnostics::{
     add_missing_prefix_code_action, extract_prefix_from_token, prefix_diagnostic_helper,
     prefix_diagnostics,
 };
+mod namespace_properties;
+pub use namespace_properties::{
+    unknown_property_code_action, validate_namespace_properties, ALLOW_PROPERTY_COMMAND,
+};
 use crate::lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{
-    complete_class, complete_properties, derive_ontologies, hover_class, hover_property,
+    complete_class, complete_properties, derive_ontologies, hover_class, hover_excluded_property,
+    hover_property,
     DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
 };
 mod lov;

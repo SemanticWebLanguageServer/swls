@@ -2,7 +2,6 @@
 @prefix mtg: <https://mtg.example.org/ontology#>.
 @prefix sh: <http://www.w3.org/ns/shacl#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
-@prefix rml: <http://w3id.org/rml/>.
 
 [ ] a sh:NodeShape;
   sh:property [
@@ -12,7 +11,7 @@
   ].
 
 [ ] rdf:type mtg:Card.
-<abc> a "test"^^xsd:datatime, fof:Agent.
+<abc> a "test"^^xsd:datatime, foaf:Agent.
 <me> foaf:kno <abc>.
 [ ] a sh:NodeShape;
   sh:property [ ].
