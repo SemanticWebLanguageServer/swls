@@ -594,11 +594,12 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
+        let pos = params.range.start;
         let request = self
             .run_schedule::<CodeActionRequest>(
                 entity,
                 CodeActionLabel,
-                CodeActionRequest::default(),
+                (CodeActionRequest::default(), PositionComponent(pos)),
             )
             .await;
 

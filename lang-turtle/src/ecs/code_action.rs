@@ -5,6 +5,7 @@ use swls_core::{
     feature::code_action::CodeActionRequest,
     lsp_types::{CodeAction, CodeActionKind, TextEdit, WorkspaceEdit},
     prelude::*,
+    util::offset_to_position,
 };
 use swls_lang_rdf_base::traits::NamedNodeExt as _;
 

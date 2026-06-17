@@ -104,19 +104,26 @@ pub fn validate_namespace_properties(
 /// property IRI.  The action carries a [`Command`] so the editor round-trips back
 /// through `workspace/executeCommand`, letting the server persist the choice to
 /// the global config and clear the warning at runtime.
+///
+/// Only the unknown property *under the cursor* is offered, so the quick-fix does
+/// not show up when the cursor is elsewhere in the document.
 pub fn unknown_property_code_action(
-    mut query: Query<(&Triples, &RopeC, &mut CodeActionRequest), With<Open>>,
+    mut query: Query<(&Triples, &RopeC, &PositionComponent, &mut CodeActionRequest), With<Open>>,
     ontologies: Res<Ontologies>,
     config: Res<ServerConfig>,
 ) {
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
 
-    for (triples, rope, mut req) in &mut query {
+    for (triples, rope, position, mut req) in &mut query {
+        let cursor = position.0;
         let mut seen = std::collections::HashSet::new();
-        for (iri, _range) in
+        for (iri, range) in
             unknown_namespace_properties(triples, rope, &ontologies, closed, allowed)
         {
+            if !position_in_range(cursor, range) {
+                continue;
+            }
             if !seen.insert(iri.clone()) {
                 continue;
             }
@@ -132,4 +139,9 @@ pub fn unknown_property_code_action(
             });
         }
     }
+}
+
+/// Whether `pos` falls within `range` (inclusive of both ends).
+fn position_in_range(pos: crate::lsp_types::Position, range: Range) -> bool {
+    pos >= range.start && pos <= range.end
 }

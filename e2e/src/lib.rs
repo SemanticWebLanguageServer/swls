@@ -259,9 +259,22 @@ impl LspHarness {
 
     /// Run the `CodeActionLabel` schedule and return the list of code actions.
     pub fn code_actions(&mut self, handle: &FileHandle) -> Vec<CodeAction> {
-        self.world
-            .entity_mut(handle.entity)
-            .insert(CodeActionRequest::default());
+        self.code_actions_at(handle, 0, 0)
+    }
+
+    /// Like [`code_actions`](Self::code_actions) but positions the (synthetic) cursor at
+    /// `(line, character)` so position-sensitive code actions (e.g. blank-node extraction)
+    /// can resolve the relevant node.
+    pub fn code_actions_at(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+    ) -> Vec<CodeAction> {
+        self.world.entity_mut(handle.entity).insert((
+            CodeActionRequest::default(),
+            PositionComponent(Position { line, character }),
+        ));
         self.world.run_schedule(CodeActionLabel);
         self.world
             .entity_mut(handle.entity)
