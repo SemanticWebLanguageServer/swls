@@ -463,7 +463,6 @@ impl<C: Client> Backend<C> {
                 let id = spawn(world);
                 world.run_schedule(ParseLabel);
                 world.flush();
-                world.run_schedule(DiagnosticsLabel);
                 id
             })
             .await;
@@ -499,7 +498,6 @@ impl<C: Client> Backend<C> {
                 .insert((Source(change.text), rope_c));
             world.run_schedule(ParseLabel);
             world.flush();
-            world.run_schedule(DiagnosticsLabel);
         })
         .await;
     }

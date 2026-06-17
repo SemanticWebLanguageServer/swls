@@ -39,7 +39,7 @@ use swls_core::{
     feature::{
         code_action::{CodeActionRequest, Label as CodeActionLabel},
         completion::{CompletionRequest, Label as CompletionLabel, SimpleCompletion},
-        diagnostics::{DiagnosticItem, Label as DiagnosticsLabel},
+        diagnostics::DiagnosticItem,
         format::{FormatRequest, Label as FormatLabel},
         hover::{HoverRequest, Label as HoverLabel},
         parse::Label as ParseLabel,
@@ -229,14 +229,14 @@ impl LspHarness {
             .unwrap_or(0)
     }
 
-    /// Run the `DiagnosticsLabel` schedule and return the current diagnostics for all open
-    /// files.
+    /// Re-run the `ParseLabel` schedule (which now also publishes diagnostics) and
+    /// return the current diagnostics for all open files.
     ///
     /// Because `DiagnosticPublisher` re-sends the full merged set for a URI on every
     /// `publish()` call, we keep only the **last** item per URI — that is always the
     /// most up-to-date merged state (all reasons combined).
     pub fn run_diagnostics(&mut self) -> Vec<(Url, Diagnostic)> {
-        self.world.run_schedule(DiagnosticsLabel);
+        self.world.run_schedule(ParseLabel);
         // Drain the channel, keeping only the last item per URI.
         let mut latest: HashMap<Url, Vec<Diagnostic>> = HashMap::new();
         while let Ok(item) = self.diag_rx.try_recv() {

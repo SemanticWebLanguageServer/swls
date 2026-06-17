@@ -1,21 +1,12 @@
 use std::{collections::HashMap, hash::Hash, ops::Range};
 
-use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+use bevy_ecs::prelude::*;
 use futures::channel::mpsc;
 
 use crate::{
     lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url},
     prelude::*,
 };
-
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Label;
-
-pub fn setup_schedule(world: &mut World) {
-    let mut diagnostics = Schedule::new(Label);
-    diagnostics.add_systems(crate::systems::prefix_diagnostics);
-    world.add_schedule(diagnostics);
-}
 
 #[derive(Resource)]
 pub struct DiagnosticPublisher {

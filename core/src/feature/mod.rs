@@ -10,7 +10,6 @@ pub use parse::Label as ParseLabel;
 pub mod rename;
 pub use rename::{PrepareRename as PrepareRenameLabel, Rename as RenameLabel};
 pub mod diagnostics;
-pub use diagnostics::Label as DiagnosticsLabel;
 pub mod save;
 pub use save::Label as SaveLabel;
 pub mod inlay;
