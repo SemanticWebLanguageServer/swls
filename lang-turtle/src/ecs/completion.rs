@@ -16,7 +16,8 @@ use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(
         &TokenComponent,
-        &Element<TurtleLang>,
+        &Source,
+        &RopeC,
         &Prefixes,
         &mut CompletionRequest,
         &DynLang,
@@ -24,14 +25,7 @@ pub fn turtle_lov_undefined_prefix_completion(
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
 ) {
-    for (word, turtle, prefixes, mut req, lang) in &mut query {
-        let mut start = swls_core::lsp_types::Position::new(0, 0);
-
-        if turtle.base.is_some() {
-            start = swls_core::lsp_types::Position::new(1, 0);
-        }
-
-        use swls_core::lsp_types::Range;
+    for (word, source, rope, prefixes, mut req, lang) in &mut query {
         prefix_completion_helper(
             word,
             prefixes,
@@ -40,10 +34,7 @@ pub fn turtle_lov_undefined_prefix_completion(
                 if prefixes.iter().any(|p| p.prefix == name) {
                     None
                 } else {
-                    Some(vec![swls_core::lsp_types::TextEdit {
-                        range: Range::new(start.clone(), start),
-                        new_text: format!("@prefix {}: <{}>.\n", name, location),
-                    }])
+                    lang.prefix_edits(&source.0, &rope.0, name, location)
                 }
             },
             lovs.iter(),

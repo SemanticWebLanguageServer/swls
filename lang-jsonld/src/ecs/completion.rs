@@ -327,16 +327,7 @@ pub fn jsonld_lov_undefined_prefix_completion(
             word,
             prefixes,
             &mut req.0,
-            |name, location| {
-                add_to_context(
-                    &source.0,
-                    &rope.0,
-                    ContextEntry::Prefix {
-                        name,
-                        namespace: location,
-                    },
-                )
-            },
+            |name, location| lang.prefix_edits(&source.0, &rope.0, name, location),
             lovs.iter(),
             prefix_cc.iter(),
             lang,

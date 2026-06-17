@@ -56,6 +56,78 @@ pub trait LangHelper: std::fmt::Debug {
     fn quote(&self, inp: &str) -> String {
         format!("{}", inp)
     }
+    /// Return the source keyword used to introduce a prefix declaration
+    /// (used only for display / span-finding purposes).
+    fn prefix_keyword(&self) -> &str {
+        "@prefix"
+    }
+    /// Format a prefix declaration string to be inserted into a document.
+    ///
+    /// Default (Turtle / TriG): `@prefix {name}: <{url}>.\n`
+    fn format_prefix_declaration(&self, name: &str, url: &str) -> String {
+        format!("@prefix {}: <{}>.\n", name, url)
+    }
+    /// Produce the text edit(s) that declare prefix `name` → `namespace` in this
+    /// document, or `None` when it cannot / should not be inserted (e.g. the
+    /// prefix is already present).
+    ///
+    /// This is the single source of truth for "how do I add a prefix to a
+    /// document of this language", shared by prefix completion and the
+    /// "add missing prefix" diagnostic quick-fix so the two paths stay
+    /// consistent.  The default (Turtle / SPARQL / TriG) inserts a declaration
+    /// line at the very top of the file; JSON-LD overrides this to splice the
+    /// prefix into the `@context` object.
+    fn prefix_edits(
+        &self,
+        _source: &str,
+        _rope: &ropey::Rope,
+        name: &str,
+        namespace: &str,
+    ) -> Option<Vec<crate::lsp_types::TextEdit>> {
+        let pos = crate::lsp_types::Position::new(0, 0);
+        Some(vec![crate::lsp_types::TextEdit {
+            range: crate::lsp_types::Range::new(pos, pos),
+            new_text: self.format_prefix_declaration(name, namespace),
+        }])
+    }
+    /// Return `true` if the generic prefix-diagnostics system should analyse this
+    /// language's documents.
+    ///
+    /// JSON-LD uses `@context` semantics where terms are pre-expanded before being
+    /// stored as `Triples`; its prefix model is not compatible with the span-based
+    /// detection used by the generic system.  Override to return `false` to opt out.
+    fn supports_prefix_diagnostics(&self) -> bool {
+        true
+    }
+    /// Given a raw token string from the document (e.g. `<http://ex.org/foo>` or `ex:foo`),
+    /// return the bare text that should be pre-filled in the editor's rename input box.
+    fn rename_placeholder<'a>(&self, raw: &'a str) -> &'a str {
+        // Default (Turtle / SPARQL / TriG): strip surrounding `< >`
+        let s = raw.strip_prefix('<').unwrap_or(raw);
+        s.strip_suffix('>').unwrap_or(s)
+    }
+    /// Wrap the user-supplied rename text so that it is valid in the current language.
+    ///
+    /// Default (Turtle / SPARQL / TriG) smart rules:
+    /// - already has `< >` → keep as-is
+    /// - starts with `_:` → blank node, keep as-is
+    /// - contains `://` → full IRI with scheme (e.g. `http://`), wrap in `< >`
+    /// - contains `:` but no `://` → prefixed name (e.g. `ex:foo`), keep as-is
+    /// - otherwise → bare label, wrap in `< >` to be safe
+    fn rename_wrap(&self, new_text: &str) -> String {
+        if new_text.starts_with('<') && new_text.ends_with('>') {
+            new_text.to_string()
+        } else if new_text.starts_with("_:") {
+            new_text.to_string()
+        } else if new_text.contains("://") {
+            format!("<{}>", new_text)
+        } else if new_text.contains(':') {
+            // Prefixed name like ex:foo
+            new_text.to_string()
+        } else {
+            format!("<{}>", new_text)
+        }
+    }
     /// Return `true` if this language provides its own prefix completion and
     /// the generic [`defined_prefix_completion`] system should be skipped.
     fn handles_prefix_completion(&self) -> bool {
