@@ -1,11 +1,8 @@
 #![allow(non_snake_case)]
 use std::{collections::HashSet, str::FromStr as _};
 
-use swls_lang_turtle::lang::{
-    model::{Term, Triple, Turtle},
-    parse_source,
-    // parser2::parse_source as parse_source2,
-};
+use rdf_parsers::model::{BlankNode, NamedNode, Term, Triple, Turtle};
+use swls_lang_turtle::lang::parse_source;
 
 fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
     // check defined prefixes
@@ -15,7 +12,10 @@ fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
             prefixes.insert(pref.value().prefix.value().to_string());
         }
 
-        turtle.triples.iter().all(|t| check_triple(&t, &prefixes))
+        turtle
+            .triples
+            .iter()
+            .all(|t| check_triple(t.value(), &prefixes))
     } else {
         true
     }
@@ -66,16 +66,17 @@ pub fn test_syntax(location: &str, is_positive: bool) {
 }
 
 fn check_triple(triple: &Triple, defined: &HashSet<String>) -> bool {
-    if !check_term(&triple.subject, &defined) {
+    if !check_term(triple.subject.value(), defined) {
         return false;
     }
 
     for po in &triple.po {
-        if !check_term(&po.predicate, defined) {
+        let po = po.value();
+        if !check_term(po.predicate.value(), defined) {
             return false;
         }
 
-        if !po.object.iter().all(|t| check_term(t, defined)) {
+        if !po.object.iter().all(|t| check_term(t.value(), defined)) {
             return false;
         }
     }
@@ -85,22 +86,21 @@ fn check_triple(triple: &Triple, defined: &HashSet<String>) -> bool {
 
 fn check_term(term: &Term, defined: &HashSet<String>) -> bool {
     match term {
-        Term::BlankNode(swls_lang_turtle::lang::model::BlankNode::Unnamed(pos, _, _)) => {
+        Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
             for po in pos {
-                if !check_term(&po.predicate, defined) {
+                let po = po.value();
+                if !check_term(po.predicate.value(), defined) {
                     return false;
                 }
 
-                if !po.object.iter().all(|t| check_term(t, defined)) {
+                if !po.object.iter().all(|t| check_term(t.value(), defined)) {
                     return false;
                 }
             }
             true
         }
-        Term::NamedNode(swls_lang_turtle::lang::model::NamedNode::Prefixed { prefix, .. }) => {
-            defined.contains(prefix)
-        }
-        Term::Collection(spanneds) => spanneds.iter().all(|t| check_term(t, defined)),
+        Term::NamedNode(NamedNode::Prefixed { prefix, .. }) => defined.contains(prefix),
+        Term::Collection(spanneds) => spanneds.iter().all(|t| check_term(t.value(), defined)),
         _ => true,
     }
 }

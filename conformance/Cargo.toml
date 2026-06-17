@@ -15,6 +15,7 @@ homepage.workspace = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
 sophia_turtle = "0.9.0"
+rdf-parsers.workspace  = true
 
 swls-lang-turtle = { path = "../lang-turtle/" }
 swls-core        = { path = "../core/" }

@@ -3536,6 +3536,7 @@ dependencies = [
 name = "swls-conformance"
 version = "0.1.0"
 dependencies = [
+ "rdf-parsers",
  "sophia_api",
  "sophia_inmem",
  "sophia_iri",

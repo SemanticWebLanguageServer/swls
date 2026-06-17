@@ -65,6 +65,27 @@ fn empty_file_has_zero_triples() {
     assert_eq!(h.triple_count(&file), 0);
 }
 
+// ─── Collections ──────────────────────────────────────────────────────────────
+
+#[test_log::test]
+fn turtle_collection_expands_to_seven_triples() {
+    let mut h = LspHarness::new();
+    // An RDF collection `(<a> <b> <c>)` expands into the list structure:
+    //   <e> <pred> _:l0 .
+    //   _:l0 rdf:first <a> ; rdf:rest _:l1 .
+    //   _:l1 rdf:first <b> ; rdf:rest _:l2 .
+    //   _:l2 rdf:first <c> ; rdf:rest rdf:nil .
+    // → 1 + 2 + 2 + 2 = 7 triples.
+    let src = "<e> <pred> (<a> <b> <c>).";
+    let file = h.open_file("file:///collection.ttl", "turtle", src);
+
+    assert_eq!(
+        h.triple_count(&file),
+        7,
+        "A 3-element collection should expand to 7 triples"
+    );
+}
+
 // ─── File updates ─────────────────────────────────────────────────────────────
 
 #[test_log::test]
