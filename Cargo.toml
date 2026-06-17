@@ -65,6 +65,7 @@ members = [
   "swls",
   "test-utils",
   "conformance",
+  "e2e",
 ]
 resolver = "2"
 exclude = ["turtle"]

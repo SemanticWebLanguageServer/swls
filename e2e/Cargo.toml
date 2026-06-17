@@ -1,0 +1,27 @@
+[package]
+name = "swls-e2e-tests"
+description = "End-to-end tests for the Semantic Web Language Server"
+publish = false
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+bevy_ecs.workspace  = true
+futures.workspace   = true
+ropey.workspace     = true
+tracing.workspace   = true
+
+swls-core          = { workspace = true }
+swls-lang-turtle   = { workspace = true }
+swls-lang-sparql   = { workspace = true }
+swls-lang-trig     = { workspace = true }
+swls-lang-jsonld   = { workspace = true }
+swls-test-utils    = { path = "../test-utils/" }
+
+[dev-dependencies]
+test-log = { version = "0.2.19", features = ["trace"] }
