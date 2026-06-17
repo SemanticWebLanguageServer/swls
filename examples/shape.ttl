@@ -1,3 +1,4 @@
+@prefix ldes: <https://w3id.org/ldes#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix mtg: <https://mtg.example.org/ontology#>.
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.

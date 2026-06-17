@@ -16,6 +16,8 @@ pub mod inlay;
 pub use inlay::Label as InlayLabel;
 pub mod format;
 pub use format::Label as FormatLabel;
+pub mod on_type_format;
+pub use on_type_format::Label as OnTypeFormatLabel;
 pub mod semantic;
 pub use semantic::Label as SemanticLabel;
 pub mod references;

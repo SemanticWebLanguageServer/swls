@@ -85,6 +85,38 @@ impl LangHelper for JsonLdHelper {
         true
     }
 
+    /// Extract the prefix name whose `:` was just typed *inside a JSON string*
+    /// (e.g. typing `:` in `"foaf:knows"`), so on-type formatting can splice the
+    /// prefix into `@context`.  Unlike the text-RDF default, the term boundary is
+    /// the opening double-quote of the string.
+    fn prefix_name_at<'a>(&self, source: &'a str, offset: usize) -> Option<&'a str> {
+        let bytes = source.as_bytes();
+        if offset == 0 || offset > source.len() || bytes[offset - 1] != b':' {
+            return None;
+        }
+        let colon = offset - 1;
+
+        let mut start = colon;
+        while start > 0 {
+            let c = bytes[start - 1];
+            if c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b'.') {
+                start -= 1;
+            } else {
+                break;
+            }
+        }
+        if start == colon {
+            return None;
+        }
+        // Must sit inside a JSON string: the char before the name is the opening
+        // quote.  A context *key* like `"foaf":` has the `:` outside the quotes,
+        // so it has no name char before the `:` and is correctly ignored.
+        if start == 0 || bytes[start - 1] != b'"' {
+            return None;
+        }
+        Some(&source[start..colon])
+    }
+
     fn prefix_edits(
         &self,
         source: &str,
