@@ -15,10 +15,8 @@ use swls_core::{
     components::*,
     lsp_types::CompletionItemKind,
     prelude::*,
-    systems::{prefix::prefix_completion_helper, PrefixEntry},
 };
 use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
-use swls_lov::LocalPrefix;
 
 use crate::Sparql;
 
@@ -39,7 +37,6 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
-            sparql_lov_undefined_prefix_completion.after(generate_completions),
             variable_completion.after(generate_completions),
         ));
     });
@@ -219,38 +216,5 @@ pub fn variable_completion(
                 req.push(completion);
             }
         }
-    }
-}
-
-pub fn sparql_lov_undefined_prefix_completion(
-    mut query: Query<(
-        &TokenComponent,
-        &Source,
-        &RopeC,
-        &Prefixes,
-        &mut CompletionRequest,
-        &DynLang,
-    )>,
-    lovs: Query<&LocalPrefix>,
-    prefix_cc: Query<&PrefixEntry>,
-    config: Res<ServerConfig>,
-) {
-    let fmt = config.config.local.prefix_format.unwrap_or_default();
-    for (word, source, rope, prefixes, mut req, lang) in &mut query {
-        prefix_completion_helper(
-            word,
-            prefixes,
-            &mut req.0,
-            |name, location| {
-                if prefixes.iter().any(|p| p.prefix == name) {
-                    None
-                } else {
-                    lang.prefix_edits(&source.0, &rope.0, name, location, fmt)
-                }
-            },
-            lovs.iter(),
-            prefix_cc.iter(),
-            lang,
-        );
     }
 }

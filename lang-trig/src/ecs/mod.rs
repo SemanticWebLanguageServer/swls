@@ -4,20 +4,19 @@ use bevy_ecs::prelude::*;
 use rdf_parsers::{IncrementalBias, PrevParseInfo};
 use rowan::{GreenNode, NodeOrToken};
 use swls_core::prelude::*;
-use swls_lang_rdf_base::traits::NamedNodeExt;
 use swls_lang_turtle::{ecs::parse::derive_triples_system, lang::parser::TurtleParseError};
 use tracing::instrument;
 
 use crate::TriGLang;
-
-pub mod completion;
 
 pub fn setup_parsing(world: &mut World) {
     use swls_core::feature::parse::*;
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_trig_system,
-            derive_prefixes.after(parse_trig_system).before(prefixes),
+            swls_lang_rdf_base::parse::derive_prefixes_system::<TriGLang>
+                .after(parse_trig_system)
+                .before(prefixes),
             derive_triples_system::<TriGLang>
                 .after(parse_trig_system)
                 .before(triples),
@@ -25,14 +24,6 @@ pub fn setup_parsing(world: &mut World) {
     });
 }
 
-pub fn setup_completion(world: &mut World) {
-    use swls_core::feature::completion::*;
-    world.schedule_scope(Label, |_, schedule| {
-        schedule.add_systems(
-            completion::trig_lov_undefined_prefix_completion.after(generate_completions),
-        );
-    });
-}
 
 fn extract_trig_cst_tokens(
     node: &rowan::SyntaxNode<rdf_parsers::trig::parser::Lang>,
@@ -148,40 +139,6 @@ fn parse_trig_system(
                 Wrapped(gn),
             ));
         }
-    }
-}
-
-#[instrument(skip(query, commands))]
-fn derive_prefixes(
-    query: Query<(Entity, &Label, &Element<TriGLang>), Changed<Element<TriGLang>>>,
-    mut commands: Commands,
-) {
-    for (entity, url, turtle) in &query {
-        let prefixes: Vec<_> = turtle
-            .prefixes
-            .iter()
-            .flat_map(|prefix| {
-                let url = prefix.value.value().expand(turtle.value())?;
-                let url = swls_core::lsp_types::Url::parse(&url).ok()?;
-                Some(Prefix {
-                    url,
-                    prefix: prefix.prefix.value().clone(),
-                })
-            })
-            .collect();
-
-        let base = turtle
-            .base
-            .as_ref()
-            .and_then(|b| {
-                b.0 .1
-                    .value()
-                    .expand(turtle.value())
-                    .and_then(|x| swls_core::lsp_types::Url::parse(&x).ok())
-            })
-            .unwrap_or(url.0.clone());
-
-        commands.entity(entity).insert(Prefixes(prefixes, base));
     }
 }
 

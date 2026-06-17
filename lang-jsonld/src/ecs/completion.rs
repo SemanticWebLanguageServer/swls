@@ -423,62 +423,11 @@ pub fn jsonld_property_completion(
     }
 }
 
-/// Suggests the short names defined in the document's `@context` (e.g. `"name"`
-/// mapped to `foaf:name`) when the cursor is in predicate position. These
-/// aliases are more concise than prefixed names and are idiomatic in JSON-LD.
-#[instrument(skip(query))]
-pub fn jsonld_context_alias_completion(
-    mut query: Query<
-        (
-            &TokenComponent,
-            &TripleComponent,
-            &JsonLdActiveContext,
-            &Prefixes,
-            &mut CompletionRequest,
-        ),
-        With<JsonLdLang>,
-    >,
-) {
-    for (token, triple, active_ctx, prefixes, mut request) in &mut query {
-        if triple.target != TripleTarget::Predicate {
-            continue;
-        }
-
-        let bare_text = unquote(&token.text);
-
-        for (term_name, term_def) in &active_ctx.0.terms {
-            let Some(ref iri) = term_def.iri else {
-                continue;
-            };
-
-            if term_name.starts_with(bare_text) {
-                let quoted = format!("\"{}\"", term_name);
-                // Show the resolved IRI (or shortened form) as the label description.
-                let label_desc = prefixes.shorten(iri).unwrap_or_else(|| iri.clone());
-
-                request.push(
-                    SimpleCompletion::new(
-                        CompletionItemKind::FIELD,
-                        term_name.clone(),
-                        TextEdit {
-                            range: token.range.clone(),
-                            new_text: quoted,
-                        },
-                    )
-                    .label_description(label_desc)
-                    .sort_text(format!("0{}", term_name)),
-                );
-            }
-        }
-    }
-}
-
 pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
             jsonld_property_completion.after(generate_completions),
-            // jsonld_context_alias_completion.after(generate_completions),
             jsonld_lov_undefined_prefix_completion.after(generate_completions),
         ));
     });
@@ -490,30 +439,6 @@ mod tests {
     use swls_core::{components::*, prelude::*};
     use swls_test_utils::{create_file, setup_world, TestClient};
     use test_log::test;
-
-    /// Helper: run parse + completion schedule and return completions at cursor.
-    fn get_completions(
-        world: &mut bevy_ecs::world::World,
-        entity: bevy_ecs::entity::Entity,
-        line: u32,
-        character: u32,
-    ) -> Vec<String> {
-        world.run_schedule(ParseLabel);
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            PositionComponent(swls_core::lsp_types::Position { line, character }),
-        ));
-        world.run_schedule(CompletionLabel);
-        world
-            .entity_mut(entity)
-            .take::<CompletionRequest>()
-            .map(|r| {
-                r.0.into_iter()
-                    .map(|c| c.edits[0].new_text.clone())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
 
     #[test]
     fn prefix_property_completion_works() {
@@ -546,24 +471,6 @@ mod tests {
             triple_comp.unwrap().target,
             TripleTarget::Predicate,
             "Expected Predicate target for cursor inside a JSON-LD key"
-        );
-    }
-
-    #[test]
-    fn context_alias_completion_works() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
-
-        // Valid JSON-LD: a context-defined term alias "name" maps to foaf:name.
-        // The cursor is positioned inside the "name" key to test alias completion.
-        let src = "{\n  \"@context\": {\n    \"foaf\": \"http://xmlns.com/foaf/0.1/\",\n    \"name\": \"foaf:name\"\n  },\n  \"@id\": \"http://example.com/me\",\n  \"name\": \"John\"\n}";
-        let entity = create_file(&mut world, src, "http://example.com/ns#", "jsonld", Open);
-
-        // Cursor inside "name" on the last property line (line 6, char 3).
-        let completions = get_completions(&mut world, entity, 6, 3);
-        assert!(
-            completions.iter().any(|c| c == "\"name\""),
-            "Expected \"name\" alias in completions, got: {:?}",
-            completions
         );
     }
 

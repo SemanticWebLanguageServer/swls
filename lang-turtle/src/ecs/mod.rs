@@ -1,12 +1,9 @@
-use bevy_ecs::{prelude::*, system::Query, world::World};
-use completion::{
-    infer_predicate_position_from_cst, subject_completion, turtle_lov_undefined_prefix_completion,
-};
+use bevy_ecs::{prelude::*, world::World};
+use completion::{infer_predicate_position_from_cst, subject_completion};
 use format::format_turtle_system;
 use swls_core::prelude::*;
 
 use crate::TurtleLang;
-use swls_lang_rdf_base::traits::NamedNodeExt;
 
 mod code_action;
 mod completion;
@@ -18,7 +15,7 @@ pub fn setup_parsing(world: &mut World) {
     world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse::parse_turtle_system,
-            derive_prefixes
+            swls_lang_rdf_base::parse::derive_prefixes_system::<TurtleLang>
                 .after(parse::parse_turtle_system)
                 .before(prefixes),
             parse::derive_triples_system::<TurtleLang>
@@ -46,44 +43,10 @@ pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
-            turtle_lov_undefined_prefix_completion.after(generate_completions),
             subject_completion.after(generate_completions),
             infer_predicate_position_from_cst.after(generate_completions),
         ));
     });
-}
-
-fn derive_prefixes(
-    query: Query<(Entity, &Label, &Element<TurtleLang>), Changed<Element<TurtleLang>>>,
-    mut commands: Commands,
-) {
-    for (entity, url, turtle) in &query {
-        let prefixes: Vec<_> = turtle
-            .prefixes
-            .iter()
-            .flat_map(|prefix| {
-                let url = prefix.value.value().expand(turtle.value())?;
-                let url = swls_core::lsp_types::Url::parse(&url).ok()?;
-                Some(Prefix {
-                    url,
-                    prefix: prefix.prefix.value().clone(),
-                })
-            })
-            .collect();
-
-        let base = turtle
-            .base
-            .as_ref()
-            .and_then(|b| {
-                b.0 .1
-                    .value()
-                    .expand(turtle.value())
-                    .and_then(|x| swls_core::lsp_types::Url::parse(&x).ok())
-            })
-            .unwrap_or(url.0.clone());
-
-        commands.entity(entity).insert(Prefixes(prefixes, base));
-    }
 }
 
 #[cfg(test)]
