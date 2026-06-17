@@ -9,6 +9,7 @@ pub struct CodeActionRequest(pub Vec<crate::lsp_types::CodeAction>);
 pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
-    let schedule = bevy_ecs::schedule::Schedule::new(Label);
+    let mut schedule = bevy_ecs::schedule::Schedule::new(Label);
+    schedule.add_systems(crate::systems::add_missing_prefix_code_action);
     world.add_schedule(schedule);
 }

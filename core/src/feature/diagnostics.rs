@@ -13,10 +13,7 @@ pub struct Label;
 
 pub fn setup_schedule(world: &mut World) {
     let mut diagnostics = Schedule::new(Label);
-    // Prefix diagnostics are disabled pending CST-based reimplementation.
-    // Parse-error diagnostics are still published via publish_diagnostics::<L> added
-    // by each language's setup_world.
-    diagnostics.add_systems(|| {});
+    diagnostics.add_systems(crate::systems::prefix_diagnostics);
     world.add_schedule(diagnostics);
 }
 

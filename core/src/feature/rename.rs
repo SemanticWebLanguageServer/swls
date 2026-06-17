@@ -43,10 +43,10 @@ pub fn setup_schedules(world: &mut World) {
 
 #[instrument(skip(query, commands))]
 pub fn prepare_rename(
-    query: Query<(Entity, &RopeC, Option<&TripleComponent>)>,
+    query: Query<(Entity, &RopeC, &DynLang, Option<&TripleComponent>)>,
     mut commands: Commands,
 ) {
-    for (e, rope, m_triple) in &query {
+    for (e, rope, lang, m_triple) in &query {
         commands.entity(e).remove::<PrepareRenameRequest>();
         if let Some(triple) = m_triple {
             use sophia_api::term::TermKind;
@@ -62,34 +62,28 @@ pub fn prepare_rename(
                     TripleTarget::Graph => continue,
                 };
 
-                let start = if rope
-                    .0
-                    .get_char(span.start)
-                    .map(|x| "\"<".contains(x))
-                    .unwrap_or_default()
-                {
-                    span.start + 1
-                } else {
-                    span.start
-                };
+                let raw: String = rope.0.slice(span.start..span.end).to_string();
+                let inner = lang.0.rename_placeholder(&raw);
 
-                let end = if rope
-                    .0
-                    .get_char(span.end - 1)
-                    .map(|x| "\">".contains(x))
-                    .unwrap_or_default()
-                {
-                    span.end - 1
-                } else {
-                    span.end
-                };
-
-                if start + 1 >= end {
+                // Guard: inner must be non-empty
+                if inner.is_empty() {
                     continue;
                 }
 
-                if let Some(range) = range_to_range(&(start..end), &rope.0) {
-                    let placeholder = rope.0.slice(start..end).to_string();
+                // Compute how many chars are stripped from the front.
+                let prefix_offset = inner.as_ptr() as usize - raw.as_ptr() as usize;
+                let prefix_chars = raw[..prefix_offset].chars().count();
+                let inner_char_len = inner.chars().count();
+
+                let inner_start = span.start + prefix_chars;
+                let inner_end = inner_start + inner_char_len;
+
+                if inner_start >= inner_end || inner_end > span.end {
+                    continue;
+                }
+
+                if let Some(range) = range_to_range(&(inner_start..inner_end), &rope.0) {
+                    let placeholder = inner.to_string();
                     commands
                         .entity(e)
                         .insert(PrepareRenameRequest { range, placeholder });
@@ -102,23 +96,31 @@ pub fn prepare_rename(
 }
 
 #[instrument(skip(query))]
-pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &mut RenameEdits)>) {
-    for (triple, triples, rope, label, mut edits) in &mut query {
+pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &DynLang, &mut RenameEdits)>) {
+    for (triple, triples, rope, label, lang, mut edits) in &mut query {
         let Some(target) = triple.term() else {
             continue;
         };
-        let new_text = edits.1.clone();
+        let new_text = lang.0.rename_wrap(&edits.1);
+
+        // Collect unique byte-span ranges to avoid duplicate edits when the same
+        // term appears as subject/predicate/object across multiple triples.
+        let mut seen_spans: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+
         for quad in triples.0.iter() {
             for term in [quad.s(), quad.p(), quad.o()] {
                 if term == target {
-                    if let Some(range) = range_to_range(&term.span, &rope.0) {
-                        edits.0.push((
-                            label.0.clone(),
-                            TextEdit {
-                                range,
-                                new_text: new_text.clone(),
-                            },
-                        ));
+                    let key = (term.span.start, term.span.end);
+                    if seen_spans.insert(key) {
+                        if let Some(range) = range_to_range(&term.span, &rope.0) {
+                            edits.0.push((
+                                label.0.clone(),
+                                TextEdit {
+                                    range,
+                                    new_text: new_text.clone(),
+                                },
+                            ));
+                        }
                     }
                 }
             }

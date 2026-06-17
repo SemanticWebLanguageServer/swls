@@ -75,8 +75,28 @@ impl LangHelper for JsonLdHelper {
     fn quote(&self, inp: &str) -> String {
         format!("\"{}\"", inp)
     }
+    fn rename_placeholder<'a>(&self, raw: &'a str) -> &'a str {
+        self.unquote(raw)
+    }
+    fn rename_wrap(&self, new_text: &str) -> String {
+        self.quote(new_text)
+    }
     fn handles_prefix_completion(&self) -> bool {
         true
+    }
+
+    fn prefix_edits(
+        &self,
+        source: &str,
+        rope: &ropey::Rope,
+        name: &str,
+        namespace: &str,
+    ) -> Option<Vec<swls_core::lsp_types::TextEdit>> {
+        crate::ecs::completion::add_to_context(
+            source,
+            rope,
+            crate::ecs::completion::ContextEntry::Prefix { name, namespace },
+        )
     }
 
     fn inlay_types_hint(

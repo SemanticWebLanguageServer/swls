@@ -12,6 +12,11 @@ pub use typed::*;
 mod links;
 pub use links::*;
 pub mod prefix;
+mod prefix_diagnostics;
+pub use prefix_diagnostics::{
+    add_missing_prefix_code_action, extract_prefix_from_token, prefix_diagnostic_helper,
+    prefix_diagnostics,
+};
 use crate::lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{

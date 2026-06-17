@@ -225,7 +225,8 @@ pub fn variable_completion(
 pub fn sparql_lov_undefined_prefix_completion(
     mut query: Query<(
         &TokenComponent,
-        &Element<Sparql>,
+        &Source,
+        &RopeC,
         &Prefixes,
         &mut CompletionRequest,
         &DynLang,
@@ -233,23 +234,17 @@ pub fn sparql_lov_undefined_prefix_completion(
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
 ) {
-    for (word, el, prefixes, mut req, lang) in &mut query {
-        let turtle = el.0.value();
-        let mut start = swls_core::lsp_types::Position::new(0, 0);
-        if turtle.base.is_some() {
-            start = swls_core::lsp_types::Position::new(1, 0);
-        }
-
-        use swls_core::lsp_types::Range;
+    for (word, source, rope, prefixes, mut req, lang) in &mut query {
         prefix_completion_helper(
             word,
             prefixes,
             &mut req.0,
             |name, location| {
-                Some(vec![swls_core::lsp_types::TextEdit {
-                    range: Range::new(start.clone(), start),
-                    new_text: format!("PREFIX {}: <{}>\n", name, location),
-                }])
+                if prefixes.iter().any(|p| p.prefix == name) {
+                    None
+                } else {
+                    lang.prefix_edits(&source.0, &rope.0, name, location)
+                }
             },
             lovs.iter(),
             prefix_cc.iter(),

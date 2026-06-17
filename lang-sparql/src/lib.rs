@@ -284,4 +284,10 @@ impl LangHelper for SparqlHelper {
     fn supports_shape_validation(&self) -> bool {
         false
     }
+    fn prefix_keyword(&self) -> &str {
+        "PREFIX"
+    }
+    fn format_prefix_declaration(&self, name: &str, url: &str) -> String {
+        format!("PREFIX {}: <{}>\n", name, url)
+    }
 }

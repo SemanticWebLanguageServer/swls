@@ -33,16 +33,19 @@
 use std::collections::HashMap;
 
 use bevy_ecs::{prelude::*, world::World};
-use futures::executor::block_on;
+use futures::{channel::mpsc::UnboundedReceiver, executor::block_on};
 use ropey::Rope;
 use swls_core::{
     feature::{
+        code_action::{CodeActionRequest, Label as CodeActionLabel},
         completion::{CompletionRequest, Label as CompletionLabel, SimpleCompletion},
+        diagnostics::{DiagnosticItem, Label as DiagnosticsLabel},
         format::{FormatRequest, Label as FormatLabel},
         hover::{HoverRequest, Label as HoverLabel},
         parse::Label as ParseLabel,
+        rename::{PrepareRenameRequest, PrepareRename as PrepareRenameLabel, Rename as RenameLabel, RenameEdits},
     },
-    lsp_types::{CompletionItemKind, Position, TextEdit},
+    lsp_types::{CodeAction, CompletionItemKind, Diagnostic, Position, Range, TextEdit, Url},
     prelude::*,
     Tasks,
 };
@@ -56,6 +59,7 @@ use swls_test_utils::{create_file, setup_world, TestClient};
 pub struct LspHarness {
     world: World,
     entities: HashMap<String, Entity>,
+    diag_rx: UnboundedReceiver<DiagnosticItem>,
 }
 
 impl LspHarness {
@@ -89,7 +93,7 @@ impl LspHarness {
     }
 
     fn new_with_client(client: TestClient, extra_setup: impl FnOnce(&mut World)) -> Self {
-        let (world, _diag_rx) = setup_world(client, |world| {
+        let (world, diag_rx) = setup_world(client, |world| {
             swls_lang_turtle::setup_world::<TestClient>(world);
             swls_lang_sparql::setup_world(world);
             swls_lang_trig::setup_world::<TestClient>(world);
@@ -99,6 +103,7 @@ impl LspHarness {
         Self {
             world,
             entities: HashMap::new(),
+            diag_rx,
         }
     }
 }
@@ -223,6 +228,85 @@ impl LspHarness {
             .map(|t| t.0.len())
             .unwrap_or(0)
     }
+
+    /// Run the `DiagnosticsLabel` schedule and return the current diagnostics for all open
+    /// files.
+    ///
+    /// Because `DiagnosticPublisher` re-sends the full merged set for a URI on every
+    /// `publish()` call, we keep only the **last** item per URI — that is always the
+    /// most up-to-date merged state (all reasons combined).
+    pub fn run_diagnostics(&mut self) -> Vec<(Url, Diagnostic)> {
+        self.world.run_schedule(DiagnosticsLabel);
+        // Drain the channel, keeping only the last item per URI.
+        let mut latest: HashMap<Url, Vec<Diagnostic>> = HashMap::new();
+        while let Ok(item) = self.diag_rx.try_recv() {
+            latest.insert(item.uri.clone(), item.diagnostics);
+        }
+        latest
+            .into_iter()
+            .flat_map(|(url, diags)| diags.into_iter().map(move |d| (url.clone(), d)))
+            .collect()
+    }
+
+    /// Run the `CodeActionLabel` schedule and return the list of code actions.
+    pub fn code_actions(&mut self, handle: &FileHandle) -> Vec<CodeAction> {
+        self.world
+            .entity_mut(handle.entity)
+            .insert(CodeActionRequest::default());
+        self.world.run_schedule(CodeActionLabel);
+        self.world
+            .entity_mut(handle.entity)
+            .take::<CodeActionRequest>()
+            .map(|r| r.0)
+            .unwrap_or_default()
+    }
+
+    /// Run the `PrepareRename` schedule at `(line, character)` and return the result.
+    ///
+    /// Returns `Some(PrepareRenameResult)` when the position is over a renameable term,
+    /// `None` when rename is not available at that position.
+    pub fn prepare_rename(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+    ) -> Option<PrepareRenameResult> {
+        self.world
+            .entity_mut(handle.entity)
+            .insert(PositionComponent(Position { line, character }));
+        self.world.run_schedule(PrepareRenameLabel);
+        self.world
+            .entity_mut(handle.entity)
+            .take::<PrepareRenameRequest>()
+            .map(|r| PrepareRenameResult {
+                range: r.range,
+                placeholder: r.placeholder,
+            })
+    }
+
+    /// Run the `Rename` schedule at `(line, character)` with `new_name` as the replacement.
+    ///
+    /// Returns all `(file_url, TextEdit)` pairs that should be applied to the workspace.
+    /// `TextEdit.new_text` contains the fully-wrapped replacement (e.g. `<http://new>` for a
+    /// Turtle IRI rename where `new_name = "http://new"`).
+    pub fn rename(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+        new_name: &str,
+    ) -> Vec<(Url, TextEdit)> {
+        self.world.entity_mut(handle.entity).insert((
+            PositionComponent(Position { line, character }),
+            RenameEdits(Vec::new(), new_name.to_string()),
+        ));
+        self.world.run_schedule(RenameLabel);
+        self.world
+            .entity_mut(handle.entity)
+            .take::<RenameEdits>()
+            .map(|r| r.0)
+            .unwrap_or_default()
+    }
 }
 
 // ─── Assertion helpers ────────────────────────────────────────────────────────
@@ -261,6 +345,16 @@ impl LspHarness {
 pub struct FileHandle {
     pub entity: Entity,
     pub url: String,
+}
+
+/// Result of a `prepare_rename` call.
+#[derive(Debug, Clone)]
+pub struct PrepareRenameResult {
+    /// The range in the document that will be replaced by the rename.
+    /// This is the *inner* range (without surrounding delimiters like `<>` or `""`).
+    pub range: Range,
+    /// The pre-filled text shown to the user in the rename input box.
+    pub placeholder: String,
 }
 
 // ─── CompletionAssert ─────────────────────────────────────────────────────────
