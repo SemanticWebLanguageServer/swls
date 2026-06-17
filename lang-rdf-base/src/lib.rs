@@ -61,7 +61,7 @@ pub fn register_rdf_lang<L, H>(
 
     world.schedule_scope(swls_core::feature::ParseLabel, |_, schedule| {
         use bevy_ecs::schedule::IntoScheduleConfigs;
-        schedule.add_systems(publish_diagnostics::<L>.after(swls_core::feature::parse::triples));
+        schedule.add_systems(publish_diagnostics::<L>.after(swls_core::feature::parse::end));
     });
 
     world.schedule_scope(swls_core::feature::SemanticLabel, |_, schedule| {
