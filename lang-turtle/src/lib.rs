@@ -29,6 +29,9 @@ impl LangHelper for TurtleHelper {
     fn keyword(&self) -> &[&'static str] {
         &["@prefix", "@base", "a"]
     }
+    fn model_based_rename(&self) -> bool {
+        true
+    }
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
@@ -45,6 +48,7 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     setup_completion(world);
     setup_formatting(world);
     setup_code_action(world);
+    swls_lang_rdf_base::rename::setup_rename::<TurtleLang>(world);
 }
 
 impl Lang for TurtleLang {

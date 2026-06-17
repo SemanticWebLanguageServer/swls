@@ -143,6 +143,16 @@ pub trait LangHelper: std::fmt::Debug {
     fn handles_prefix_completion(&self) -> bool {
         false
     }
+    /// Return `true` if this language renames via the model-based systems in
+    /// `swls-lang-rdf-base` (registered through `setup_rename`).  When `true`,
+    /// the core language-agnostic `prepare_rename`/`rename` systems skip this
+    /// language's documents to avoid producing duplicate edits.
+    ///
+    /// Text RDF syntaxes (Turtle / TriG / SPARQL) override this to `true`;
+    /// JSON-LD keeps the default and stays on the agnostic path.
+    fn model_based_rename(&self) -> bool {
+        false
+    }
     fn supports_shape_validation(&self) -> bool {
         true
     }
