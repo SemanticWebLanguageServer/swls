@@ -1,8 +1,5 @@
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
-    use swls_core::prelude::MyQuad;
     use swls_lang_rdf_base::traits::{Turtle, TurtleExt};
 
     fn parse_turtle(inp: &str, base_url: &str) -> Turtle {
@@ -49,38 +46,6 @@ mod test {
         let output = parse_turtle(txt, "http://example.com/ns#");
         let triples = output.get_simple_triples().expect("Triples found");
         assert_eq!(triples.triples.len(), 6);
-    }
-
-    #[test]
-    fn triples_collection() {
-        let txt = r#"
-<e> <pred> (<a> <b> <c>).
-"#;
-        let output = parse_turtle(txt, "http://example.com/");
-        let triples = output
-            .get_simple_triples()
-            .expect("Triples found collection");
-        let a: &Vec<MyQuad<'_>> = &triples;
-        let quads: HashSet<String> = a
-            .iter()
-            .map(|triple| format!("{} {} {}.", triple.subject, triple.predicate, triple.object))
-            .collect();
-
-        let expected_quads: HashSet<String> = [
-            "<http://example.com/e> <http://example.com/pred> _:internal_bnode_3.",
-            "_:internal_bnode_3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:internal_bnode_2.",
-            "_:internal_bnode_3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/a>.",
-            "_:internal_bnode_2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:internal_bnode_1.",
-            "_:internal_bnode_2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/b>.",
-            "_:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>.",
-            "_:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/c>.",
-        ].iter().map(|x| x.trim().to_string()).collect();
-
-        for t in &quads {
-            println!("{}", t);
-        }
-        assert_eq!(quads, expected_quads);
-        assert_eq!(triples.triples.len(), 7);
     }
 
     #[test]

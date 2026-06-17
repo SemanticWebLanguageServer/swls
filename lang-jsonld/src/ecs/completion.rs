@@ -451,6 +451,14 @@ mod tests {
 
         world.run_schedule(ParseLabel);
 
+        // JSON-LD triple extraction is async (context resolution runs in a
+        // spawned task), so drive those tasks to completion before querying the
+        // cursor's triple.
+        let client = world.resource::<TestClient>().clone();
+        futures::executor::block_on(
+            client.await_futures(|| world.run_schedule(swls_core::Tasks)),
+        );
+
         // Verify that a TripleComponent is set with Predicate target when the
         // cursor is inside the "foaf:name" key (line 3, char 3 ≈ inside the key).
         world.entity_mut(entity).insert((
