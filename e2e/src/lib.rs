@@ -187,6 +187,15 @@ impl LspHarness {
             .unwrap_or_default()
     }
 
+    /// Mutate the server's [`LocalConfig`] (the `local` portion of `ServerConfig`).
+    ///
+    /// Useful for E2E tests that need to exercise config-driven behaviour such as
+    /// the preferred prefix format or namespace property validation.
+    pub fn set_config(&mut self, f: impl FnOnce(&mut LocalConfig)) {
+        let mut cfg = self.world.resource_mut::<ServerConfig>();
+        f(&mut cfg.config.local);
+    }
+
     /// Request hover information at `(line, character)`.
     pub fn hover(&mut self, handle: &FileHandle, line: u32, character: u32) -> Vec<String> {
         self.world.entity_mut(handle.entity).insert((

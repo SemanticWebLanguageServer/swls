@@ -24,7 +24,9 @@ pub fn turtle_lov_undefined_prefix_completion(
     )>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
+    config: Res<ServerConfig>,
 ) {
+    let fmt = config.config.local.prefix_format.unwrap_or_default();
     for (word, source, rope, prefixes, mut req, lang) in &mut query {
         prefix_completion_helper(
             word,
@@ -34,7 +36,7 @@ pub fn turtle_lov_undefined_prefix_completion(
                 if prefixes.iter().any(|p| p.prefix == name) {
                     None
                 } else {
-                    lang.prefix_edits(&source.0, &rope.0, name, location)
+                    lang.prefix_edits(&source.0, &rope.0, name, location, fmt)
                 }
             },
             lovs.iter(),

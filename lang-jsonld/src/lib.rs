@@ -91,6 +91,7 @@ impl LangHelper for JsonLdHelper {
         rope: &ropey::Rope,
         name: &str,
         namespace: &str,
+        _format: swls_core::components::PrefixFormat,
     ) -> Option<Vec<swls_core::lsp_types::TextEdit>> {
         crate::ecs::completion::add_to_context(
             source,

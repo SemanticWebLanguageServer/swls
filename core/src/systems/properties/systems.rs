@@ -202,3 +202,34 @@ pub fn hover_property(
         }
     }
 }
+
+/// Hover system: when the cursor sits on an IRI that the user has explicitly
+/// allow-listed via `allowed_properties`, explain that the property is *not*
+/// part of the ontology and is only accepted because the user excluded it from
+/// validation — including how to undo that.
+pub fn hover_excluded_property(
+    mut query: Query<(&TripleComponent, &mut HoverRequest)>,
+    config: Res<ServerConfig>,
+) {
+    let allowed = &config.config.local.allowed_properties;
+    if allowed.is_empty() {
+        return;
+    }
+    for (triple, mut request) in &mut query {
+        let Some(term) = triple.term() else { continue };
+        if term.kind() != TermKind::Iri {
+            continue;
+        }
+        let target = term.as_str();
+        if !allowed.contains(target) {
+            continue;
+        }
+        request.0.push(format!(
+            "⚠️ **`{}`** is not defined in its ontology.\n\n\
+             It is accepted because you added it to the `allowed_properties` list. \
+             To restore the \"unknown property\" warning, remove `\"{}\"` from the \
+             `allowed_properties` array in your SWLS config (`config.json`).",
+            target, target
+        ));
+    }
+}

@@ -216,6 +216,10 @@ impl<C: Client> Backend<C> {
                     prepare_provider: Some(true),
                     work_done_progress_options: Default::default(),
                 })),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec![crate::systems::ALLOW_PROPERTY_COMMAND.to_string()],
+                    work_done_progress_options: Default::default(),
+                }),
                 ..ServerCapabilities::default()
             },
         })
@@ -603,6 +607,56 @@ impl<C: Client> Backend<C> {
                 .map(CodeActionOrCommand::CodeAction)
                 .collect()
         }))
+    }
+
+    /// Handle `workspace/executeCommand`.
+    ///
+    /// Currently only `swls.allowProperty`: adds the given property IRI to the
+    /// user's `allowed_properties`, both at runtime (clearing the warning) and on
+    /// disk (so the choice survives restarts), then refreshes diagnostics.
+    #[instrument(skip(self, params), fields(command = %params.command))]
+    pub async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
+        if params.command == crate::systems::ALLOW_PROPERTY_COMMAND {
+            let Some(iri) = params
+                .arguments
+                .first()
+                .and_then(|v| v.as_str())
+                .map(String::from)
+            else {
+                return Ok(None);
+            };
+
+            // 1. Update the in-memory config so the warning clears immediately.
+            self.run({
+                let iri = iri.clone();
+                move |world| {
+                    world
+                        .resource_mut::<ServerConfig>()
+                        .config
+                        .local
+                        .allowed_properties
+                        .insert(iri);
+                }
+            })
+            .await;
+
+            // 2. Persist to the global config file.
+            if let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await {
+                LocalConfig::persist_allowed_property(&fs, &iri).await;
+            }
+
+            // 3. Re-run diagnostics for all open documents.
+            self.run(|world| {
+                world.run_schedule(ParseLabel);
+                world.flush();
+            })
+            .await;
+        }
+
+        Ok(None)
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]

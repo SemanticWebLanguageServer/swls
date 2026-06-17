@@ -1,17 +1,32 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use bevy_ecs::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     lsp_types::{Url, WorkspaceFolder},
     util::fs::Fs,
 };
 
-#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Disabled {
     #[serde(alias = "SHAPES", alias = "shapes")]
     Shapes,
+}
+
+/// How Turtle/TriG prefix declarations should be written when the editor inserts
+/// them (e.g. during prefix completion or the "add missing prefix" quick-fix).
+///
+/// Turtle 1.1 allows both the classic `@prefix ex: <...> .` form and the
+/// SPARQL-style `PREFIX ex: <...>` form (no trailing dot).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrefixFormat {
+    /// `@prefix ex: <...> .`
+    #[default]
+    Turtle,
+    /// `PREFIX ex: <...>`
+    Sparql,
 }
 
 #[derive(Resource, Debug, Default)]
@@ -38,7 +53,7 @@ pub struct Config {
     pub local: LocalConfig,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(default)]
 pub struct LocalConfig {
     /// Extra ontologies to import
@@ -51,6 +66,15 @@ pub struct LocalConfig {
     pub prefix_disabled: HashSet<String>,
     /// confiure completion behavior
     pub completion: CompletionConfig,
+    /// Preferred way to write Turtle/TriG prefix declarations when inserting them.
+    pub prefix_format: Option<PrefixFormat>,
+    /// Namespaces for which IRIs used as properties (predicates) must be defined in a
+    /// known ontology. Predicate IRIs that start with one of these namespaces but are
+    /// not a known property (and not in [`allowed_properties`]) are flagged with a warning.
+    pub closed_namespaces: HashSet<String>,
+    /// User-approved property IRIs that should not be flagged by the
+    /// [`closed_namespaces`] validation, even though they are absent from the ontology.
+    pub allowed_properties: HashSet<String>,
 }
 
 /// Lets the user configure how the property completion should happen.
@@ -66,7 +90,7 @@ pub struct LocalConfig {
 /// from rdfs
 /// On the other hand { strict: ["http://www.w3.org/ns/shacl#"] }, here the editor will be loose,
 /// and only show shacl properties if the objects is the correct type
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum CompletionConfig {
     // "strict" | "loose" | "none"
@@ -131,7 +155,7 @@ impl CompletionConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CompletionMode {
     #[default]
@@ -140,13 +164,13 @@ pub enum CompletionMode {
     Strict,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ExceptRules {
     #[serde(default)]
     pub loose: Vec<String>,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct StrictRules {
     #[serde(default)]
@@ -161,6 +185,11 @@ impl LocalConfig {
         self.disabled.extend(other.disabled);
         self.prefix_disabled.extend(other.prefix_disabled);
         self.completion.combine(other.completion);
+        if other.prefix_format.is_some() {
+            self.prefix_format = other.prefix_format;
+        }
+        self.closed_namespaces.extend(other.closed_namespaces);
+        self.allowed_properties.extend(other.allowed_properties);
     }
     #[cfg(target_arch = "wasm32")]
     pub async fn global(_: &Fs) -> Option<Self> {
@@ -168,11 +197,21 @@ impl LocalConfig {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub async fn global(fs: &Fs) -> Option<Self> {
+    pub fn global_url() -> Option<Url> {
         let global_path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("swls/config.json");
-        let url = crate::lsp_types::Url::from_file_path(global_path).ok()?;
+        crate::lsp_types::Url::from_file_path(global_path).ok()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn global_url() -> Option<Url> {
+        None
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn global(fs: &Fs) -> Option<Self> {
+        let url = Self::global_url()?;
 
         tracing::debug!("Found global config url {}", url.as_str());
         let content = fs.0.read_file(&url).await?;
@@ -185,6 +224,23 @@ impl LocalConfig {
                 None
             }
         }
+    }
+
+    /// Add `iri` to the global config's `allowed_properties` array on disk,
+    /// preserving the rest of the existing global configuration.  Used by the
+    /// `swls.allowProperty` command so the user's choice survives restarts.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn persist_allowed_property(fs: &Fs, iri: &str) -> Option<()> {
+        let url = Self::global_url()?;
+        let mut existing = Self::global(fs).await.unwrap_or_default();
+        existing.allowed_properties.insert(iri.to_string());
+        let content = serde_json::to_string_pretty(&existing).ok()?;
+        fs.0.write_file(&url, &content).await
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub async fn persist_allowed_property(_: &Fs, _: &str) -> Option<()> {
+        None
     }
 
     pub async fn local(fs: &Fs, url: &Url) -> Option<Self> {

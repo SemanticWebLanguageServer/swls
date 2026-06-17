@@ -287,7 +287,12 @@ impl LangHelper for SparqlHelper {
     fn prefix_keyword(&self) -> &str {
         "PREFIX"
     }
-    fn format_prefix_declaration(&self, name: &str, url: &str) -> String {
+    fn format_prefix_declaration(
+        &self,
+        name: &str,
+        url: &str,
+        _format: swls_core::components::PrefixFormat,
+    ) -> String {
         format!("PREFIX {}: <{}>\n", name, url)
     }
 }

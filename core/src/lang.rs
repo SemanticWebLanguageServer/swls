@@ -63,9 +63,18 @@ pub trait LangHelper: std::fmt::Debug {
     }
     /// Format a prefix declaration string to be inserted into a document.
     ///
-    /// Default (Turtle / TriG): `@prefix {name}: <{url}>.\n`
-    fn format_prefix_declaration(&self, name: &str, url: &str) -> String {
-        format!("@prefix {}: <{}>.\n", name, url)
+    /// Default (Turtle / TriG): honors the user's [`PrefixFormat`] preference —
+    /// `@prefix {name}: <{url}>.\n` (Turtle) or `PREFIX {name}: <{url}>\n` (SPARQL-style).
+    fn format_prefix_declaration(
+        &self,
+        name: &str,
+        url: &str,
+        format: crate::components::PrefixFormat,
+    ) -> String {
+        match format {
+            crate::components::PrefixFormat::Sparql => format!("PREFIX {}: <{}>\n", name, url),
+            crate::components::PrefixFormat::Turtle => format!("@prefix {}: <{}>.\n", name, url),
+        }
     }
     /// Produce the text edit(s) that declare prefix `name` → `namespace` in this
     /// document, or `None` when it cannot / should not be inserted (e.g. the
@@ -83,11 +92,12 @@ pub trait LangHelper: std::fmt::Debug {
         _rope: &ropey::Rope,
         name: &str,
         namespace: &str,
+        format: crate::components::PrefixFormat,
     ) -> Option<Vec<crate::lsp_types::TextEdit>> {
         let pos = crate::lsp_types::Position::new(0, 0);
         Some(vec![crate::lsp_types::TextEdit {
             range: crate::lsp_types::Range::new(pos, pos),
-            new_text: self.format_prefix_declaration(name, namespace),
+            new_text: self.format_prefix_declaration(name, namespace, format),
         }])
     }
     /// Return `true` if the generic prefix-diagnostics system should analyse this

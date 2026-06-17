@@ -222,7 +222,7 @@ fn find_prefix_declaration_range(
 ///
 /// Skips languages that opt out via [`LangHelper::supports_prefix_diagnostics`]
 /// (e.g. JSON-LD, which pre-expands all terms before storing them as triples).
-#[instrument(skip(query, client, lovs, prefix_cc))]
+#[instrument(skip(query, client, lovs, prefix_cc, config))]
 pub fn prefix_diagnostics(
     query: Query<
         (
@@ -239,7 +239,9 @@ pub fn prefix_diagnostics(
     mut client: ResMut<DiagnosticPublisher>,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
+    config: Res<ServerConfig>,
 ) {
+    let fmt = config.config.local.prefix_format.unwrap_or_default();
     for (triples, prefixes, source, rope, label, params, lang) in &query {
         if !lang.0.supports_prefix_diagnostics() {
             // Clear any stale prefix diagnostics for this language and skip.
@@ -256,7 +258,7 @@ pub fn prefix_diagnostics(
             prefix_cc.iter(),
             |name, url| {
                 lang.0
-                    .prefix_edits(&source.0, &rope.0, name, url)
+                    .prefix_edits(&source.0, &rope.0, name, url, fmt)
                     .unwrap_or_default()
             },
         );
@@ -269,7 +271,7 @@ pub fn prefix_diagnostics(
 /// `CodeActionRequest` with "Add prefix declaration" quickfixes.
 ///
 /// Skips languages that opt out via [`LangHelper::supports_prefix_diagnostics`].
-#[instrument(skip(query, lovs, prefix_cc))]
+#[instrument(skip(query, lovs, prefix_cc, config))]
 pub fn add_missing_prefix_code_action(
     mut query: Query<
         (
@@ -285,7 +287,9 @@ pub fn add_missing_prefix_code_action(
     >,
     lovs: Query<&LocalPrefix>,
     prefix_cc: Query<&PrefixEntry>,
+    config: Res<ServerConfig>,
 ) {
+    let fmt = config.config.local.prefix_format.unwrap_or_default();
     for (triples, prefixes, source, rope, label, lang, mut req) in &mut query {
         if !lang.0.supports_prefix_diagnostics() {
             continue;
@@ -300,7 +304,7 @@ pub fn add_missing_prefix_code_action(
             prefix_cc.iter(),
             |name, url| {
                 lang.0
-                    .prefix_edits(&source.0, &rope.0, name, url)
+                    .prefix_edits(&source.0, &rope.0, name, url, fmt)
                     .unwrap_or_default()
             },
         );
