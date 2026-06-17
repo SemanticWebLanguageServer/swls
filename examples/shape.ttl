@@ -4,15 +4,11 @@
 @prefix sh: <http://www.w3.org/ns/shacl#>.
 
 [ ] a sh:NodeShape;
-  sh:property [
-    sh:name "";
-    sh:name "";
-    sh:path <>;
-  ].
+  sh:property [ sh:path <> ].
 
 [ ] rdf:type mtg:Card.
 <abc> a "test"^^xsd:datatime, foaf:Agent.
-<me> foaf:kno <abc>.
+<me> foaf:knows <abc>.
 [ ] a sh:NodeShape;
   sh:property [ ].
 

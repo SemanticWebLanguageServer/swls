@@ -15,6 +15,7 @@ pub fn setup_world(world: &mut World) {
     setup_parse(world);
     setup_completion(world);
     swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<Sparql>(world);
+    swls_lang_rdf_base::rename::setup_rename::<Sparql>(world);
 }
 
 #[derive(Debug, Component, Default)]
@@ -284,6 +285,9 @@ impl LangHelper for SparqlHelper {
     }
     fn supports_shape_validation(&self) -> bool {
         false
+    }
+    fn model_based_rename(&self) -> bool {
+        true
     }
     fn prefix_keyword(&self) -> &str {
         "PREFIX"

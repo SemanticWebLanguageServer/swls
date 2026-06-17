@@ -212,6 +212,43 @@ fn rename_applies_to_all_occurrences_in_file() {
     }
 }
 
+// ─── empty IRI / token-boundary targeting ────────────────────────────────────
+
+/// Regression: an empty `<>` IRI sits immediately after a predicate.  The real
+/// backend decrements the cursor by one (`adjust_position`), so a cursor on `<`
+/// lands on the *end-boundary* of the preceding `sh:path` token.  The model must
+/// still rename `<>`, not fall back to the predicate.
+#[test_log::test]
+fn rename_empty_iri_does_not_fall_back_to_predicate() {
+    let mut h = LspHarness::new();
+    let src = "@prefix sh: <http://www.w3.org/ns/shacl#> .\n\
+               [ a sh:NodeShape;\n\
+               \x20\x20sh:property [ sh:path <> ] ].";
+    let file = h.open_file("file:///empty_iri.ttl", "turtle", src);
+
+    // Line 2: "  sh:property [ sh:path <> ] ]."  — col 24 = '<'.
+    // col 23 simulates the cursor after adjust_position(-1).
+    for col in [23u32, 24, 25] {
+        let result = h
+            .prepare_rename(&file, 2, col)
+            .unwrap_or_else(|| panic!("rename should target the empty <> at col {col}"));
+        assert_eq!(
+            result.placeholder, "",
+            "empty IRI placeholder should be empty, got {:?} at col {col}",
+            result.placeholder
+        );
+
+        let edits = h.rename(&file, 2, col, "http://example.org/new");
+        assert_eq!(
+            edits.len(),
+            1,
+            "should rename exactly the empty <> at col {col}, got {:?}",
+            edits.iter().map(|(_, e)| &e.new_text).collect::<Vec<_>>()
+        );
+        assert_eq!(edits[0].1.new_text, "<http://example.org/new>");
+    }
+}
+
 // ─── JSON-LD: quote preservation ─────────────────────────────────────────────
 
 #[test_log::test]

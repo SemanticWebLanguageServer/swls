@@ -47,6 +47,11 @@ pub fn prepare_rename(
     mut commands: Commands,
 ) {
     for (e, rope, lang, m_triple) in &query {
+        // Text RDF syntaxes rename via the model-based systems; skip them here
+        // (don't even clear the request — the model system owns it).
+        if lang.0.model_based_rename() {
+            continue;
+        }
         commands.entity(e).remove::<PrepareRenameRequest>();
         if let Some(triple) = m_triple {
             use sophia_api::term::TermKind;
@@ -98,6 +103,10 @@ pub fn prepare_rename(
 #[instrument(skip(query))]
 pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &DynLang, &mut RenameEdits)>) {
     for (triple, triples, rope, label, lang, mut edits) in &mut query {
+        // Text RDF syntaxes rename via the model-based systems; skip them here.
+        if lang.0.model_based_rename() {
+            continue;
+        }
         let Some(target) = triple.term() else {
             continue;
         };
