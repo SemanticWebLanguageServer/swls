@@ -109,6 +109,63 @@ pub trait LangHelper: std::fmt::Debug {
     fn supports_prefix_diagnostics(&self) -> bool {
         true
     }
+    /// Extract the prefix name of a prefixed term whose `:` was just typed at byte
+    /// `offset` (the cursor sits immediately after the `:`), or `None` when the
+    /// context is not a bare prefixed name.  Used by on-type formatting to decide
+    /// whether to auto-declare a prefix.
+    ///
+    /// Default (Turtle / TriG / SPARQL): scan back over prefix-name characters and
+    /// require a term boundary before them, skipping comments and
+    /// `@prefix`/`@base` (or `PREFIX`/`BASE`) declaration lines.  JSON-LD overrides
+    /// this to scan inside a JSON string instead.
+    fn prefix_name_at<'a>(&self, source: &'a str, offset: usize) -> Option<&'a str> {
+        let bytes = source.as_bytes();
+        if offset == 0 || offset > source.len() || bytes[offset - 1] != b':' {
+            return None;
+        }
+        let colon = offset - 1;
+
+        let mut start = colon;
+        while start > 0 {
+            let c = bytes[start - 1];
+            if c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b'.') {
+                start -= 1;
+            } else {
+                break;
+            }
+        }
+        if start == colon {
+            return None;
+        }
+
+        // The character before the name must be a term boundary; keeps us from
+        // matching `:` inside an IRI (`<…:…>`), a string literal, or a pname.
+        let boundary_ok = start == 0
+            || matches!(
+                bytes[start - 1],
+                b' ' | b'\t' | b'\n' | b'\r' | b';' | b',' | b'[' | b'(' | b'{'
+            );
+        if !boundary_ok {
+            return None;
+        }
+
+        // Skip comments and prefix/base declaration lines.
+        let line_start = source[..start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let before = &source[line_start..start];
+        if before.contains('#') {
+            return None;
+        }
+        let keyword = before.trim();
+        if keyword.eq_ignore_ascii_case("@prefix")
+            || keyword.eq_ignore_ascii_case("prefix")
+            || keyword.eq_ignore_ascii_case("@base")
+            || keyword.eq_ignore_ascii_case("base")
+        {
+            return None;
+        }
+
+        Some(&source[start..colon])
+    }
     /// Given a raw token string from the document (e.g. `<http://ex.org/foo>` or `ex:foo`),
     /// return the bare text that should be pre-filled in the editor's rename input box.
     fn rename_placeholder<'a>(&self, raw: &'a str) -> &'a str {

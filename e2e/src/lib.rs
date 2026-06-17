@@ -42,6 +42,7 @@ use swls_core::{
         diagnostics::DiagnosticItem,
         format::{FormatRequest, Label as FormatLabel},
         hover::{HoverRequest, Label as HoverLabel},
+        on_type_format::{Label as OnTypeFormatLabel, OnTypeFormatRequest},
         parse::Label as ParseLabel,
         rename::{PrepareRenameRequest, PrepareRename as PrepareRenameLabel, Rename as RenameLabel, RenameEdits},
     },
@@ -223,9 +224,28 @@ impl LspHarness {
             .and_then(|r| r.0)
     }
 
+    /// Run the on-type-formatting schedule at `(line, character)` (the cursor position
+    /// *after* the triggering character was typed).  Returns the edits the server would
+    /// apply, e.g. an inserted `@prefix` declaration, or `None`.
+    pub fn on_type_format(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+    ) -> Option<Vec<TextEdit>> {
+        self.world.entity_mut(handle.entity).insert((
+            PositionComponent(Position { line, character }),
+            OnTypeFormatRequest(None),
+        ));
+        self.world.run_schedule(OnTypeFormatLabel);
+        self.world
+            .entity_mut(handle.entity)
+            .take::<OnTypeFormatRequest>()
+            .and_then(|r| r.0)
+    }
+
     /// Check whether the document currently has the `Dirty` marker (i.e. has parse errors).
-    pub fn is_dirty(&self, handle: &FileHandle) -> bool {
-        self.world.entity(handle.entity).contains::<Dirty>()
+    pub fn is_dirty(&self, handle: &FileHandle) -> bool {        self.world.entity(handle.entity).contains::<Dirty>()
     }
 
     /// Read the `Triples` component of a file, returning the number of parsed RDF triples.

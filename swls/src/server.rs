@@ -91,6 +91,13 @@ impl LanguageServer for LspBackend {
         lift(self.backend.formatting(params).await)
     }
 
+    async fn on_type_formatting(
+        &self,
+        params: DocumentOnTypeFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        lift(self.backend.on_type_formatting(params).await)
+    }
+
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         lift(self.backend.inlay_hint(params).await)
     }

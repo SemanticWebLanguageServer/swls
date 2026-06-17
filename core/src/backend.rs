@@ -191,6 +191,10 @@ impl<C: Client> Backend<C> {
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                document_on_type_formatting_provider: Some(DocumentOnTypeFormattingOptions {
+                    first_trigger_character: ":".to_string(),
+                    more_trigger_character: None,
+                }),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
@@ -437,6 +441,32 @@ impl<C: Client> Backend<C> {
 
         let request = self
             .run_schedule::<FormatRequest>(entity, FormatLabel, FormatRequest(None))
+            .await;
+        Ok(request.and_then(|x| x.0))
+    }
+
+    #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    pub async fn on_type_formatting(
+        &self,
+        params: DocumentOnTypeFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        let uri = params.text_document_position.text_document.uri.as_str();
+        let Some(entity) = self.get_entity(uri).await else {
+            return Ok(None);
+        };
+
+        // Use the exact position after the typed character — do NOT apply
+        // `adjust_position` here, the scan expects the cursor right after `:`.
+        let pos = params.text_document_position.position;
+        let request = self
+            .run_schedule::<on_type_format::OnTypeFormatRequest>(
+                entity,
+                OnTypeFormatLabel,
+                (
+                    PositionComponent(pos),
+                    on_type_format::OnTypeFormatRequest(None),
+                ),
+            )
             .await;
         Ok(request.and_then(|x| x.0))
     }

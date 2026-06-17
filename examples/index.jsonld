@@ -2,9 +2,9 @@
   "@context": {
     "foaf": "http://xmlns.com/foaf/0.1/",
     "name": "foaf:name",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "ldes": "https://w3id.org/ldes#"
   },
-  "rdfs:label": "name",
-  "name": "",
+  "ldes:": "name",
   "foaf:knows": "foaf:testing"
 }
