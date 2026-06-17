@@ -1,12 +1,12 @@
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
-@prefix mtg: <https://mtg.example.org/ontology#>.
-@prefix sh: <http://www.w3.org/ns/shacl#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix mtg: <https://mtg.example.org/ontology#>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix sh: <http://www.w3.org/ns/shacl#>.
 
 [ ] a sh:NodeShape;
   sh:property [
     sh:name "";
-    sh: "";
+    sh:name "";
     sh:path <>;
   ].
 

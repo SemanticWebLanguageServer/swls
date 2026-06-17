@@ -14,6 +14,7 @@ pub fn setup_world(world: &mut World) {
     register_rdf_lang::<Sparql, SparqlHelper>(world, &["sparql"], &[".sq"]);
     setup_parse(world);
     setup_completion(world);
+    swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<Sparql>(world);
 }
 
 #[derive(Debug, Component, Default)]

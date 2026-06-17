@@ -1,3 +1,4 @@
+pub mod code_actions;
 pub mod traits;
 pub mod triples;
 

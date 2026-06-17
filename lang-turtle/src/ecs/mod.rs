@@ -39,6 +39,7 @@ pub fn setup_code_action(world: &mut World) {
     world.schedule_scope(CodeActionLabel, |_, schedule| {
         schedule.add_systems(code_action::organize_imports);
     });
+    swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<crate::TurtleLang>(world);
 }
 
 pub fn setup_completion(world: &mut World) {
