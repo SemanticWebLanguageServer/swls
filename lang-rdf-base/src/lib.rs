@@ -82,7 +82,22 @@ mod tokens {
     use swls_core::prelude::semantic::*;
     use swls_core::prelude::*;
 
-    fn add_term(term: &Spanned<Term>, ttc: &mut TokenTypesComponent, kind: SemanticTokenType) {
+    /// True when `span` covers a JSON-LD node object (`{ … }`) rather than a
+    /// plain term.  Objects with an `@id` become a [`NamedNode`] whose span is
+    /// the whole `{ … }`; stamping that would wipe the inner coloring.
+    fn span_is_nested_object(span: &std::ops::Range<usize>, source: &str) -> bool {
+        source
+            .get(span.clone())
+            .map(|s| s.trim_start().starts_with('{'))
+            .unwrap_or(false)
+    }
+
+    fn add_term(
+        term: &Spanned<Term>,
+        ttc: &mut TokenTypesComponent,
+        kind: SemanticTokenType,
+        source: &str,
+    ) {
         match term.value() {
             Term::NamedNode(NamedNode::Prefixed { prefix, .. }) => {
                 let skip = prefix.len();
@@ -90,6 +105,14 @@ mod tokens {
                 ttc.push(spanned(kind, start + skip + 1..end));
             }
             Term::Variable(_) | Term::NamedNode(_) => {
+                // A JSON-LD node object with an @id becomes a NamedNode whose
+                // span covers the entire nested { } object.  Stamping it would
+                // wipe the inner coloring (same reasoning as anonymous blank
+                // nodes below); the @id is already colored as the subject of the
+                // inner triples.
+                if span_is_nested_object(term.span(), source) {
+                    return;
+                }
                 ttc.push(spanned(kind, term.span().clone()));
             }
             // Named blank nodes (_:label) get their coloring from the CST pass
@@ -101,13 +124,13 @@ mod tokens {
             Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
                 for po in pos {
                     for o in &po.object {
-                        add_term(o, ttc, kind.clone());
+                        add_term(o, ttc, kind.clone(), source);
                     }
                 }
             }
             Term::Collection(spanneds) => {
                 for e in spanneds {
-                    add_term(e, ttc, kind.clone());
+                    add_term(e, ttc, kind.clone(), source);
                 }
             }
             _ => return,
@@ -115,17 +138,54 @@ mod tokens {
     }
 
     pub fn semantic_tokens<L: Lang<Element = Turtle> + Component>(
-        query: Query<(&Element<L>, &mut TokenTypesComponent), With<HighlightRequest>>,
+        query: Query<(&Element<L>, &Source, &mut TokenTypesComponent), With<HighlightRequest>>,
     ) {
-        for (turtle, mut ttc) in query {
+        for (turtle, source, mut ttc) in query {
+            let source = source.0.as_str();
             for t in &turtle.triples {
-                add_term(&t.subject, &mut ttc, SemanticTokenType::ENUM_MEMBER);
+                add_term(&t.subject, &mut ttc, SemanticTokenType::ENUM_MEMBER, source);
                 for po in &t.po {
                     for o in &po.object {
-                        add_term(o, &mut ttc, SemanticTokenType::ENUM_MEMBER);
+                        add_term(o, &mut ttc, SemanticTokenType::ENUM_MEMBER, source);
                     }
                 }
             }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn full(iri: &str, offset: usize, span: std::ops::Range<usize>) -> Spanned<Term> {
+            spanned(Term::NamedNode(NamedNode::Full(iri.into(), offset)), span)
+        }
+
+        // A JSON-LD node object with @id is a NamedNode whose span covers the
+        // whole `{ … }`; it must NOT be stamped (it would wipe inner coloring).
+        // A plain IRI reference of the same node must still be stamped.
+        #[test]
+        fn nested_named_object_is_skipped() {
+            let source = r#"{ "@id": "http://ex/x", "name": "n" }"#;
+            let mut ttc: TokenTypesComponent = Wrapped(Vec::new());
+            // Whole-object span (0..source.len()) — the conformsTo-style object.
+            add_term(
+                &full("http://ex/x", 9, 0..source.len()),
+                &mut ttc,
+                SemanticTokenType::ENUM_MEMBER,
+                source,
+            );
+            assert!(ttc.0.is_empty(), "nested {{ }} object should be skipped");
+
+            // The @id reference itself (just the IRI token) must be stamped.
+            let id_src = r#""http://ex/x""#;
+            add_term(
+                &full("http://ex/x", 0, 0..id_src.len()),
+                &mut ttc,
+                SemanticTokenType::ENUM_MEMBER,
+                id_src,
+            );
+            assert_eq!(ttc.0.len(), 1, "plain IRI reference should be stamped");
         }
     }
 }
