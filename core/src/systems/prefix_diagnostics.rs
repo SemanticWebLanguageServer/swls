@@ -70,12 +70,16 @@ pub fn prefix_diagnostic_helper<'a>(
     // Walk all IRI terms to find used prefix names + first occurrence spans.
     let mut used: HashSet<String> = HashSet::new();
     let mut undefined_spans: HashMap<String, Range> = HashMap::new();
+    // Resolved IRI values of all IRI terms — used to detect JSON-LD term-alias
+    // usage (an alias is used as a bare term, not as `prefix:local`).
+    let mut iri_values: HashSet<String> = HashSet::new();
 
     for quad in triples.0.iter() {
         for term in [quad.s(), quad.p(), quad.o()] {
             if term.ty != Some(TermKind::Iri) {
                 continue;
             }
+            iri_values.insert(term.value.to_string());
             let span = &term.span;
             if span.is_empty() {
                 continue;
@@ -155,7 +159,21 @@ pub fn prefix_diagnostic_helper<'a>(
 
     // ── WARNING: declared but not used ────────────────────────────────────────
     for prefix in prefixes.iter() {
-        if !used.contains(prefix.prefix.as_str()) {
+        if used.contains(prefix.prefix.as_str()) {
+            continue;
+        }
+
+        // JSON-LD term aliases (e.g. `"name": "foaf:name"`) are not used as
+        // `prefix:local`, but as a bare term whose resolved IRI is the alias
+        // target. Such an entry's namespace does not end in `/` or `#`; treat it
+        // as used if its target IRI appears among the document's IRI terms.
+        let target = prefix.url.as_str();
+        let is_alias = !target.ends_with('/') && !target.ends_with('#');
+        if is_alias && iri_values.contains(target) {
+            continue;
+        }
+
+        {
             let (start, end) = find_prefix_declaration_range(&rope.0, &prefix.prefix);
             diagnostics.push(Diagnostic {
                 range: Range::new(start, end),
@@ -182,34 +200,39 @@ fn find_prefix_declaration_range(
     rope: &ropey::Rope,
     prefix_name: &str,
 ) -> (Position, Position) {
-    // Patterns that identify a declaration line for this prefix.
-    let turtle_needle  = format!("@prefix {}:", prefix_name);
-    let sparql_needle  = format!("PREFIX {}:", prefix_name);
-    // JSON-LD: `"foaf":` (with or without a space before the colon value)
-    let jsonld_needle  = format!("\"{}\":", prefix_name);
+    // Patterns that identify a declaration for this prefix, paired with the byte
+    // offset (within the match) at which the highlighted key/name begins.
+    let turtle_needle = format!("@prefix {}:", prefix_name);
+    let sparql_needle = format!("PREFIX {}:", prefix_name);
+    // JSON-LD: `"foaf":` — a context key. May appear mid-line (even on a
+    // single-line document), so we search anywhere on the line, not just at the
+    // start.
+    let jsonld_needle = format!("\"{}\":", prefix_name);
+
+    // (needle, offset of key start within needle, key length)
+    let patterns = [
+        (&turtle_needle, "@prefix ".len(), prefix_name.len()),
+        (&sparql_needle, "PREFIX ".len(), prefix_name.len()),
+        // Highlight the quoted key, including the surrounding quotes.
+        (&jsonld_needle, 0, prefix_name.len() + 2),
+    ];
 
     let candidate = rope.lines().enumerate().find_map(|(line_idx, line_slice)| {
         let line = line_slice.to_string();
-        let trimmed = line.trim();
-
-        let is_declaration = trimmed.starts_with(&turtle_needle)
-            || trimmed.starts_with(&sparql_needle)
-            || trimmed.starts_with(&jsonld_needle);
-
-        if !is_declaration {
-            return None;
-        }
-
         let line_start = rope.line_to_char(line_idx);
-        // line_to_char of the NEXT line minus 1 skips the newline; guard for last line.
-        let line_end = if line_idx + 1 < rope.len_lines() {
-            rope.line_to_char(line_idx + 1).saturating_sub(1)
-        } else {
-            rope.len_chars()
-        };
-        let start = offset_to_position(line_start, rope)?;
-        let end   = offset_to_position(line_end,   rope)?;
-        Some((start, end))
+
+        for (needle, key_off, key_len) in patterns.iter() {
+            if let Some(idx) = line.find(needle.as_str()) {
+                let key_byte = idx + key_off;
+                // Convert byte indices within the line to char offsets.
+                let key_start_char = line[..key_byte].chars().count();
+                let key_end_char = line[..key_byte + key_len].chars().count();
+                let start = offset_to_position(line_start + key_start_char, rope)?;
+                let end = offset_to_position(line_start + key_end_char, rope)?;
+                return Some((start, end));
+            }
+        }
+        None
     });
 
     candidate.unwrap_or((Position::new(0, 0), Position::new(0, 0)))

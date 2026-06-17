@@ -282,6 +282,64 @@ fn jsonld_unused_prefix_warning_spans_declaration_line() {
 }
 
 #[test_log::test]
+fn jsonld_used_term_alias_produces_no_warning() {
+    let mut h = LspHarness::new();
+    // `name` is a JSON-LD term alias (value is a specific term, not a
+    // namespace). It is used as a bare key `"name"`, not as `name:local`, so it
+    // must NOT be flagged as "declared but never used".
+    let src = r#"{ "@context": { "name": "foaf:name" }, "name": "name" }"#;
+    let file = h.open_file("file:///alias_used.jsonld", "json-ld", src);
+    h.drain_tasks();
+    let diags = h.run_diagnostics();
+
+    let warnings: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::WARNING)
+                && d.message.contains("name")
+        })
+        .collect();
+
+    assert!(
+        warnings.is_empty(),
+        "Used term alias 'name' should not warn, got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+#[test_log::test]
+fn jsonld_unused_term_alias_still_warns() {
+    let mut h = LspHarness::new();
+    // `name` alias is declared but never referenced anywhere → should warn.
+    let src = r#"{ "@context": { "name": "foaf:name" }, "foaf:knows": "x" }"#;
+    let file = h.open_file("file:///alias_unused.jsonld", "json-ld", src);
+    h.drain_tasks();
+    let diags = h.run_diagnostics();
+
+    let warning = diags.iter().find(|(url, d)| {
+        url.as_str() == file.url
+            && d.severity == Some(DiagnosticSeverity::WARNING)
+            && d.message.contains("name")
+    });
+
+    assert!(
+        warning.is_some(),
+        "Unused term alias 'name' should warn, got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+    let (_, diag) = warning.unwrap();
+    // The warning must point at the `"name"` context key, not at 0..0.
+    assert_eq!(diag.range.start.line, 0);
+    assert_eq!(
+        &src[diag.range.start.character as usize..diag.range.end.character as usize],
+        "\"name\"",
+        "Warning range should cover the context key, got {:?}",
+        diag.range
+    );
+}
+
+#[test_log::test]
 fn jsonld_no_false_positives_when_all_prefixes_used() {
     let mut h = LspHarness::new();
     let src = r#"{
