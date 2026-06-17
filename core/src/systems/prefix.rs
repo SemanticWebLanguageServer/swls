@@ -3,7 +3,7 @@ use std::{collections::HashSet, ops::Deref};
 use bevy_ecs::prelude::*;
 use swls_lov::LocalPrefix;
 use crate::lsp_types::Range;
-use tracing::{debug, instrument};
+use tracing::instrument;
 
 use crate::{
     lsp_types::{CompletionItemKind, TextEdit},
@@ -213,50 +213,51 @@ pub fn prefix_completion_helper<'a>(
     // );
 }
 
-#[instrument(skip(query))]
-pub fn defined_prefix_completion(
-    mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest, &DynLang)>,
+/// Generic prefix completion for the text RDF languages (Turtle / TriG / SPARQL).
+///
+/// Suggests prefixes from the local LOV data, the prefix.cc list, and the
+/// prefixes already declared in the document.  When the chosen prefix is not yet
+/// declared, the language's [`prefix_edits`](crate::lang::LangHelper::prefix_edits)
+/// supplies an additional edit that inserts the declaration; when it is already
+/// declared no such edit is added.
+///
+/// This is registered **once** (in the shared completion schedule) and dispatches
+/// per-document through [`DynLang`], so it does not need a language marker filter.
+/// Languages whose prefix model is incompatible (e.g. JSON-LD `@context`) opt out
+/// via [`handles_prefix_completion`](crate::lang::LangHelper::handles_prefix_completion).
+#[instrument(skip(query, lovs, prefix_cc, config))]
+pub fn rdf_lov_undefined_prefix_completion(
+    mut query: Query<(
+        &TokenComponent,
+        &Source,
+        &RopeC,
+        &Prefixes,
+        &mut CompletionRequest,
+        &DynLang,
+    )>,
+    lovs: Query<&LocalPrefix>,
+    prefix_cc: Query<&PrefixEntry>,
+    config: Res<ServerConfig>,
 ) {
-    for (word, prefixes, mut req, lang) in &mut query {
+    let fmt = config.config.local.prefix_format.unwrap_or_default();
+    for (word, source, rope, prefixes, mut req, lang) in &mut query {
         if lang.handles_prefix_completion() {
             continue;
         }
-        let st = lang.unquote(&word.text);
-        let pref = if let Some(idx) = st.find(':') {
-            &st[..idx]
-        } else {
-            &st
-        };
-
-        debug!("matching {}", pref);
-
-        let completions = prefixes
-            .0
-            .iter()
-            .filter(|p| p.prefix.as_str().starts_with(pref))
-            .flat_map(|x| {
-                let mut new_text = format!("{}:", x.prefix.as_str());
-                if new_text != word.text {
-                    new_text += "$0";
-                    let nt = lang.quote(&new_text);
-
-                    Some(
-                        SimpleCompletion::new(
-                            CompletionItemKind::MODULE,
-                            x.prefix.to_string(),
-                            crate::lsp_types::TextEdit {
-                                new_text: nt,
-                                range: word.range.clone(),
-                            },
-                        )
-                        .documentation(x.url.as_str())
-                        .as_snippet(),
-                    )
-                } else {
+        prefix_completion_helper(
+            word,
+            prefixes,
+            &mut req.0,
+            |name, location| {
+                if prefixes.iter().any(|p| p.prefix == name) {
                     None
+                } else {
+                    lang.prefix_edits(&source.0, &rope.0, name, location, fmt)
                 }
-            });
-
-        req.0.extend(completions);
+            },
+            lovs.iter(),
+            prefix_cc.iter(),
+            lang,
+        );
     }
 }

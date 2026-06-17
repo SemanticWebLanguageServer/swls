@@ -1,8 +1,10 @@
 {
   "@context": {
     "foaf": "http://xmlns.com/foaf/0.1/",
+    "name": "foaf:name",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
   },
   "rdfs:label": "name",
+  "name": "",
   "foaf:knows": "foaf:testing"
 }

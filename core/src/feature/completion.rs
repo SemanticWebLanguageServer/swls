@@ -8,7 +8,8 @@ use crate::lsp_types::{
 };
 pub use crate::{
     systems::{
-        complete_class, complete_properties, keyword_complete, prefix::defined_prefix_completion,
+        complete_class, complete_properties, keyword_complete,
+        prefix::rdf_lov_undefined_prefix_completion,
     },
     util::{token::get_current_cst_token, triple::get_current_triple},
 };
@@ -31,7 +32,7 @@ pub fn setup_schedule(world: &mut World) {
         keyword_complete.after(generate_completions),
         complete_class.after(generate_completions),
         complete_properties.after(generate_completions),
-        // defined_prefix_completion.after(generate_completions),
+        rdf_lov_undefined_prefix_completion.after(generate_completions),
     ));
     world.add_schedule(completion);
 }
