@@ -119,7 +119,6 @@ mod tests {
 
         let entity = create_file(&mut world, t2, "http://example.com/ns#", "turtle", Open);
         world.run_schedule(ParseLabel);
-        world.run_schedule(DiagnosticsLabel);
 
         // t2: foaf IS used (foaf:foaf is a subject), but it's missing predicate+object → syntax errors
         let diags = last_diags();
@@ -133,7 +132,6 @@ mod tests {
             .entity_mut(entity)
             .insert((Source(t3.to_string()), RopeC(Rope::from_str(t3))));
         world.run_schedule(ParseLabel);
-        world.run_schedule(DiagnosticsLabel);
 
         let diags = last_diags();
         assert!(

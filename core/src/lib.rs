@@ -130,7 +130,6 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     hover::setup_schedule(world);
     completion::setup_schedule(world);
     rename::setup_schedules(world);
-    diagnostics::setup_schedule(world);
     save::setup_schedule(world);
     format::setup_schedule(world);
     references::setup_schedule(world);

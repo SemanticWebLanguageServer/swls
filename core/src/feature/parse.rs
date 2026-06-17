@@ -8,7 +8,8 @@ use crate::{
     client::Client,
     store::Store,
     systems::{
-        check_added_ontology_extract, derive_owl_imports_links, open_imports, validate_shapes,
+        check_added_ontology_extract, derive_owl_imports_links, open_imports, prefix_diagnostics,
+        validate_shapes,
     },
 };
 
@@ -34,6 +35,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         check_added_ontology_extract.after(triples),
         open_imports::<C>.after(triples),
         validate_shapes.after(triples),
+        prefix_diagnostics.after(triples),
         // store things
         crate::store::load_store.after(triples),
         derive_ontologies.after(crate::store::load_store),

@@ -59,8 +59,9 @@ pub fn register_rdf_lang<L, H>(
         }
     });
 
-    world.schedule_scope(swls_core::feature::DiagnosticsLabel, |_, schedule| {
-        schedule.add_systems(publish_diagnostics::<L>);
+    world.schedule_scope(swls_core::feature::ParseLabel, |_, schedule| {
+        use bevy_ecs::schedule::IntoScheduleConfigs;
+        schedule.add_systems(publish_diagnostics::<L>.after(swls_core::feature::parse::triples));
     });
 
     world.schedule_scope(swls_core::feature::SemanticLabel, |_, schedule| {
