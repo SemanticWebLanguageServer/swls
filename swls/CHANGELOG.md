@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0 (2026-06-22)
+
+### New Features
+
+ - <csr-id-4bad0c7033f9029315e831d5801922f959a64165/> add automatic insert of prefix statements when writing colon
+ - <csr-id-5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1/> add undefined iri's warnings
+ - <csr-id-a066345ac46f16e951eea8ff3439761d1d261459/> actually add swls/src/server.rs
+ - <csr-id-91c1ad0150e44713d3589bb264d704a4656e4a8a/> move tower_lsp to swls binary
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release over the course of 9 calendar days.
+ - 32 days passed between releases.
+ - 4 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Add automatic insert of prefix statements when writing colon ([`4bad0c7`](https://github.com/SemanticWebLanguageServer/swls/commit/4bad0c7033f9029315e831d5801922f959a64165))
+    - Add undefined iri's warnings ([`5daeb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1))
+    - Actually add swls/src/server.rs ([`a066345`](https://github.com/SemanticWebLanguageServer/swls/commit/a066345ac46f16e951eea8ff3439761d1d261459))
+    - Move tower_lsp to swls binary ([`91c1ad0`](https://github.com/SemanticWebLanguageServer/swls/commit/91c1ad0150e44713d3589bb264d704a4656e4a8a))
+</details>
+
 ## 0.2.2 (2026-05-20)
 
 ### New Features
@@ -21,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 1 commit contributed to the release.
+ - 2 commits contributed to the release.
  - 9 days passed between releases.
  - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -33,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`0d1c8c5`](https://github.com/SemanticWebLanguageServer/swls/commit/0d1c8c52d0b7741321109ad22f1f16d53e4f8dc6))
     - Adjusting changelogs prior to release of swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`4f3e731`](https://github.com/SemanticWebLanguageServer/swls/commit/4f3e731b0301e0b689bfe15e790ad4706a3c84e1))
 </details>
 

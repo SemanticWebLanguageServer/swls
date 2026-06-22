@@ -2588,9 +2588,9 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a78a9e22c77a5c933bea42ebb1c6891164ee40700a883c986c987959a084a86"
+checksum = "dfe6d27af89d2b3c55604bed8e52e220b56e664aacf5df48b45da1451833cf21"
 dependencies = [
  "async-trait",
  "logos",
@@ -3506,7 +3506,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swls"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3547,7 +3547,7 @@ dependencies = [
 
 [[package]]
 name = "swls-core"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3598,7 +3598,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-jsonld"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3620,7 +3620,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-rdf-base"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "bevy_ecs",
  "rdf-parsers",
@@ -3630,7 +3630,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-sparql"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3653,7 +3653,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-trig"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3673,7 +3673,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-turtle"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "async-trait",
  "bevy_ecs",
