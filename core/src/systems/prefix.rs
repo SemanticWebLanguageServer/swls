@@ -239,6 +239,9 @@ pub fn rdf_lov_undefined_prefix_completion(
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionPrefix) {
+        return;
+    }
     let fmt = config.config.local.prefix_format.unwrap_or_default();
     for (word, source, rope, prefixes, mut req, lang) in &mut query {
         if lang.handles_prefix_completion() {

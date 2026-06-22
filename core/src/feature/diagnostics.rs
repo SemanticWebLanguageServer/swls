@@ -105,10 +105,16 @@ pub fn publish_diagnostics<L: Lang>(
         (Changed<Errors<L::ElementError>>, With<Open>),
     >,
     mut client: ResMut<DiagnosticPublisher>,
+    config: Res<ServerConfig>,
 ) where
     L::ElementError: 'static + Clone,
 {
+    let disabled = config.config.local.is_disabled(Disabled::SyntaxDiagnostics);
     for (element_errors, params, rope, label) in &query {
+        if disabled {
+            let _ = client.publish(&params.0, vec![], "syntax");
+            continue;
+        }
         tracing::debug!("Publish diagnostics for {}", label.0);
         let diagnostics: Vec<_> = element_errors
             .0

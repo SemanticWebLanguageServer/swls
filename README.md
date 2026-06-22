@@ -5,10 +5,82 @@
 ![LICENSE](https://img.shields.io/badge/License-MIT-8A2BE2)
 [![Visual Studio Marketplace Last Updated](https://img.shields.io/visual-studio-marketplace/last-updated/ajuvercr.semantic-web-lsp?label=VSCode%20Extension)](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp)
 
-This repo includes the source code for the semantic web language server.
-The language server provides IDE like functionality for semantic web languages, including Turtle, TriG, JSON-LD and SPARQL.
+**SWLS** is a Language Server Protocol (LSP) server that brings IDE-like tooling — diagnostics,
+completion, hover, navigation, refactoring, formatting and highlighting — to Semantic Web
+languages: **Turtle**, **TriG**, **JSON-LD** and **SPARQL**.
 
-A live demo can be found [online](https://semanticweblanguageserver.github.io/swls/), built with monaco editors.
+Try it instantly, no install required: **[live demo](https://semanticweblanguageserver.github.io/swls/)** (Monaco editor in the browser).
+
+## Install
+
+| Editor | How |
+|---|---|
+| **VS Code** | Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp) ([source](https://github.com/SemanticWebLanguageServer/swls-vscode)) |
+| **NeoVim** | Use the [swls.nvim](https://github.com/SemanticWebLanguageServer/swls.nvim) plugin |
+| **JetBrains** | Install from the JetBrains Marketplace ([source](https://github.com/SemanticWebLanguageServer/swls-jetbrains)) |
+| **Anything else** | Any LSP-capable editor can run the `swls` binary directly — see [Other editors](#other-editors) |
+
+Details and caveats for each editor are in [Installation](#installation) below.
+
+## Features
+
+| Category | What you get |
+|---|---|
+| **Diagnostics** | Syntax errors · undefined-prefix errors · unused-prefix warnings · unknown-property-in-closed-namespace warnings · SHACL shape violations |
+| **Completion** | Keywords (`@prefix`, `@context`, ...) · prefix names (from bundled LOV/prefix.cc data) · classes · domain-aware properties · cross-document subjects (Turtle) · Components.js parameters (JSON-LD) |
+| **Hover** | Inferred RDF type · class & property documentation from the ontology · explanation when a property is only accepted via your allow-list |
+| **Navigation** | Go to definition (RDF terms and, for JSON-LD, Components.js modules/parameters) · go to type definition · find references · rename |
+| **Code actions** | Add missing prefix declaration · allow-list an unknown property · organize/sort `@prefix` imports (Turtle) · extract/inline a blank node |
+| **Formatting** | Document formatting for Turtle and JSON-LD · auto-insert the prefix declaration while typing |
+| **Highlighting** | Semantic syntax highlighting |
+| **Inlay hints** | Inferred type shown inline next to subjects missing an explicit `rdf:type` |
+
+Every diagnostic and almost every feature above can be **individually enabled or disabled** —
+see [Configuration](#configuration).
+
+## Installation
+
+Currently a fluent install is possible for NeoVim and VS Code. Since SWLS speaks the standard
+Language Server Protocol, it can be wired into any editor with an LSP client — see
+[Other editors](#other-editors) if yours isn't listed below.
+
+### VS Code
+
+There is a VS Code extension available in the [Marketplace](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp).
+Source: [SemanticWebLanguageServer/swls-vscode](https://github.com/SemanticWebLanguageServer/swls-vscode).
+
+### JetBrains
+
+There is a JetBrains plugin available in the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/27501-swls--turtle-trig-sparql--json-ld-language-server).
+Source: [SemanticWebLanguageServer/swls-jetbrains](https://github.com/SemanticWebLanguageServer/swls-jetbrains).
+
+### NeoVim
+
+A NeoVim plugin is available at [SemanticWebLanguageServer/swls.nvim](https://github.com/SemanticWebLanguageServer/swls.nvim).
+
+### Other editors
+
+SWLS is a standard LSP server (stdio transport), so any editor with a generic LSP client
+(Sublime Text, Helix, Emacs `lsp-mode`/`eglot`, Kate, ...) can run it directly. Grab the `swls`
+binary from the [latest release](https://github.com/semanticweblanguageserver/swls/releases) and
+point your editor's LSP client at it for `.ttl`, `.trig`, `.jsonld` and `.sparql`/`.rq` files.
+
+## Configuration
+
+SWLS reads configuration from the client's `initializationOptions`, plus optional
+`.swls/config.json` (workspace) and `~/.config/swls/config.json` (global) files.
+
+```json
+{
+  "turtle": true,
+  "sparql": false,
+  "disabled": ["unused_prefix", "hover_excluded_property"]
+}
+```
+
+- `turtle` / `trig` / `jsonld` / `sparql` (default `true`) — enable/disable a language plugin entirely.
+- `disabled` — a list of individual diagnostics or LSP (sub-)features to turn off, e.g. just the
+  "unused prefix" warning, or just hover-on-class without touching the rest of hover.
 
 ## Documentation
 
@@ -17,64 +89,6 @@ A live demo can be found [online](https://semanticweblanguageserver.github.io/sw
 - [lang-jsonld](https://semanticweblanguageserver.github.io/swls/docs/lang_jsonld/index.html)
 - [lang-sparql](https://semanticweblanguageserver.github.io/swls/docs/lang_sparql/index.html)
 - [lsp-bin](https://semanticweblanguageserver.github.io/swls/docs/swls/index.html)
-
-
-## Features
-
-### Diagnostics
-
-- Syntax diagnostics
-- Undefined prefix diagnostics
-- SHACL shape diagnostics
-
-### Completion
-
-- Prefix completion (just start writing the prefix, `foa` completes to `foaf:` and adding the prefix statement)
-- Property completion (ordered according to domain)
-- Class completion (when writing the object where the prediate is `a`)
-
-### Hover
-
-- Shows additional information about the entities like class
-
-### Rename
-
-- Rename terms local to the current file 
-
-### Formatting
-
-- Format Turtle and JSON-LD
-
-### Highlighting
-
-- Enables semantic highlighting
-
-
-## Use the LSP
-
-Currently a fluent install is possible for NeoVim and VSCode.
-However the language server protocol enables swift integration into other editors.
-
-### VS Code
-
-Install the semantic web lsp extension ([vscode](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp) or [open-vscode](https://open-vsx.org/extension/ajuvercr/semantic-web-lsp)).
-The extension starts the lsp from WASM and starts the vscode LSP client.
-
-You can configure the LSP to disable certain languages, this is useful as SPARQL is not fully supported yet, but comes bundled in the LSP.
-
-### Jetbrains
-
-A zip of the Jetbrains plugin is available with the latest releases.
-To install the plugin you should download the zip (swls-1.1-SNAPSHOT.zip) and go to Settings (ctrl + alt + s) > Plugins > Gear > Install Plugin from Disk and select the file.
-Currently the plugin checks the Github releases on each startup to check if the latest binary is installed, and installs the latest binary.
-This is not very user friendly, certainly on low quality internet connections.
-
-PRs are much appreciated on the Jetbrains plugin.
-
-### NeoVim
-
-A NeoVim plugin is available at [SemanticWebLanguageServer/swls.nvim](https://github.com/SemanticWebLanguageServer/swls.nvim).
-
 
 ## Screenshots
 
@@ -90,7 +104,7 @@ A NeoVim plugin is available at [SemanticWebLanguageServer/swls.nvim](https://gi
 
 When using the Semantic Web Language Server, please use the following citation:
 
-> A. Vercruysse, J. A. Rojas Melendez, and P. Colpaert, “The semantic web language server : enhancing the developer experience for semantic web practitioners,” in The Semantic Web : 22nd European Semantic Web Conference, ESWC 2025, Proceedings, Part II, Portoroz, Slovenia, 2025, vol. 15719, pp. 210–225.
+> A. Vercruysse, J. A. Rojas Melendez, and P. Colpaert, “The semantic web language server : enhancing the developer experience for semantic web practitioners,” in The Semantic Web : 22nd European Semantic Web Conference, ESWC 2025, Proceedings, Part II, Portoroz, Slovenia, 2025, vol. 15719, pp. 210–225.
 
 Bibtex:
 ```bibtex

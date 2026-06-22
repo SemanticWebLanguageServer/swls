@@ -3,6 +3,7 @@
 //! Verifies that the LSP returns meaningful hover text for Turtle documents when the cursor
 //! is positioned over classes, properties, and prefixes defined in ontologies.
 
+use swls_core::components::Disabled;
 use swls_e2e_tests::LspHarness;
 
 // ─── Hover on a class ─────────────────────────────────────────────────────────
@@ -101,4 +102,101 @@ fn hover_on_whitespace_returns_empty() {
     let result = h.hover(&file, 0, 44);
     // May be empty or non-empty depending on the token finder; must not panic.
     let _ = result;
+}
+
+// ─── Config toggles: disabling individual hover sources ───────────────────────
+
+const FICT_ONTO_TTL: &str = r#"
+@prefix fict: <http://fictional.test/onto#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+fict:Widget a rdfs:Class ;
+    rdfs:label "Widget" ;
+    rdfs:comment "A reusable fictional component." .
+
+fict:hasComponent a rdf:Property ;
+    rdfs:label "hasComponent" ;
+    rdfs:domain fict:Widget ;
+    rdfs:range fict:Widget .
+"#;
+
+#[test_log::test]
+fn hover_class_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::HoverClass);
+    });
+    h.open_linked_file("file:///fict-onto-hover.ttl", "turtle", FICT_ONTO_TTL);
+    h.drain_tasks();
+
+    let src = "@prefix fict: <http://fictional.test/onto#>.\n<> a fict:Widget.";
+    let file = h.open_file("file:///hover_class_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    // Cursor on "fict:Widget" — line 1, character 5
+    let result = h.hover(&file, 1, 5);
+    assert!(
+        !result.join("\n").contains("Widget"),
+        "class hover should be silenced when disabled, got: {result:?}"
+    );
+}
+
+#[test_log::test]
+fn hover_property_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::HoverProperty);
+    });
+    h.open_linked_file("file:///fict-onto-hover2.ttl", "turtle", FICT_ONTO_TTL);
+    h.drain_tasks();
+
+    let src = "@prefix fict: <http://fictional.test/onto#>.\n<> fict:hasComponent <#x>.";
+    let file = h.open_file("file:///hover_prop_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    // Cursor on "fict:hasComponent" — line 1, character 3
+    let result = h.hover(&file, 1, 3);
+    assert!(
+        !result.join("\n").contains("hasComponent"),
+        "property hover should be silenced when disabled, got: {result:?}"
+    );
+}
+
+#[test_log::test]
+fn hover_type_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::HoverType);
+    });
+
+    let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n\
+               foaf:me a foaf:Person ;\n\
+               foaf:name \"Alice\".";
+    let file = h.open_file("file:///hover_type_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    // Cursor on "foaf:me" — line 1, character 0
+    let result = h.hover(&file, 1, 0);
+    assert!(
+        !result.join("\n").contains("**Type:**"),
+        "type hover should be silenced when disabled, got: {result:?}"
+    );
+}
+
+#[test_log::test]
+fn hover_type_shown_when_not_disabled() {
+    let mut h = LspHarness::new();
+
+    let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n\
+               foaf:me a foaf:Person ;\n\
+               foaf:name \"Alice\".";
+    let file = h.open_file("file:///hover_type_enabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let result = h.hover(&file, 1, 0);
+    assert!(
+        result.join("\n").contains("**Type:**"),
+        "expected type hover to be shown by default, got: {result:?}"
+    );
 }

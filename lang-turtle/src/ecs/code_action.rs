@@ -13,7 +13,11 @@ use crate::TurtleLang;
 
 pub fn organize_imports(
     mut query: Query<(&Element<TurtleLang>, &RopeC, &Label, &mut CodeActionRequest)>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CodeActionOrganizeImports) {
+        return;
+    }
     for (turtle, rope, label, mut req) in &mut query {
         let prefixes = &turtle.prefixes;
         if prefixes.len() < 2 {

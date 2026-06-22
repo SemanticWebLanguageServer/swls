@@ -5,7 +5,7 @@
 //!    namespace that are not defined in any known ontology, plus the allow-list
 //!    quick-fix and the "excluded by user" hover message.
 
-use swls_core::components::PrefixFormat;
+use swls_core::components::{Disabled, PrefixFormat};
 use swls_core::lsp_types::DiagnosticSeverity;
 use swls_e2e_tests::LspHarness;
 
@@ -235,5 +235,60 @@ fn hover_on_allow_listed_property_explains_exclusion() {
     assert!(
         joined.contains("allowed_properties") && joined.contains("not defined"),
         "hover should explain the user-exclusion, got: {hover:?}"
+    );
+}
+
+#[test_log::test]
+fn namespace_property_warning_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.closed_namespaces.insert(CFG_NS.to_string());
+        c.disabled.insert(Disabled::NamespaceProperties);
+    });
+
+    h.open_linked_file("file:///cfg-onto6.ttl", "turtle", CFG_ONTO_TTL);
+    h.drain_tasks();
+    let file = h.open_file("file:///cfg-doc6.ttl", "turtle", DOC_TTL);
+    h.drain_tasks();
+
+    let diags = h.run_diagnostics();
+    let warnings: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::WARNING)
+                && d.message.contains("not defined in the ontology")
+        })
+        .collect();
+
+    assert!(
+        warnings.is_empty(),
+        "namespace-properties validation should be silenced when disabled, got: {:?}",
+        warnings.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+// ─── Feature 3: syntax diagnostics toggle ─────────────────────────────────────
+
+#[test_log::test]
+fn syntax_diagnostics_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::SyntaxDiagnostics);
+    });
+
+    // Missing closing `.` — a syntax error.
+    let file = h.open_file("file:///syntax_disabled.ttl", "turtle", "<> a <http://example.org/Thing>");
+    let diags = h.run_diagnostics();
+
+    let syntax_errors: Vec<_> = diags
+        .iter()
+        .filter(|(url, _)| url.as_str() == file.url)
+        .collect();
+
+    assert!(
+        syntax_errors.is_empty(),
+        "syntax diagnostics should be silenced when disabled, got: {:?}",
+        syntax_errors.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
     );
 }

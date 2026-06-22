@@ -119,6 +119,19 @@ impl<C: Client> Backend<C> {
         map.get(uri).copied()
     }
 
+    /// Whether the given LSP feature has been disabled via [`ServerConfig`].
+    async fn is_disabled(&self, feature: Disabled) -> bool {
+        self.run(move |world| {
+            world
+                .resource::<ServerConfig>()
+                .config
+                .local
+                .is_disabled(feature)
+        })
+        .await
+        .unwrap_or(false)
+    }
+
     fn adjust_position(pos: &mut Position) {
         pos.character = pos.character.saturating_sub(1);
     }
@@ -163,6 +176,9 @@ impl<C: Client> Backend<C> {
         })
         .collect();
 
+        let disabled = server_config.config.local.disabled.clone();
+        let is_enabled = |d: Disabled| !disabled.contains(&d);
+
         self.run(|world| {
             world.insert_resource(server_config);
             world.run_schedule(Startup);
@@ -173,12 +189,14 @@ impl<C: Client> Backend<C> {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
-                inlay_hint_provider: Some(OneOf::Left(true)),
+                inlay_hint_provider: is_enabled(Disabled::InlayHint)
+                    .then_some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
-                completion_provider: Some(CompletionOptions {
+                code_action_provider: is_enabled(Disabled::CodeAction)
+                    .then_some(CodeActionProviderCapability::Simple(true)),
+                completion_provider: is_enabled(Disabled::Completion).then_some(CompletionOptions {
                     resolve_provider: Some(false),
                     trigger_characters: Some(vec![String::from(":")]),
                     work_done_progress_options: Default::default(),
@@ -186,16 +204,21 @@ impl<C: Client> Backend<C> {
                     completion_item: None,
                 }),
                 // implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
-                type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
-                references_provider: Some(OneOf::Left(true)),
-                hover_provider: Some(HoverProviderCapability::Simple(true)),
-                definition_provider: Some(OneOf::Left(true)),
-                document_formatting_provider: Some(OneOf::Left(true)),
-                document_on_type_formatting_provider: Some(DocumentOnTypeFormattingOptions {
-                    first_trigger_character: ":".to_string(),
-                    more_trigger_character: None,
-                }),
-                semantic_tokens_provider: Some(
+                type_definition_provider: is_enabled(Disabled::GotoTypeDefinition)
+                    .then_some(TypeDefinitionProviderCapability::Simple(true)),
+                references_provider: is_enabled(Disabled::References).then_some(OneOf::Left(true)),
+                hover_provider: is_enabled(Disabled::Hover)
+                    .then_some(HoverProviderCapability::Simple(true)),
+                definition_provider: is_enabled(Disabled::GotoDefinition)
+                    .then_some(OneOf::Left(true)),
+                document_formatting_provider: is_enabled(Disabled::Format)
+                    .then_some(OneOf::Left(true)),
+                document_on_type_formatting_provider: is_enabled(Disabled::PrefixAutoInsert)
+                    .then_some(DocumentOnTypeFormattingOptions {
+                        first_trigger_character: ":".to_string(),
+                        more_trigger_character: None,
+                    }),
+                semantic_tokens_provider: is_enabled(Disabled::SemanticTokens).then_some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
                         SemanticTokensRegistrationOptions {
                             text_document_registration_options: {
@@ -216,10 +239,12 @@ impl<C: Client> Backend<C> {
                         },
                     ),
                 ),
-                rename_provider: Some(OneOf::Right(RenameOptions {
-                    prepare_provider: Some(true),
-                    work_done_progress_options: Default::default(),
-                })),
+                rename_provider: is_enabled(Disabled::Rename).then_some(OneOf::Right(
+                    RenameOptions {
+                        prepare_provider: Some(true),
+                        work_done_progress_options: Default::default(),
+                    },
+                )),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![crate::systems::ALLOW_PROPERTY_COMMAND.to_string()],
                     work_done_progress_options: Default::default(),
@@ -261,6 +286,9 @@ impl<C: Client> Backend<C> {
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
         debug!("semantic tokens full");
+        if self.is_disabled(Disabled::SemanticTokens).await {
+            return Ok(None);
+        }
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             debug!("Didn't find entity {} stopping", uri);
@@ -292,6 +320,9 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     pub async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        if self.is_disabled(Disabled::References).await {
+            return Ok(None);
+        }
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await
@@ -319,6 +350,9 @@ impl<C: Client> Backend<C> {
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
+        if self.is_disabled(Disabled::Rename).await {
+            return Ok(None);
+        }
         let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
             return Ok(None);
         };
@@ -343,6 +377,9 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     pub async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        if self.is_disabled(Disabled::Rename).await {
+            return Ok(Some(WorkspaceEdit::new(HashMap::new())));
+        }
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await
@@ -374,6 +411,9 @@ impl<C: Client> Backend<C> {
     }
 
     pub async fn hover(&self, params: HoverParams) -> Result<Option<crate::lsp_types::Hover>> {
+        if self.is_disabled(Disabled::Hover).await {
+            return Ok(None);
+        }
         let request: HoverRequest = HoverRequest::default();
 
         let Some(entity) = self
@@ -413,6 +453,9 @@ impl<C: Client> Backend<C> {
 
     pub async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         debug!("Inlay hints called");
+        if self.is_disabled(Disabled::InlayHint).await {
+            return Ok(None);
+        }
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             debug!("Didn't find entity {}", uri);
@@ -433,6 +476,9 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self))]
     pub async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        if self.is_disabled(Disabled::Format).await {
+            return Ok(None);
+        }
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             debug!("Didn't find entity {}", uri);
@@ -450,6 +496,9 @@ impl<C: Client> Backend<C> {
         &self,
         params: DocumentOnTypeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
+        if self.is_disabled(Disabled::PrefixAutoInsert).await {
+            return Ok(None);
+        }
         let uri = params.text_document_position.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             return Ok(None);
@@ -553,6 +602,9 @@ impl<C: Client> Backend<C> {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
+        if self.is_disabled(Disabled::GotoDefinition).await {
+            return Ok(None);
+        }
         let Some(entity) = self
             .get_entity(
                 params
@@ -589,6 +641,9 @@ impl<C: Client> Backend<C> {
         &self,
         params: GotoTypeDefinitionParams,
     ) -> Result<Option<GotoTypeDefinitionResponse>> {
+        if self.is_disabled(Disabled::GotoTypeDefinition).await {
+            return Ok(None);
+        }
         let Some(entity) = self
             .get_entity(
                 params
@@ -619,6 +674,9 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     pub async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+        if self.is_disabled(Disabled::CodeAction).await {
+            return Ok(None);
+        }
         let uri = params.text_document.uri.as_str();
         let Some(entity) = self.get_entity(uri).await else {
             return Ok(None);
@@ -692,6 +750,9 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
     pub async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        if self.is_disabled(Disabled::Completion).await {
+            return Ok(None);
+        }
         let Some(entity) = self
             .get_entity(params.text_document_position.text_document.uri.as_str())
             .await

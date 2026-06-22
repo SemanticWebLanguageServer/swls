@@ -6,6 +6,7 @@
 //! * No diagnostics when all prefixes are both declared and used
 //! * "Add prefix declaration" code action for an undefined prefix
 
+use swls_core::components::Disabled;
 use swls_core::lsp_types::DiagnosticSeverity;
 use swls_e2e_tests::LspHarness;
 
@@ -387,6 +388,108 @@ fn no_code_action_for_already_declared_prefix() {
     assert!(
         add_foaf.is_empty(),
         "Should NOT offer 'add prefix' action for already declared 'foaf', got: {:?}",
+        add_foaf.iter().map(|a| &a.title).collect::<Vec<_>>()
+    );
+}
+
+// ─── Config toggles: disabled.unused_prefix / disabled.undefined_prefix ──────
+
+#[test_log::test]
+fn unused_prefix_warning_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::UnusedPrefix);
+    });
+    let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n<> a <http://example.org/Thing> .";
+    let file = h.open_file("file:///unused_prefix_disabled.ttl", "turtle", src);
+
+    let diags = h.run_diagnostics();
+
+    let warnings: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::WARNING)
+                && d.message.contains("foaf")
+        })
+        .collect();
+
+    assert!(
+        warnings.is_empty(),
+        "Expected no unused-prefix warning when disabled, got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+#[test_log::test]
+fn undefined_prefix_error_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::UndefinedPrefix);
+    });
+    let src = "<> ex:pred ex:obj .";
+    let file = h.open_file("file:///undef_prefix_disabled.ttl", "turtle", src);
+
+    let diags = h.run_diagnostics();
+
+    let errors: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url && d.severity == Some(DiagnosticSeverity::ERROR)
+        })
+        .collect();
+
+    assert!(
+        errors.is_empty(),
+        "Expected no undefined-prefix error when disabled, got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+#[test_log::test]
+fn disabling_undefined_prefix_does_not_affect_unused_prefix_warning() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::UndefinedPrefix);
+    });
+    let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n<> a <http://example.org/Thing> .";
+    let file = h.open_file("file:///undef_disabled_unused_kept.ttl", "turtle", src);
+
+    let diags = h.run_diagnostics();
+
+    let warnings: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::WARNING)
+                && d.message.contains("foaf")
+        })
+        .collect();
+
+    assert!(
+        !warnings.is_empty(),
+        "Unused-prefix warning should still fire when only undefined_prefix is disabled, got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+#[test_log::test]
+fn add_missing_prefix_code_action_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::UndefinedPrefix);
+    });
+    let src = "<> foaf:name \"Alice\" .";
+    let file = h.open_file("file:///add_prefix_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let actions = h.code_actions(&file);
+
+    let add_foaf: Vec<_> = actions.iter().filter(|a| a.title.contains("foaf")).collect();
+
+    assert!(
+        add_foaf.is_empty(),
+        "Should NOT offer 'add prefix' quick-fix when undefined_prefix diagnostic is disabled, got: {:?}",
         add_foaf.iter().map(|a| &a.title).collect::<Vec<_>>()
     );
 }

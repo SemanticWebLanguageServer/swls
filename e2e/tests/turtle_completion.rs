@@ -8,6 +8,7 @@
 //! - Cross-file subject completion (subjects defined in a linked open file)
 //! - LOV-based prefix completion (suggested prefixes from the bundled vocabulary)
 
+use swls_core::components::Disabled;
 use swls_e2e_tests::LspHarness;
 
 // ─── Fictional ontology shared across tests ───────────────────────────────────
@@ -253,4 +254,94 @@ eng:hasCylinders a rdf:Property ;
     h.assert_completions(&prop_completions)
         .contains_label("eng:burnsFuel")
         .contains_label("eng:hasCylinders");
+}
+
+// ─── Config toggles: disabling individual completion sources ──────────────────
+
+#[test_log::test]
+fn completion_class_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CompletionClass);
+    });
+    h.open_linked_file("file:///fict-onto-disabled.ttl", "turtle", FICT_ONTO_TTL);
+    h.drain_tasks();
+
+    let src = "@prefix fict: <http://fictional.test/onto#>.\n<> a fict:";
+    let file = h.open_file("file:///class_complete_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let completions = h.completions(&file, 1, 5);
+    h.assert_completions(&completions)
+        .does_not_contain_label("fict:Widget")
+        .does_not_contain_label("fict:Gadget");
+}
+
+#[test_log::test]
+fn completion_property_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CompletionProperty);
+    });
+    h.open_linked_file("file:///fict-onto-disabled2.ttl", "turtle", FICT_ONTO_TTL);
+    h.drain_tasks();
+
+    let src = "@prefix fict: <http://fictional.test/onto#>.\n\
+               fict:thing a fict:Widget .\n\
+               fict:thing fict:";
+    let file = h.open_file("file:///prop_complete_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let completions = h.completions(&file, 2, 11);
+    h.assert_completions(&completions)
+        .does_not_contain_label("fict:hasComponent")
+        .does_not_contain_label("fict:weight");
+}
+
+#[test_log::test]
+fn completion_prefix_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CompletionPrefix);
+    });
+    let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\nfoa";
+    let file = h.open_file("file:///prefix_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let completions = h.completions(&file, 1, 0);
+    h.assert_completions(&completions).does_not_contain_label("foaf");
+}
+
+#[test_log::test]
+fn completion_keyword_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CompletionKeyword);
+    });
+    let file = h.open_file("file:///keywords_disabled.ttl", "turtle", "");
+
+    let completions = h.completions(&file, 0, 0);
+    h.assert_completions(&completions)
+        .does_not_contain_label("@prefix")
+        .does_not_contain_label("@base");
+}
+
+#[test_log::test]
+fn completion_subject_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CompletionSubject);
+    });
+
+    let linked_src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n\
+                      foaf:me foaf:name \"Alice\".";
+    h.open_file("file:///linked_disabled.ttl", "turtle", linked_src);
+
+    let primary_src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\nfoaf:";
+    let file = h.open_file("file:///primary_disabled.ttl", "turtle", primary_src);
+    h.drain_tasks();
+
+    let completions = h.completions(&file, 1, 0);
+    h.assert_completions(&completions)
+        .does_not_contain_label("http://xmlns.com/foaf/0.1/me");
 }

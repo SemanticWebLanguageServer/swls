@@ -11,7 +11,7 @@ use crate::{
     prelude::*,
 };
 
-#[instrument(skip(query, resource))]
+#[instrument(skip(query, resource, config))]
 pub fn complete_class(
     mut query: Query<(
         &TokenComponent,
@@ -22,7 +22,11 @@ pub fn complete_class(
     )>,
     hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionClass) {
+        return;
+    }
     for (token, triple, prefixes, types, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
@@ -69,7 +73,11 @@ pub fn hover_class(
     mut query: Query<(&TripleComponent, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::HoverClass) {
+        return;
+    }
     for (triple, prefixes, mut request) in &mut query {
         let Some(term) = triple.term() else { continue };
         if term.kind() != TermKind::Iri {
@@ -103,6 +111,9 @@ pub fn complete_properties(
     resource: Res<Ontologies>,
     config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionProperty) {
+        return;
+    }
     for (token, triple, prefixes, _this_label, types, mut request, lang) in &mut query {
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
@@ -173,7 +184,7 @@ pub fn complete_properties(
     }
 }
 
-#[instrument(skip(query, resource))]
+#[instrument(skip(query, resource, config))]
 pub fn hover_property(
     mut query: Query<(
         &TripleComponent,
@@ -182,7 +193,11 @@ pub fn hover_property(
         &mut HoverRequest,
     )>,
     resource: Res<Ontologies>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::HoverProperty) {
+        return;
+    }
     for (triple, prefixes, _links, mut request) in &mut query {
         let Some(term) = triple.term() else { continue };
         if term.kind() != TermKind::Iri {
@@ -212,7 +227,7 @@ pub fn hover_excluded_property(
     config: Res<ServerConfig>,
 ) {
     let allowed = &config.config.local.allowed_properties;
-    if allowed.is_empty() {
+    if allowed.is_empty() || config.config.local.is_disabled(Disabled::HoverExcludedProperty) {
         return;
     }
     for (triple, mut request) in &mut query {

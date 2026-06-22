@@ -19,7 +19,11 @@ pub fn subject_completion(
         &mut CompletionRequest,
     )>,
     triples: Query<(&Triples, &Label), With<Open>>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionSubject) {
+        return;
+    }
     for (word, turtle, prefixes, mut req) in &mut query {
         // Only attempt subject completion when the text looks like a prefixed name.
         let text = &word.text;

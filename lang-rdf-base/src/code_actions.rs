@@ -94,9 +94,13 @@ pub fn extract_blank_node<L>(
         &PositionComponent,
         &mut CodeActionRequest,
     )>,
+    config: Res<ServerConfig>,
 ) where
     L: Lang<Element = Turtle> + Send + Sync + 'static,
 {
+    if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
+        return;
+    }
     for (element, source, rope, label, position, mut req) in &mut query {
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             continue;
@@ -270,9 +274,13 @@ pub fn inline_blank_node<L>(
         &PositionComponent,
         &mut CodeActionRequest,
     )>,
+    config: Res<ServerConfig>,
 ) where
     L: Lang<Element = Turtle> + Send + Sync + 'static,
 {
+    if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
+        return;
+    }
     for (element, source, rope, label, position, mut req) in &mut query {
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             continue;

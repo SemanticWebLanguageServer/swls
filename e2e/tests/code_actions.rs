@@ -4,6 +4,7 @@
 //! refactor that replaces it with a labelled blank node `_:bN` and appends a
 //! standalone statement defining that node.
 
+use swls_core::components::Disabled;
 use swls_core::lsp_types::{CodeActionKind, Position, TextEdit};
 use swls_e2e_tests::LspHarness;
 
@@ -315,4 +316,46 @@ fn inline_blank_node_works_in_trig() {
         "got:\n{result}"
     );
     assert!(!result.contains("_:b0"), "got:\n{result}");
+}
+
+// ─── Config toggle: code_action_blank_node_refactor ────────────────────────────
+
+#[test_log::test]
+fn blank_node_refactor_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CodeActionBlankNodeRefactor);
+    });
+    let src = format!("{PRELUDE}<#s> foaf:knows [ foaf:name \"Alice\" ] .");
+    let file = h.open_file("file:///bnode_disabled.ttl", "turtle", &src);
+    h.drain_tasks();
+
+    let actions = h.code_actions_at(&file, 1, 20);
+    assert!(
+        !actions
+            .iter()
+            .any(|a| a.kind == Some(CodeActionKind::REFACTOR_EXTRACT)),
+        "extract-blank-node action should be disabled, got: {:?}",
+        actions.iter().map(|a| &a.title).collect::<Vec<_>>()
+    );
+}
+
+// ─── Config toggle: code_action_organize_imports ───────────────────────────────
+
+#[test_log::test]
+fn organize_imports_disabled_by_config() {
+    let mut h = LspHarness::new();
+    h.set_config(|c| {
+        c.disabled.insert(Disabled::CodeActionOrganizeImports);
+    });
+    let src = "@prefix z: <http://z.org/>.\n@prefix a: <http://a.org/>.\n<> a z:Foo.\n";
+    let file = h.open_file("file:///organize_disabled.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let actions = h.code_actions(&file);
+    assert!(
+        !actions.iter().any(|a| a.title == "Organize Imports"),
+        "organize-imports action should be disabled, got: {:?}",
+        actions.iter().map(|a| &a.title).collect::<Vec<_>>()
+    );
 }

@@ -312,8 +312,13 @@ fn goto_cjs(
         With<JsonLdLang>,
     >,
     res: Res<Registry>,
+    config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Location, Range};
+
+    if config.config.local.is_disabled(Disabled::GotoDefinitionComponentsJs) {
+        return;
+    }
 
     for (token, triple, label, mut req, active_ctx) in &mut query {
         // Only use the expanded IRI from the TripleComponent if the cursor token

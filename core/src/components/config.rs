@@ -8,10 +8,123 @@ use crate::{
     util::fs::Fs,
 };
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Disabled {
     #[serde(alias = "SHAPES", alias = "shapes")]
     Shapes,
+
+    // --- diagnostics ---
+    /// Diagnostic for predicate/object IRIs that use an undeclared prefix.
+    #[serde(alias = "UNDEFINED_PREFIX", alias = "undefined_prefix")]
+    UndefinedPrefix,
+    /// Diagnostic for prefixes that are declared but never used.
+    #[serde(alias = "UNUSED_PREFIX", alias = "unused_prefix")]
+    UnusedPrefix,
+    /// Diagnostic for properties under a `closed_namespaces` namespace that are
+    /// not known to the ontology and not in `allowed_properties`.
+    #[serde(alias = "NAMESPACE_PROPERTIES", alias = "namespace_properties")]
+    NamespaceProperties,
+    /// Diagnostic for syntax/parse errors.
+    #[serde(alias = "SYNTAX_DIAGNOSTICS", alias = "syntax_diagnostics")]
+    SyntaxDiagnostics,
+
+    // --- LSP features ---
+    /// Master switch: disables `textDocument/completion` entirely (and stops
+    /// advertising the capability). See also the `completion_*` variants below
+    /// to disable individual completion sources while keeping completion on.
+    #[serde(alias = "COMPLETION", alias = "completion")]
+    Completion,
+    /// Keyword completion (e.g. `@prefix`, `@context`).
+    #[serde(alias = "COMPLETION_KEYWORD", alias = "completion_keyword")]
+    CompletionKeyword,
+    /// RDF class-name completion (e.g. after `a `/`rdf:type`).
+    #[serde(alias = "COMPLETION_CLASS", alias = "completion_class")]
+    CompletionClass,
+    /// RDF property/predicate-name completion.
+    #[serde(alias = "COMPLETION_PROPERTY", alias = "completion_property")]
+    CompletionProperty,
+    /// Prefix-name completion sourced from bundled LOV / prefix.cc data (also
+    /// inserts the matching declaration).
+    #[serde(alias = "COMPLETION_PREFIX", alias = "completion_prefix")]
+    CompletionPrefix,
+    /// Subject-IRI completion that reuses subjects already used in the document
+    /// (Turtle only).
+    #[serde(alias = "COMPLETION_SUBJECT", alias = "completion_subject")]
+    CompletionSubject,
+
+    /// Master switch: disables `textDocument/hover` entirely (and stops
+    /// advertising the capability). See also the `hover_*` variants below to
+    /// disable individual hover sources while keeping hover on.
+    #[serde(alias = "HOVER", alias = "hover")]
+    Hover,
+    /// Hover showing the inferred RDF type(s) of the term under the cursor.
+    #[serde(alias = "HOVER_TYPE", alias = "hover_type")]
+    HoverType,
+    /// Hover showing ontology documentation for an RDF class IRI.
+    #[serde(alias = "HOVER_CLASS", alias = "hover_class")]
+    HoverClass,
+    /// Hover showing ontology documentation for a property/predicate IRI.
+    #[serde(alias = "HOVER_PROPERTY", alias = "hover_property")]
+    HoverProperty,
+    /// Hover explanation shown for a property that is only accepted because it
+    /// is in the user's `allowed_properties` allow-list.
+    #[serde(
+        alias = "HOVER_EXCLUDED_PROPERTY",
+        alias = "hover_excluded_property"
+    )]
+    HoverExcludedProperty,
+
+    /// Master switch: disables `textDocument/definition` entirely (and stops
+    /// advertising the capability). Covers generic RDF term goto-definition.
+    #[serde(alias = "GOTO_DEFINITION", alias = "goto_definition")]
+    GotoDefinition,
+    /// Components.js-specific goto-definition: resolves component/module/
+    /// parameter IRIs and import/context URLs to their source file.
+    #[serde(
+        alias = "GOTO_DEFINITION_COMPONENTS_JS",
+        alias = "goto_definition_components_js"
+    )]
+    GotoDefinitionComponentsJs,
+    #[serde(alias = "GOTO_TYPE_DEFINITION", alias = "goto_type_definition")]
+    GotoTypeDefinition,
+    #[serde(alias = "REFERENCES", alias = "references")]
+    References,
+    #[serde(alias = "RENAME", alias = "rename")]
+    Rename,
+    #[serde(alias = "SEMANTIC_TOKENS", alias = "semantic_tokens")]
+    SemanticTokens,
+    #[serde(alias = "FORMAT", alias = "format")]
+    Format,
+    /// Auto-inserts the missing prefix/context declaration while typing
+    /// `prefix:` (formerly named `on_type_format`).
+    #[serde(
+        alias = "PREFIX_AUTO_INSERT",
+        alias = "prefix_auto_insert",
+        alias = "ON_TYPE_FORMAT",
+        alias = "on_type_format"
+    )]
+    PrefixAutoInsert,
+    /// Master switch: disables `textDocument/codeAction` entirely (and stops
+    /// advertising the capability). The "add missing prefix" and "allow
+    /// property" quick-fixes are controlled by their respective diagnostic
+    /// toggles ([`Disabled::UndefinedPrefix`], [`Disabled::NamespaceProperties`])
+    /// instead, since they only make sense alongside their diagnostic.
+    #[serde(alias = "CODE_ACTION", alias = "code_action")]
+    CodeAction,
+    /// "Organize Imports" quick-fix that sorts `@prefix` declarations (Turtle).
+    #[serde(
+        alias = "CODE_ACTION_ORGANIZE_IMPORTS",
+        alias = "code_action_organize_imports"
+    )]
+    CodeActionOrganizeImports,
+    /// "Extract blank node" / "Inline named blank node" quick-fixes.
+    #[serde(
+        alias = "CODE_ACTION_BLANK_NODE_REFACTOR",
+        alias = "code_action_blank_node_refactor"
+    )]
+    CodeActionBlankNodeRefactor,
+    #[serde(alias = "INLAY_HINT", alias = "inlay_hint")]
+    InlayHint,
 }
 
 /// How Turtle/TriG prefix declarations should be written when the editor inserts
@@ -178,6 +291,11 @@ pub struct StrictRules {
 }
 
 impl LocalConfig {
+    /// Whether the given feature/diagnostic has been disabled by the user.
+    pub fn is_disabled(&self, d: Disabled) -> bool {
+        self.disabled.contains(&d)
+    }
+
     /// Combines this config with another config, giving precedence to the other config
     pub fn combine(&mut self, other: LocalConfig) {
         self.ontologies.extend(other.ontologies);

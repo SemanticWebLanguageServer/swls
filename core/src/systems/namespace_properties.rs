@@ -32,8 +32,9 @@ fn unknown_namespace_properties(
     ontologies: &Ontologies,
     closed_namespaces: &std::collections::HashSet<String>,
     allowed_properties: &std::collections::HashSet<String>,
+    disabled: bool,
 ) -> Vec<(String, Range)> {
-    if closed_namespaces.is_empty() {
+    if closed_namespaces.is_empty() || disabled {
         return Vec::new();
     }
 
@@ -79,9 +80,11 @@ pub fn validate_namespace_properties(
 ) {
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
+    let disabled = config.config.local.is_disabled(Disabled::NamespaceProperties);
 
     for (triples, rope, item) in &query {
-        let violations = unknown_namespace_properties(triples, rope, &ontologies, closed, allowed);
+        let violations =
+            unknown_namespace_properties(triples, rope, &ontologies, closed, allowed, disabled);
 
         let diagnostics: Vec<Diagnostic> = violations
             .into_iter()
@@ -114,12 +117,13 @@ pub fn unknown_property_code_action(
 ) {
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
+    let disabled = config.config.local.is_disabled(Disabled::NamespaceProperties);
 
     for (triples, rope, position, mut req) in &mut query {
         let cursor = position.0;
         let mut seen = std::collections::HashSet::new();
         for (iri, range) in
-            unknown_namespace_properties(triples, rope, &ontologies, closed, allowed)
+            unknown_namespace_properties(triples, rope, &ontologies, closed, allowed, disabled)
         {
             if !position_in_range(cursor, range) {
                 continue;

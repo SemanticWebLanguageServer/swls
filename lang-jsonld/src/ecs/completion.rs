@@ -323,6 +323,9 @@ pub fn jsonld_lov_undefined_prefix_completion(
     prefix_cc: Query<&PrefixEntry>,
     config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionPrefix) {
+        return;
+    }
     let fmt = config.config.local.prefix_format.unwrap_or_default();
     for (source, rope, word, prefixes, mut req, lang) in &mut query {
         prefix_completion_helper(
@@ -357,7 +360,11 @@ pub fn jsonld_property_completion(
     >,
     hierarchy: Res<TypeHierarchy>,
     registry: Res<Registry>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionProperty) {
+        return;
+    }
     for (token, triple, types, active_ctx, prefixes, mut request) in &mut query {
         if triple.target != TripleTarget::Predicate {
             continue;
