@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.4 (2026-06-22)
+
+### New Features
+
+ - <csr-id-bb4f08bed28af56f776d32f787a459c7325ec47e/> gate features with configuration
+ - <csr-id-4bad0c7033f9029315e831d5801922f959a64165/> add automatic insert of prefix statements when writing colon
+ - <csr-id-ece087810771449d6e3e9badcc21b123af613879/> inline and extract blank nodes
+ - <csr-id-5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1/> add undefined iri's warnings
+ - <csr-id-b55d2807364d9521378e9d5433ee53d3d6bc8109/> prefix diagnostics
+ - <csr-id-91c1ad0150e44713d3589bb264d704a4656e4a8a/> move tower_lsp to swls binary
+ - <csr-id-251a00396498ebe11c4c9632afb72b6dd91dafda/> start rename
+
+### Bug Fixes
+
+ - <csr-id-e93ae6e2e86c1cdb634820f09c120663cf898fee/> incorrect json-ld alias marked as unused + fix spans on diagnostics
+ - <csr-id-3604321f63b609c0095e507c094925d0d49894e5/> improve rename robustness
+ - <csr-id-91a3739936dfb66c688d161c5264c997020abc86/> remove unused systems
+ - <csr-id-aeb99acaba4869abdf8c7b8608b48c6ff91e0149/> better timing on the validation to reduce race conditions
+ - <csr-id-e52d0f65cef812ffeab54b7d110045ce4c74f741/> diagnostics after on change things works way better
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 12 commits contributed to the release over the course of 20 calendar days.
+ - 32 days passed between releases.
+ - 12 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Gate features with configuration ([`bb4f08b`](https://github.com/SemanticWebLanguageServer/swls/commit/bb4f08bed28af56f776d32f787a459c7325ec47e))
+    - Incorrect json-ld alias marked as unused + fix spans on diagnostics ([`e93ae6e`](https://github.com/SemanticWebLanguageServer/swls/commit/e93ae6e2e86c1cdb634820f09c120663cf898fee))
+    - Add automatic insert of prefix statements when writing colon ([`4bad0c7`](https://github.com/SemanticWebLanguageServer/swls/commit/4bad0c7033f9029315e831d5801922f959a64165))
+    - Improve rename robustness ([`3604321`](https://github.com/SemanticWebLanguageServer/swls/commit/3604321f63b609c0095e507c094925d0d49894e5))
+    - Remove unused systems ([`91a3739`](https://github.com/SemanticWebLanguageServer/swls/commit/91a3739936dfb66c688d161c5264c997020abc86))
+    - Inline and extract blank nodes ([`ece0878`](https://github.com/SemanticWebLanguageServer/swls/commit/ece087810771449d6e3e9badcc21b123af613879))
+    - Add undefined iri's warnings ([`5daeb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1))
+    - Better timing on the validation to reduce race conditions ([`aeb99ac`](https://github.com/SemanticWebLanguageServer/swls/commit/aeb99acaba4869abdf8c7b8608b48c6ff91e0149))
+    - Diagnostics after on change things works way better ([`e52d0f6`](https://github.com/SemanticWebLanguageServer/swls/commit/e52d0f65cef812ffeab54b7d110045ce4c74f741))
+    - Prefix diagnostics ([`b55d280`](https://github.com/SemanticWebLanguageServer/swls/commit/b55d2807364d9521378e9d5433ee53d3d6bc8109))
+    - Move tower_lsp to swls binary ([`91c1ad0`](https://github.com/SemanticWebLanguageServer/swls/commit/91c1ad0150e44713d3589bb264d704a4656e4a8a))
+    - Start rename ([`251a003`](https://github.com/SemanticWebLanguageServer/swls/commit/251a00396498ebe11c4c9632afb72b6dd91dafda))
+</details>
+
 ## v0.1.3 (2026-05-20)
 
 ### New Features
@@ -16,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 3 commits contributed to the release.
+ - 4 commits contributed to the release.
  - 19 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -28,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`0d1c8c5`](https://github.com/SemanticWebLanguageServer/swls/commit/0d1c8c52d0b7741321109ad22f1f16d53e4f8dc6))
     - Adjusting changelogs prior to release of swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`4f3e731`](https://github.com/SemanticWebLanguageServer/swls/commit/4f3e731b0301e0b689bfe15e790ad4706a3c84e1))
     - Use lov-mirror on github for better response times ([`eb41444`](https://github.com/SemanticWebLanguageServer/swls/commit/eb4144409025da4fba32892e10c207441c882de0))
     - Better highlighting ([`9b17ed3`](https://github.com/SemanticWebLanguageServer/swls/commit/9b17ed366f37598da0a9747dc51d552bee891ded))

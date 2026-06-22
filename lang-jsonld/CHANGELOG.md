@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.6 (2026-06-22)
+
+### New Features
+
+ - <csr-id-bb4f08bed28af56f776d32f787a459c7325ec47e/> gate features with configuration
+ - <csr-id-4bad0c7033f9029315e831d5801922f959a64165/> add automatic insert of prefix statements when writing colon
+ - <csr-id-5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1/> add undefined iri's warnings
+ - <csr-id-b55d2807364d9521378e9d5433ee53d3d6bc8109/> prefix diagnostics
+
+### Bug Fixes
+
+ - <csr-id-91a3739936dfb66c688d161c5264c997020abc86/> remove unused systems
+
+### Other
+
+ - <csr-id-057b9578e70b48ff01d1901700bb4a836db76327/> fix tests
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release over the course of 4 calendar days.
+ - 32 days passed between releases.
+ - 6 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Gate features with configuration ([`bb4f08b`](https://github.com/SemanticWebLanguageServer/swls/commit/bb4f08bed28af56f776d32f787a459c7325ec47e))
+    - Fix tests ([`057b957`](https://github.com/SemanticWebLanguageServer/swls/commit/057b9578e70b48ff01d1901700bb4a836db76327))
+    - Add automatic insert of prefix statements when writing colon ([`4bad0c7`](https://github.com/SemanticWebLanguageServer/swls/commit/4bad0c7033f9029315e831d5801922f959a64165))
+    - Remove unused systems ([`91a3739`](https://github.com/SemanticWebLanguageServer/swls/commit/91a3739936dfb66c688d161c5264c997020abc86))
+    - Add undefined iri's warnings ([`5daeb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1))
+    - Prefix diagnostics ([`b55d280`](https://github.com/SemanticWebLanguageServer/swls/commit/b55d2807364d9521378e9d5433ee53d3d6bc8109))
+</details>
+
 ## 0.1.5 (2026-05-20)
 
 ### New Features
@@ -15,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 9 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`0d1c8c5`](https://github.com/SemanticWebLanguageServer/swls/commit/0d1c8c52d0b7741321109ad22f1f16d53e4f8dc6))
     - Adjusting changelogs prior to release of swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`4f3e731`](https://github.com/SemanticWebLanguageServer/swls/commit/4f3e731b0301e0b689bfe15e790ad4706a3c84e1))
     - Better highlighting ([`9b17ed3`](https://github.com/SemanticWebLanguageServer/swls/commit/9b17ed366f37598da0a9747dc51d552bee891ded))
 </details>

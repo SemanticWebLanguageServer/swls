@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.4 (2026-06-22)
+
+### New Features
+
+ - <csr-id-bb4f08bed28af56f776d32f787a459c7325ec47e/> gate features with configuration
+ - <csr-id-ece087810771449d6e3e9badcc21b123af613879/> inline and extract blank nodes
+
+### Bug Fixes
+
+ - <csr-id-3604321f63b609c0095e507c094925d0d49894e5/> improve rename robustness
+ - <csr-id-91a3739936dfb66c688d161c5264c997020abc86/> remove unused systems
+ - <csr-id-aeb99acaba4869abdf8c7b8608b48c6ff91e0149/> better timing on the validation to reduce race conditions
+ - <csr-id-e52d0f65cef812ffeab54b7d110045ce4c74f741/> diagnostics after on change things works way better
+ - <csr-id-1b470e19be4b2d8639c2212eaa995dd5face19b8/> nested json-ld objects and arrays
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 7 commits contributed to the release over the course of 5 calendar days.
+ - 32 days passed between releases.
+ - 7 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Gate features with configuration ([`bb4f08b`](https://github.com/SemanticWebLanguageServer/swls/commit/bb4f08bed28af56f776d32f787a459c7325ec47e))
+    - Improve rename robustness ([`3604321`](https://github.com/SemanticWebLanguageServer/swls/commit/3604321f63b609c0095e507c094925d0d49894e5))
+    - Remove unused systems ([`91a3739`](https://github.com/SemanticWebLanguageServer/swls/commit/91a3739936dfb66c688d161c5264c997020abc86))
+    - Inline and extract blank nodes ([`ece0878`](https://github.com/SemanticWebLanguageServer/swls/commit/ece087810771449d6e3e9badcc21b123af613879))
+    - Better timing on the validation to reduce race conditions ([`aeb99ac`](https://github.com/SemanticWebLanguageServer/swls/commit/aeb99acaba4869abdf8c7b8608b48c6ff91e0149))
+    - Diagnostics after on change things works way better ([`e52d0f6`](https://github.com/SemanticWebLanguageServer/swls/commit/e52d0f65cef812ffeab54b7d110045ce4c74f741))
+    - Nested json-ld objects and arrays ([`1b470e1`](https://github.com/SemanticWebLanguageServer/swls/commit/1b470e19be4b2d8639c2212eaa995dd5face19b8))
+</details>
+
 ## 0.1.3 (2026-05-20)
 
 ### New Features
@@ -15,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 19 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -27,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`0d1c8c5`](https://github.com/SemanticWebLanguageServer/swls/commit/0d1c8c52d0b7741321109ad22f1f16d53e4f8dc6))
     - Adjusting changelogs prior to release of swls-core v0.1.3, swls-lang-rdf-base v0.1.3, swls-lang-jsonld v0.1.5, swls-lang-sparql v0.1.4, swls-lang-trig v0.1.3, swls v0.2.2 ([`4f3e731`](https://github.com/SemanticWebLanguageServer/swls/commit/4f3e731b0301e0b689bfe15e790ad4706a3c84e1))
     - Better highlighting ([`9b17ed3`](https://github.com/SemanticWebLanguageServer/swls/commit/9b17ed366f37598da0a9747dc51d552bee891ded))
 </details>
