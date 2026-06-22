@@ -64,6 +64,8 @@ pub fn prefix_diagnostic_helper<'a>(
     lovs: impl Iterator<Item = &'a LocalPrefix>,
     prefix_cc: impl Iterator<Item = &'a PrefixEntry>,
     mut make_fix_edit: impl FnMut(&str, &str) -> Vec<TextEdit>,
+    report_undefined: bool,
+    report_unused: bool,
 ) -> (Vec<Diagnostic>, Vec<CodeAction>) {
     let declared: HashSet<&str> = prefixes.iter().map(|p| p.prefix.as_str()).collect();
 
@@ -127,7 +129,7 @@ pub fn prefix_diagnostic_helper<'a>(
     let mut code_actions: Vec<CodeAction> = Vec::new();
 
     // ── ERROR: used but not declared ─────────────────────────────────────────
-    for (prefix_name, range) in &undefined_spans {
+    for (prefix_name, range) in report_undefined.then_some(&undefined_spans).into_iter().flatten() {
         let suggested_url = url_lookup
             .get(prefix_name.as_str())
             .map(|s| s.as_str())
@@ -158,7 +160,7 @@ pub fn prefix_diagnostic_helper<'a>(
     }
 
     // ── WARNING: declared but not used ────────────────────────────────────────
-    for prefix in prefixes.iter() {
+    for prefix in report_unused.then(|| prefixes.iter()).into_iter().flatten() {
         if used.contains(prefix.prefix.as_str()) {
             continue;
         }
@@ -265,6 +267,8 @@ pub fn prefix_diagnostics(
     config: Res<ServerConfig>,
 ) {
     let fmt = config.config.local.prefix_format.unwrap_or_default();
+    let report_undefined = !config.config.local.is_disabled(Disabled::UndefinedPrefix);
+    let report_unused = !config.config.local.is_disabled(Disabled::UnusedPrefix);
     for (triples, prefixes, source, rope, label, params, lang) in &query {
         if !lang.0.supports_prefix_diagnostics() {
             // Clear any stale prefix diagnostics for this language and skip.
@@ -284,6 +288,8 @@ pub fn prefix_diagnostics(
                     .prefix_edits(&source.0, &rope.0, name, url, fmt)
                     .unwrap_or_default()
             },
+            report_undefined,
+            report_unused,
         );
 
         let _ = client.publish(&params.0, diagnostics, "prefix");
@@ -313,6 +319,9 @@ pub fn add_missing_prefix_code_action(
     config: Res<ServerConfig>,
 ) {
     let fmt = config.config.local.prefix_format.unwrap_or_default();
+    if config.config.local.is_disabled(Disabled::UndefinedPrefix) {
+        return;
+    }
     for (triples, prefixes, source, rope, label, lang, mut req) in &mut query {
         if !lang.0.supports_prefix_diagnostics() {
             continue;
@@ -330,6 +339,8 @@ pub fn add_missing_prefix_code_action(
                     .prefix_edits(&source.0, &rope.0, name, url, fmt)
                     .unwrap_or_default()
             },
+            true,
+            false,
         );
 
         req.0.extend(actions);

@@ -154,7 +154,11 @@ pub fn infer_current_type(
 pub fn hover_types(
     mut query: Query<(&TripleComponent, &Types, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::HoverType) {
+        return;
+    }
     for (triple, types, pref, mut hover) in &mut query {
         let Some(term) = triple.term() else { continue };
         if term.kind() != sophia_api::term::TermKind::Iri {

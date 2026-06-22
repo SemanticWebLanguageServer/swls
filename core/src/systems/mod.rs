@@ -72,7 +72,7 @@ pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver
     }
 }
 
-#[instrument(skip(query))]
+#[instrument(skip(query, config))]
 pub fn keyword_complete(
     mut query: Query<(
         Option<&TokenComponent>,
@@ -80,7 +80,11 @@ pub fn keyword_complete(
         &DynLang,
         &mut CompletionRequest,
     )>,
+    config: Res<ServerConfig>,
 ) {
+    if config.config.local.is_disabled(Disabled::CompletionKeyword) {
+        return;
+    }
     tracing::debug!("Keyword complete!");
     for (m_token, position, helper, mut req) in &mut query {
         let range = if let Some(ct) = m_token {
