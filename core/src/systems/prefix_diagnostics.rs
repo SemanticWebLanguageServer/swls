@@ -93,7 +93,12 @@ pub fn prefix_diagnostic_helper<'a>(
             if span.is_empty() {
                 continue;
             }
-            let raw = match rope.0.get_slice(span.start..span.end) {
+            // `span` holds *byte* offsets (matching `offset_to_position`), so we
+            // must slice by bytes. Using char-indexed `get_slice` here would read
+            // from the wrong place after any multi-byte char earlier in the line
+            // (e.g. an en-dash in a literal), mis-reading a prefixed name such as
+            // `rdfs:domain` as `fs:domain` and reporting a phantom undefined prefix.
+            let raw = match rope.0.get_byte_slice(span.start..span.end) {
                 Some(s) => s.to_string(),
                 None => continue,
             };
