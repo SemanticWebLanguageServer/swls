@@ -16,7 +16,9 @@ pub use crate::{
         *,
     },
     lang::{Lang, LangHelper},
-    setup_schedule_labels, systems,
+    setup_schedule_labels,
+    text::{LineIndex, PositionEncoding},
+    systems,
     systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
     util::{

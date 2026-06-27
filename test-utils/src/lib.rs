@@ -35,6 +35,7 @@ use swls_core::{
     },
     setup_schedule_labels,
     systems::{handle_tasks, spawn_or_insert},
+    text::LineIndex,
     Startup,
 };
 
@@ -296,7 +297,7 @@ pub fn create_file(
         url.clone(),
         (
             Source(content.to_string()),
-            RopeC(ropey::Rope::from_str(content)),
+            RopeC(LineIndex::new(content)),
             Label(url), // this might crash
             Wrapped(item),
             Types(HashMap::new()),

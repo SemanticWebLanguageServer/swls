@@ -272,7 +272,7 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                             };
                             let e = world
                                 .spawn((
-                                    RopeC(ropey::Rope::from_str(&resp)),
+                                    RopeC(LineIndex::new(&resp)),
                                     Source(resp),
                                     Label(label.clone()),
                                     Wrapped(item),

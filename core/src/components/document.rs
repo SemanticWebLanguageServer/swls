@@ -29,9 +29,10 @@ pub struct Errors<E>(pub Vec<E>);
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Source(pub String);
 
-/// [`Component`] containing the current source code as [`ropey::Rope`]
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct RopeC(pub ropey::Rope);
+/// [`Component`] containing the current source code as a [`LineIndex`], used for
+/// LSP byte ↔ position conversions.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
+pub struct RopeC(pub LineIndex);
 
 /// [`Component`] that allows for language specific implementation for certain things, reducing
 /// code duplication.

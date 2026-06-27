@@ -172,7 +172,7 @@ fn new_context_value(entry: &ContextEntry<'_>) -> String {
 /// opening `{` of the top-level JSON object.
 pub fn add_to_context(
     source: &str,
-    rope: &ropey::Rope,
+    rope: &LineIndex,
     entry: ContextEntry<'_>,
 ) -> Option<Vec<TextEdit>> {
     match find_context_value_span(source) {
@@ -491,13 +491,13 @@ mod tests {
 
     #[test]
     fn add_to_context_inserts_when_absent() {
-        use ropey::Rope;
+        use swls_core::text::LineIndex;
 
         use crate::ecs::completion::{add_to_context, ContextEntry};
 
         // Document without any @context.
         let src = "{\n  \"@id\": \"http://example.com/me\"\n}";
-        let rope = Rope::from_str(src);
+        let rope = LineIndex::new(src);
 
         let edits = add_to_context(
             src,
@@ -523,13 +523,13 @@ mod tests {
 
     #[test]
     fn add_to_context_no_duplicate() {
-        use ropey::Rope;
+        use swls_core::text::LineIndex;
 
         use crate::ecs::completion::{add_to_context, ContextEntry};
 
         // Document where "foaf" is already declared.
         let src = "{\n  \"@context\": {\"foaf\": \"http://xmlns.com/foaf/0.1/\"},\n  \"@id\": \"http://example.com/me\"\n}";
-        let rope = Rope::from_str(src);
+        let rope = LineIndex::new(src);
 
         let edits = add_to_context(
             src,

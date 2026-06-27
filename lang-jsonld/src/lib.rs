@@ -120,7 +120,7 @@ impl LangHelper for JsonLdHelper {
     fn prefix_edits(
         &self,
         source: &str,
-        rope: &ropey::Rope,
+        rope: &LineIndex,
         name: &str,
         namespace: &str,
         _format: swls_core::components::PrefixFormat,
@@ -135,7 +135,7 @@ impl LangHelper for JsonLdHelper {
     fn inlay_types_hint(
         &self,
         subject: &Range<usize>,
-        rope: &ropey::Rope,
+        rope: &LineIndex,
         last_type: Option<&Range<usize>>,
         types: Vec<Cow<'_, str>>,
     ) -> Option<swls_core::lsp_types::InlayHint> {
@@ -147,7 +147,7 @@ impl LangHelper for JsonLdHelper {
                 return None;
             }
         } else {
-            let offset = if rope.get_char(subject.start) == Some('[') {
+            let offset = if rope.char_at_byte(subject.start) == Some('[') {
                 subject.start + 1
             } else {
                 subject.end

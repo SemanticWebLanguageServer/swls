@@ -67,7 +67,10 @@ pub fn prepare_rename(
                     TripleTarget::Graph => continue,
                 };
 
-                let raw: String = rope.0.slice(span.start..span.end).to_string();
+                let Some(raw) = rope.0.byte_slice(span.start..span.end) else {
+                    continue;
+                };
+                let raw = raw.to_string();
                 let inner = lang.0.rename_placeholder(&raw);
 
                 // Guard: inner must be non-empty
@@ -75,13 +78,13 @@ pub fn prepare_rename(
                     continue;
                 }
 
-                // Compute how many chars are stripped from the front.
+                // `inner` is a sub-slice of `raw`; work entirely in *byte* offsets
+                // so the math stays consistent with `span` (also bytes) and with
+                // `range_to_range`. Mixing in char counts here previously produced
+                // wrong ranges after multi-byte characters.
                 let prefix_offset = inner.as_ptr() as usize - raw.as_ptr() as usize;
-                let prefix_chars = raw[..prefix_offset].chars().count();
-                let inner_char_len = inner.chars().count();
-
-                let inner_start = span.start + prefix_chars;
-                let inner_end = inner_start + inner_char_len;
+                let inner_start = span.start + prefix_offset;
+                let inner_end = inner_start + inner.len();
 
                 if inner_start >= inner_end || inner_end > span.end {
                     continue;

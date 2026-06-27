@@ -38,7 +38,7 @@ pub fn extract_known_shapes_from_config<C: Client + ClientSync + Resource + Clon
                 let spawn = spawn_or_insert(
                     url.clone(),
                     (
-                        RopeC(ropey::Rope::from_str(&content)),
+                        RopeC(LineIndex::new(&content)),
                         Source(content.clone()),
                         Label(url.clone()),
                         Wrapped(item),

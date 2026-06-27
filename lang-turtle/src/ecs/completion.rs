@@ -180,7 +180,7 @@ mod tests {
 
     use completion::CompletionRequest;
     use futures::executor::block_on;
-    use ropey::Rope;
+    use swls_core::text::LineIndex;
     use swls_core::{
         components::*,
         lang::LangHelper,
@@ -211,7 +211,7 @@ foa
 
         world
             .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2))));
+            .insert((Source(t2.to_string()), RopeC(LineIndex::new(t2))));
         world.run_schedule(ParseLabel);
 
         // start call completion
@@ -269,7 +269,7 @@ foaf:me foaf:friend <#me>.
 
         world.entity_mut(entity).insert((
             Source(t1_2.to_string()),
-            RopeC(Rope::from_str(t1_2)),
+            RopeC(LineIndex::new(t1_2)),
             Open,
         ));
         world.run_schedule(ParseLabel);
@@ -311,7 +311,7 @@ foaf:me foaf:friend <#me>.
 
         world
             .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
+            .insert((Source(t2.to_string()), RopeC(LineIndex::new(t2)), Open));
         world.run_schedule(ParseLabel);
 
         block_on(c.await_futures(|| world.run_schedule(Tasks)));
@@ -477,7 +477,7 @@ foaf:me foaf:friend <#me>.
 
         world
             .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
+            .insert((Source(t2.to_string()), RopeC(LineIndex::new(t2)), Open));
         world.run_schedule(ParseLabel);
 
         block_on(c.await_futures(|| world.run_schedule(Tasks)));
@@ -521,7 +521,7 @@ foaf:me foaf:friend <#me>.
 
         world
             .entity_mut(entity)
-            .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
+            .insert((Source(t2.to_string()), RopeC(LineIndex::new(t2)), Open));
         world.run_schedule(ParseLabel);
 
         block_on(c.await_futures(|| world.run_schedule(Tasks)));

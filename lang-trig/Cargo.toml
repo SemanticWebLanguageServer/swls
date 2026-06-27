@@ -21,7 +21,6 @@ agnostic = ["swls-core/agnostic"]
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 futures.workspace      = true
-ropey.workspace        = true
 sophia_iri.workspace   = true
 tracing.workspace      = true
 rowan = "0.16.1"

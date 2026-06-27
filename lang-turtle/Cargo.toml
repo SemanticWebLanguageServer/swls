@@ -21,7 +21,6 @@ agnostic = ["swls-core/agnostic"]
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 futures.workspace      = true
-ropey.workspace        = true
 serde.workspace        = true
 serde_json.workspace   = true
 similar.workspace = true

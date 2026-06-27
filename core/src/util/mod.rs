@@ -1,9 +1,15 @@
-use ropey::Rope;
-
 use crate::{
     lsp_types::{Location, Position, Range},
+    text::{LineIndex, PositionEncoding},
     Label,
 };
+
+/// Encoding used for all LSP positions emitted/consumed by these helpers.
+///
+/// The LSP default is UTF-16; until we negotiate `positionEncoding` at
+/// `initialize`, everything goes through this single constant so the choice is
+/// explicit and changeable in one place.
+const ENCODING: PositionEncoding = PositionEncoding::Utf16;
 
 pub mod fs;
 /// Commonly used RDF prefixes
@@ -25,7 +31,7 @@ pub use rdf_parsers::{spanned, Spanned};
 //     crate::lsp_types::Url::parse(&url).ok()
 // }
 
-pub fn range_to_range(range: &std::ops::Range<usize>, rope: &Rope) -> Option<Range> {
+pub fn range_to_range(range: &std::ops::Range<usize>, rope: &LineIndex) -> Option<Range> {
     let start = offset_to_position(range.start, rope)?;
     let end = offset_to_position(range.end, rope)?;
     Range::new(start, end).into()
@@ -33,38 +39,20 @@ pub fn range_to_range(range: &std::ops::Range<usize>, rope: &Rope) -> Option<Ran
 
 pub fn lsp_range_to_range(
     range: &crate::lsp_types::Range,
-    rope: &Rope,
+    rope: &LineIndex,
 ) -> Option<std::ops::Range<usize>> {
-    if range.start.line as usize >= rope.len_lines() || range.end.line as usize >= rope.len_lines()
-    {
-        return None;
-    }
-
-    let start = rope.line_to_byte(range.start.line as usize) + range.start.character as usize;
-    let end = rope.line_to_byte(range.end.line as usize) + range.end.character as usize;
-
+    let start = position_to_offset(range.start, rope)?;
+    let end = position_to_offset(range.end, rope)?;
     Some(start..end)
 }
 
-pub fn offset_to_position(offset: usize, rope: &Rope) -> Option<Position> {
-    let line = rope.try_byte_to_line(offset).ok()?;
-    let line_start = rope.line_to_byte(line);
-    let column = offset - line_start;
-    Some(Position::new(line as u32, column as u32))
+pub fn offset_to_position(offset: usize, rope: &LineIndex) -> Option<Position> {
+    rope.byte_to_position(offset, ENCODING)
 }
-pub fn position_to_offset(position: Position, rope: &Rope) -> Option<usize> {
-    let line_start = rope.try_line_to_byte(position.line as usize).ok()?;
-    let line_length = rope.get_line(position.line as usize)?.len_bytes();
-
-    // Allow cursor at exactly line_length (end of line / end of file). This is a
-    // valid LSP position that editors send when the cursor is after the last character.
-    if (position.character as usize) <= line_length {
-        Some(line_start + position.character as usize)
-    } else {
-        None
-    }
+pub fn position_to_offset(position: Position, rope: &LineIndex) -> Option<usize> {
+    rope.position_to_byte(position, ENCODING)
 }
-pub fn offsets_to_range(start: usize, end: usize, rope: &Rope) -> Option<Range> {
+pub fn offsets_to_range(start: usize, end: usize, rope: &LineIndex) -> Option<Range> {
     let start = offset_to_position(start, rope)?;
     let end = offset_to_position(end, rope)?;
     Some(Range { start, end })
@@ -73,7 +61,7 @@ pub fn offsets_to_range(start: usize, end: usize, rope: &Rope) -> Option<Range> 
 pub fn token_to_location(
     token: &std::ops::Range<usize>,
     label: &Label,
-    rope: &Rope,
+    rope: &LineIndex,
 ) -> Option<Location> {
     let range = range_to_range(token, rope)?;
     Some(Location {
