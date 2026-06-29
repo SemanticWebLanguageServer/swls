@@ -88,7 +88,9 @@ fn parse_n3_system(
     mut prev_infos: Local<HashMap<String, PrevParseInfo>>,
     config: Res<ServerConfig>,
 ) {
-    if !config.config.n3.unwrap_or(true) {
+    // N3 is opt-in: unlike the other languages it defaults to disabled, so a
+    // document is only parsed as N3 when the user sets `"n3": true`.
+    if !config.config.n3.unwrap_or(false) {
         return;
     }
     for (entity, source, label) in &query {
@@ -151,6 +153,7 @@ mod tests {
     #[test]
     fn n3_parses_triples_and_prefixes() {
         let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        world.resource_mut::<ServerConfig>().config.n3 = Some(true);
 
         let src = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n\
                    <http://ex/me> a foaf:Person;\n\
@@ -188,6 +191,7 @@ mod tests {
     #[test]
     fn n3_rule_syntax_parses_without_errors() {
         let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        world.resource_mut::<ServerConfig>().config.n3 = Some(true);
 
         // `{ ... } => { ... }` (a formula/implication) is N3-only syntax that is
         // *not* valid Turtle/TriG — this is the whole reason for a dedicated lang.
@@ -207,6 +211,7 @@ mod tests {
     #[test]
     fn prefix_used_only_in_formula_is_not_reported_unused() {
         let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        world.resource_mut::<ServerConfig>().config.n3 = Some(true);
 
         let src = "@prefix : <http://ex/> .\n\n{\n    :a :b :c\n} => {\n    :a :d :e \n} .\n";
         create_file(&mut world, src, "http://example.com/ns#", "n3", Open);

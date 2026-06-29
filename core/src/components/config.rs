@@ -157,7 +157,7 @@ pub struct Config {
     pub turtle: Option<bool>,
     /// Enable trig
     pub trig: Option<bool>,
-    /// Enable n3
+    /// Enable n3 (opt-in: disabled unless explicitly set to `true`)
     pub n3: Option<bool>,
     /// Enable jsonld
     pub jsonld: Option<bool>,
