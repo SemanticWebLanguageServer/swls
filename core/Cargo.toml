@@ -5,23 +5,15 @@ name = "swls-core"
 description = "Core LSP infrastructure for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "shacl", "sparql"]
 categories = ["development-tools"]
-version = "0.1.4"
+version = "0.2.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
-[features]
-default = ["shapes", "tokio"]
-shapes = []
-tokio = ["sparql_service", "mie"]
-agnostic = []
-
-
 [dependencies]
 bevy_ecs.workspace     = true
-chumsky.workspace      = true
 derive_more.workspace  = true
 futures.workspace      = true
 serde.workspace        = true
@@ -33,7 +25,6 @@ lsp-types.workspace    = true
 
 dirs = "6"
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }
-lazy_static = "1.5.0"
 swls-lov.workspace = true
 rdf-parsers.workspace = true
 rowan = "0.16.1"
@@ -42,17 +33,23 @@ oxigraph = { version = "0.5.3", features = ["rdf-12", "js"], default-features=fa
 
 oxrdf = "0.3.0"
 
- shacl_rdf = "=0.2.9"
- shacl_ir = "=0.2.9"
- rudof_rdf = { version= "=0.2.9", default-features = false }
- shacl_ast = "=0.2.9"
- prefixmap = "=0.2.9"
- shacl_validation = { version = "=0.2.9", default-features = false, features = [] }
+shacl_rdf = "=0.2.9"
+shacl_ir = "=0.2.9"
+rudof_rdf = { version= "=0.2.9", default-features = false }
+shacl_ast = "=0.2.9"
+prefixmap = "=0.2.9"
+shacl_validation = { version = "=0.2.9", default-features = false, features = [] }
 iri_s = "=0.2.9"
 
-# Pin transient version
-sparql_service = { version = "=0.2.9", optional = true}
-mie = { version = "=0.2.9", optional = true}
+# Pin transitive versions of shacl_validation's sparql_service → mie to the
+# =0.2.9 rudof/shacl stack (newer releases switch iri_s → rudof_iri and break
+# the build). `default-features = false` is critical: their default `sparql`
+# feature chains into `rudof_rdf/sparql`, which drags in tokio/reqwest/mio and
+# makes the crate impossible to compile for wasm. SHACL uses only NativeEngine,
+# so we never want `sparql`. Not referenced in code — version pins only
+# (cargo machete is told to ignore them in [package.metadata.cargo-machete]).
+sparql_service = { version = "=0.2.9", default-features = false }
+mie = { version = "=0.2.9", default-features = false }
 
 # shacl_rdf        = { path = "/home/silvius/Projects/rudof/shacl_rdf" }
 # shacl_ir         = { path = "/home/silvius/Projects/rudof/shacl_ir" }
@@ -62,3 +59,7 @@ mie = { version = "=0.2.9", optional = true}
 # iri_s            = { path = "/home/silvius/Projects/rudof/iri_s" }
 # shacl_validation = { path = "/home/silvius/Projects/rudof/shacl_validation", default-features = false }
 #
+
+[package.metadata.cargo-machete]
+# Intentionally-unused version pins (see sparql_service / mie above).
+ignored = ["sparql_service", "mie"]

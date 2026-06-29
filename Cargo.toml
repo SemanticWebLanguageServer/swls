@@ -12,32 +12,26 @@ lsp-types = "=0.94.1"
 bevy_ecs = { version = "0.18", default-features = true, features = [
   "multi_threaded"
 ] }
-chumsky = "0.9.0"
 derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut", "is_variant"] }
 futures = { version = "0.3.31", features = ["alloc", "executor"], default-features = false }
-lazy_static = "1.5"
-logos = "0.15.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 # rdf-parsers = "0.1.8"
 rdf-parsers = { version = "0.1.15" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
-similar = "2.7"
 sophia_api = "0.9.0"
 sophia_iri = "0.9.0"
 sophia_turtle = "0.9.0"
 tracing = "0.1"
-tower-lsp = { version = "0.19.0", default-features = false, features = [ ] }
 
-components-rs      = { path = "components-rs",     version = "0.1.1", default-features = false }
-swls-lov           = { path = "lov",               version = "0.1.0" }
-swls-core          = { path = "core",              version = "0.1.0", default-features = false }
-swls-token-helpers = { path = "swls-token-helpers", version = "0.1.0" }
-swls-lang-rdf-base = { path = "lang-rdf-base",     version = "0.1.0", default-features = false }
-swls-lang-turtle   = { path = "lang-turtle",       version = "0.1.0", default-features = false }
-swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.1.0", default-features = false }
-swls-lang-sparql   = { path = "lang-sparql",       version = "0.1.0", default-features = false }
-swls-lang-trig     = { path = "lang-trig",         version = "0.1.0", default-features = false }
+components-rs      = { path = "components-rs",     version = "0.1.2", default-features = false }
+swls-lov           = { path = "lov",               version = "0.1.2" }
+swls-core          = { path = "core",              version = "0.2.0", default-features = false }
+swls-lang-rdf-base = { path = "lang-rdf-base",     version = "0.2.0", default-features = false }
+swls-lang-turtle   = { path = "lang-turtle",       version = "0.2.0", default-features = false }
+swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.2.0", default-features = false }
+swls-lang-sparql   = { path = "lang-sparql",       version = "0.2.0", default-features = false }
+swls-lang-trig     = { path = "lang-trig",         version = "0.2.0", default-features = false }
 swls-lang-n3       = { path = "lang-n3",           version = "0.1.0", default-features = false }
 
 [workspace]

@@ -55,7 +55,6 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         validate_namespace_properties.after(end),
     ));
 
-    // #[cfg(feature = "shapes")]
     parse_schedule.add_systems((crate::systems::derive_shapes.after(triples).before(end),));
     world.add_schedule(parse_schedule);
     world.insert_resource(Store(oxigraph::store::Store::new().unwrap()));

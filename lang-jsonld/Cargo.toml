@@ -4,18 +4,12 @@ name = "swls-lang-jsonld"
 description = "JSON-LD language support for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "json-ld", "linked-data"]
 categories = ["development-tools", "parser-implementations"]
-version = "0.1.6"
+version = "0.2.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-
-[features]
-default = ["tokio"]
-shapes = []
-tokio = ["swls-core/tokio"]
-agnostic = ["swls-core/agnostic"]
 
 [dependencies]
 bevy_ecs.workspace       = true
@@ -31,7 +25,6 @@ swls-lang-turtle   = { workspace = true }
 swls-lov           = { workspace = true }
 async-trait.workspace  = true
 oxigraph               = { version = "0.5.3", features = ["rdf-12"], default-features = false }
-serde_json.workspace   = true
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }

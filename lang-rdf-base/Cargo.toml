@@ -4,21 +4,15 @@ name = "swls-lang-rdf-base"
 description = "Shared setup helpers for RDF language support in swls"
 keywords = ["lsp", "semantic-web", "rdf"]
 categories = ["development-tools"]
-version = "0.1.4"
+version = "0.2.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
-[features]
-default = ["tokio"]
-shapes = []
-tokio = ["swls-core/tokio"]
-agnostic = ["swls-core/agnostic"]
-
 [dependencies]
 bevy_ecs.workspace = true
 tracing.workspace = true
-swls-core = { workspace = true, features = ["shapes"] }
+swls-core = { workspace = true }
 rdf-parsers.workspace = true

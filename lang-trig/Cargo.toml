@@ -4,24 +4,15 @@ name = "swls-lang-trig"
 description = "TriG language support for the Semantic Web Language Server"
 keywords = ["lsp", "semantic-web", "rdf", "trig"]
 categories = ["development-tools", "parser-implementations"]
-version = "0.1.4"
+version = "0.2.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
-[features]
-default = ["tokio"]
-shapes = []
-tokio = ["swls-core/tokio"]
-agnostic = ["swls-core/agnostic"]
-
 [dependencies]
-async-trait.workspace  = true
 bevy_ecs.workspace     = true
-futures.workspace      = true
-sophia_iri.workspace   = true
 tracing.workspace      = true
 rowan = "0.16.1"
 
@@ -29,7 +20,6 @@ rdf-parsers.workspace = true
 swls-lang-turtle.workspace   = true
 swls-lang-rdf-base.workspace = true
 swls-core = { workspace = true }
-swls-lov.workspace           = true
 
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }

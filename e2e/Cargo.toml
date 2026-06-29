@@ -13,7 +13,6 @@ homepage.workspace = true
 [dependencies]
 bevy_ecs.workspace  = true
 futures.workspace   = true
-tracing.workspace   = true
 
 swls-core          = { workspace = true }
 swls-lang-turtle   = { workspace = true }
