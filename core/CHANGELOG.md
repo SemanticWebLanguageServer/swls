@@ -5,6 +5,94 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.0 (2026-06-29)
+
+### Chore
+
+ - <csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/> prune dead features, dependencies, and the swls-token-helpers crate
+   - Remove the always-on `shapes` gate (SHACL validation was never actually
+     toggleable since parse/save referenced it unconditionally) and the dead
+     `tokio`/`agnostic` features. The `sparql_service`/`mie` deps the `tokio`
+     feature gated are kept as version pins with `default-features = false`:
+     shacl_validation pulls them in transitively, newer releases break against
+     the =0.2.9 rudof/shacl stack, and their default `sparql` feature would chain
+     into `rudof_rdf/sparql` and drag in tokio/reqwest/mio — which breaks the
+     wasm build (swls-web). SHACL only uses NativeEngine, so `sparql` is never
+     wanted.
+   - Make `tower-lsp` a direct dependency of the `swls` binary instead of a
+     shared workspace dependency (core only references it in docs).
+   - Remove dead deps `similar`, `lazy_static`, `logos`, `chumsky`, plus a
+     full `cargo machete` sweep across every crate.
+   - Delete the orphaned `swls-token-helpers` crate (not a workspace member,
+     no dependents).
+   - Sync `[workspace.dependencies]` version constraints with the bumped crate
+     versions so the workspace resolves again.
+
+### New Features
+
+ - <csr-id-832b6ae7122bc4b071a1a68ffba7c9bc2956d7e3/> make N3 support opt-in (disabled by default)
+   N3 stays compiled in but is now gated off at runtime unless the user sets
+   `"n3": true` in config. Flips the two existing per-language gates from
+   `unwrap_or(true)` to `unwrap_or(false)`:
+   
+   - parse gate (`parse_n3_system`): `.n3` documents aren't parsed by default.
+   - document selector (`backend.rs`): the server no longer advertises handling
+     the `n3` language, so clients don't route `.n3` files to it.
+   
+   The n3 unit tests set `config.n3 = Some(true)` so they still exercise the
+   parser. Other languages remain enabled by default.
+ - <csr-id-faad6d5d3e8023269a265c58352644e590bc47f2/> gate features with configuration
+ - <csr-id-12b14f9f8b92f0163b3e0e25842df707bcf1e785/> add automatic insert of prefix statements when writing colon
+ - <csr-id-71381b48710c992a6233aa080af53730d2657040/> inline and extract blank nodes
+ - <csr-id-e76bb7f72a54acfdd3b6ed56687a51930f0c12e6/> add undefined iri's warnings
+ - <csr-id-754ce139d2f65c2486ff027786bec722844c3779/> prefix diagnostics
+ - <csr-id-91525d7d08b5f1d52f0ce4096e39bd844d082ded/> move tower_lsp to swls binary
+ - <csr-id-a0d86b89724b070322f63e75ea0e27aacc062a28/> start rename
+
+### Bug Fixes
+
+ - <csr-id-a8632e1da167bb0d7b38513a8e0cefe6d59fdb5a/> incorrect json-ld alias marked as unused + fix spans on diagnostics
+ - <csr-id-5085b23f3eb4309daf5d6b13853cfb89facae3d6/> improve rename robustness
+ - <csr-id-3bbf1cd80df9ff26b109c7e30da844cbc262d66e/> remove unused systems
+ - <csr-id-1292fb8ccbdb3b10f01a7eb9e6bc64ccfcbda9dc/> better timing on the validation to reduce race conditions
+ - <csr-id-dc8482d1c433868c18ec54017d4bc2b12776592c/> diagnostics after on change things works way better
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 17 commits contributed to the release over the course of 7 calendar days.
+ - 40 days passed between releases.
+ - 14 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)**
+    - Refactor/replace ropey lineindex ([`81148b6`](https://github.com/SemanticWebLanguageServer/swls/commit/81148b64d51d9399a6d8d76b8f6c5114b90450af))
+ * **Uncategorized**
+    - Make N3 support opt-in (disabled by default) ([`832b6ae`](https://github.com/SemanticWebLanguageServer/swls/commit/832b6ae7122bc4b071a1a68ffba7c9bc2956d7e3))
+    - Prune dead features, dependencies, and the swls-token-helpers crate ([`53cc415`](https://github.com/SemanticWebLanguageServer/swls/commit/53cc4155da52b7054793c81009832fba55c3e2fb))
+    - Feat: add lang n3 feat: update prefix diagnostics feat: add format settings ([`c0e3888`](https://github.com/SemanticWebLanguageServer/swls/commit/c0e3888d726463bffd360a3758a33e4df7aa9b02))
+    - Release swls-core v0.1.4, swls-lang-rdf-base v0.1.4, swls-lang-turtle v0.1.4, swls-lang-jsonld v0.1.6, swls-lang-sparql v0.1.5, swls-lang-trig v0.1.4, swls v0.3.0 ([`df8a0b7`](https://github.com/SemanticWebLanguageServer/swls/commit/df8a0b7b8223d33cc7547692f7cb9040636584ab))
+    - Gate features with configuration ([`faad6d5`](https://github.com/SemanticWebLanguageServer/swls/commit/faad6d5d3e8023269a265c58352644e590bc47f2))
+    - Incorrect json-ld alias marked as unused + fix spans on diagnostics ([`a8632e1`](https://github.com/SemanticWebLanguageServer/swls/commit/a8632e1da167bb0d7b38513a8e0cefe6d59fdb5a))
+    - Add automatic insert of prefix statements when writing colon ([`12b14f9`](https://github.com/SemanticWebLanguageServer/swls/commit/12b14f9f8b92f0163b3e0e25842df707bcf1e785))
+    - Improve rename robustness ([`5085b23`](https://github.com/SemanticWebLanguageServer/swls/commit/5085b23f3eb4309daf5d6b13853cfb89facae3d6))
+    - Remove unused systems ([`3bbf1cd`](https://github.com/SemanticWebLanguageServer/swls/commit/3bbf1cd80df9ff26b109c7e30da844cbc262d66e))
+    - Inline and extract blank nodes ([`71381b4`](https://github.com/SemanticWebLanguageServer/swls/commit/71381b48710c992a6233aa080af53730d2657040))
+    - Add undefined iri's warnings ([`e76bb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/e76bb7f72a54acfdd3b6ed56687a51930f0c12e6))
+    - Better timing on the validation to reduce race conditions ([`1292fb8`](https://github.com/SemanticWebLanguageServer/swls/commit/1292fb8ccbdb3b10f01a7eb9e6bc64ccfcbda9dc))
+    - Diagnostics after on change things works way better ([`dc8482d`](https://github.com/SemanticWebLanguageServer/swls/commit/dc8482d1c433868c18ec54017d4bc2b12776592c))
+    - Prefix diagnostics ([`754ce13`](https://github.com/SemanticWebLanguageServer/swls/commit/754ce139d2f65c2486ff027786bec722844c3779))
+    - Move tower_lsp to swls binary ([`91525d7`](https://github.com/SemanticWebLanguageServer/swls/commit/91525d7d08b5f1d52f0ce4096e39bd844d082ded))
+    - Start rename ([`a0d86b8`](https://github.com/SemanticWebLanguageServer/swls/commit/a0d86b89724b070322f63e75ea0e27aacc062a28))
+</details>
+
 ## v0.1.4 (2026-06-22)
 
 ### New Features
@@ -24,36 +112,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - <csr-id-91a3739936dfb66c688d161c5264c997020abc86/> remove unused systems
  - <csr-id-aeb99acaba4869abdf8c7b8608b48c6ff91e0149/> better timing on the validation to reduce race conditions
  - <csr-id-e52d0f65cef812ffeab54b7d110045ce4c74f741/> diagnostics after on change things works way better
-
-### Commit Statistics
-
-<csr-read-only-do-not-edit/>
-
- - 12 commits contributed to the release over the course of 20 calendar days.
- - 32 days passed between releases.
- - 12 commits were understood as [conventional](https://www.conventionalcommits.org).
- - 0 issues like '(#ID)' were seen in commit messages
-
-### Commit Details
-
-<csr-read-only-do-not-edit/>
-
-<details><summary>view details</summary>
-
- * **Uncategorized**
-    - Gate features with configuration ([`bb4f08b`](https://github.com/SemanticWebLanguageServer/swls/commit/bb4f08bed28af56f776d32f787a459c7325ec47e))
-    - Incorrect json-ld alias marked as unused + fix spans on diagnostics ([`e93ae6e`](https://github.com/SemanticWebLanguageServer/swls/commit/e93ae6e2e86c1cdb634820f09c120663cf898fee))
-    - Add automatic insert of prefix statements when writing colon ([`4bad0c7`](https://github.com/SemanticWebLanguageServer/swls/commit/4bad0c7033f9029315e831d5801922f959a64165))
-    - Improve rename robustness ([`3604321`](https://github.com/SemanticWebLanguageServer/swls/commit/3604321f63b609c0095e507c094925d0d49894e5))
-    - Remove unused systems ([`91a3739`](https://github.com/SemanticWebLanguageServer/swls/commit/91a3739936dfb66c688d161c5264c997020abc86))
-    - Inline and extract blank nodes ([`ece0878`](https://github.com/SemanticWebLanguageServer/swls/commit/ece087810771449d6e3e9badcc21b123af613879))
-    - Add undefined iri's warnings ([`5daeb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1))
-    - Better timing on the validation to reduce race conditions ([`aeb99ac`](https://github.com/SemanticWebLanguageServer/swls/commit/aeb99acaba4869abdf8c7b8608b48c6ff91e0149))
-    - Diagnostics after on change things works way better ([`e52d0f6`](https://github.com/SemanticWebLanguageServer/swls/commit/e52d0f65cef812ffeab54b7d110045ce4c74f741))
-    - Prefix diagnostics ([`b55d280`](https://github.com/SemanticWebLanguageServer/swls/commit/b55d2807364d9521378e9d5433ee53d3d6bc8109))
-    - Move tower_lsp to swls binary ([`91c1ad0`](https://github.com/SemanticWebLanguageServer/swls/commit/91c1ad0150e44713d3589bb264d704a4656e4a8a))
-    - Start rename ([`251a003`](https://github.com/SemanticWebLanguageServer/swls/commit/251a00396498ebe11c4c9632afb72b6dd91dafda))
-</details>
 
 ## v0.1.3 (2026-05-20)
 

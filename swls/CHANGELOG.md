@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 (2026-06-29)
+
+### Chore
+
+ - <csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/> prune dead features, dependencies, and the swls-token-helpers crate
+   - Remove the always-on `shapes` gate (SHACL validation was never actually
+     toggleable since parse/save referenced it unconditionally) and the dead
+     `tokio`/`agnostic` features. The `sparql_service`/`mie` deps the `tokio`
+     feature gated are kept as version pins with `default-features = false`:
+     shacl_validation pulls them in transitively, newer releases break against
+     the =0.2.9 rudof/shacl stack, and their default `sparql` feature would chain
+     into `rudof_rdf/sparql` and drag in tokio/reqwest/mio — which breaks the
+     wasm build (swls-web). SHACL only uses NativeEngine, so `sparql` is never
+     wanted.
+   - Make `tower-lsp` a direct dependency of the `swls` binary instead of a
+     shared workspace dependency (core only references it in docs).
+   - Remove dead deps `similar`, `lazy_static`, `logos`, `chumsky`, plus a
+     full `cargo machete` sweep across every crate.
+   - Delete the orphaned `swls-token-helpers` crate (not a workspace member,
+     no dependents).
+   - Sync `[workspace.dependencies]` version constraints with the bumped crate
+     versions so the workspace resolves again.
+
+### New Features
+
+ - <csr-id-12b14f9f8b92f0163b3e0e25842df707bcf1e785/> add automatic insert of prefix statements when writing colon
+ - <csr-id-e76bb7f72a54acfdd3b6ed56687a51930f0c12e6/> add undefined iri's warnings
+ - <csr-id-529e4707a83e95733a0b3a470e945122aee8c4b3/> actually add swls/src/server.rs
+ - <csr-id-91525d7d08b5f1d52f0ce4096e39bd844d082ded/> move tower_lsp to swls binary
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 8 commits contributed to the release over the course of 7 calendar days.
+ - 40 days passed between releases.
+ - 5 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)**
+    - Refactor/replace ropey lineindex ([`81148b6`](https://github.com/SemanticWebLanguageServer/swls/commit/81148b64d51d9399a6d8d76b8f6c5114b90450af))
+ * **Uncategorized**
+    - Prune dead features, dependencies, and the swls-token-helpers crate ([`53cc415`](https://github.com/SemanticWebLanguageServer/swls/commit/53cc4155da52b7054793c81009832fba55c3e2fb))
+    - Feat: add lang n3 feat: update prefix diagnostics feat: add format settings ([`c0e3888`](https://github.com/SemanticWebLanguageServer/swls/commit/c0e3888d726463bffd360a3758a33e4df7aa9b02))
+    - Release swls-core v0.1.4, swls-lang-rdf-base v0.1.4, swls-lang-turtle v0.1.4, swls-lang-jsonld v0.1.6, swls-lang-sparql v0.1.5, swls-lang-trig v0.1.4, swls v0.3.0 ([`df8a0b7`](https://github.com/SemanticWebLanguageServer/swls/commit/df8a0b7b8223d33cc7547692f7cb9040636584ab))
+    - Add automatic insert of prefix statements when writing colon ([`12b14f9`](https://github.com/SemanticWebLanguageServer/swls/commit/12b14f9f8b92f0163b3e0e25842df707bcf1e785))
+    - Add undefined iri's warnings ([`e76bb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/e76bb7f72a54acfdd3b6ed56687a51930f0c12e6))
+    - Actually add swls/src/server.rs ([`529e470`](https://github.com/SemanticWebLanguageServer/swls/commit/529e4707a83e95733a0b3a470e945122aee8c4b3))
+    - Move tower_lsp to swls binary ([`91525d7`](https://github.com/SemanticWebLanguageServer/swls/commit/91525d7d08b5f1d52f0ce4096e39bd844d082ded))
+</details>
+
 ## 0.3.0 (2026-06-22)
 
 ### New Features
@@ -13,28 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - <csr-id-5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1/> add undefined iri's warnings
  - <csr-id-a066345ac46f16e951eea8ff3439761d1d261459/> actually add swls/src/server.rs
  - <csr-id-91c1ad0150e44713d3589bb264d704a4656e4a8a/> move tower_lsp to swls binary
-
-### Commit Statistics
-
-<csr-read-only-do-not-edit/>
-
- - 4 commits contributed to the release over the course of 9 calendar days.
- - 32 days passed between releases.
- - 4 commits were understood as [conventional](https://www.conventionalcommits.org).
- - 0 issues like '(#ID)' were seen in commit messages
-
-### Commit Details
-
-<csr-read-only-do-not-edit/>
-
-<details><summary>view details</summary>
-
- * **Uncategorized**
-    - Add automatic insert of prefix statements when writing colon ([`4bad0c7`](https://github.com/SemanticWebLanguageServer/swls/commit/4bad0c7033f9029315e831d5801922f959a64165))
-    - Add undefined iri's warnings ([`5daeb7f`](https://github.com/SemanticWebLanguageServer/swls/commit/5daeb7fab3c033983ddb34cb6c0518eafcd0cbc1))
-    - Actually add swls/src/server.rs ([`a066345`](https://github.com/SemanticWebLanguageServer/swls/commit/a066345ac46f16e951eea8ff3439761d1d261459))
-    - Move tower_lsp to swls binary ([`91c1ad0`](https://github.com/SemanticWebLanguageServer/swls/commit/91c1ad0150e44713d3589bb264d704a4656e4a8a))
-</details>
 
 ## 0.2.2 (2026-05-20)
 

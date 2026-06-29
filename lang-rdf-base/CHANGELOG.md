@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.0 (2026-06-29)
+
+### Chore
+
+ - <csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/> prune dead features, dependencies, and the swls-token-helpers crate
+   - Remove the always-on `shapes` gate (SHACL validation was never actually
+     toggleable since parse/save referenced it unconditionally) and the dead
+     `tokio`/`agnostic` features. The `sparql_service`/`mie` deps the `tokio`
+     feature gated are kept as version pins with `default-features = false`:
+     shacl_validation pulls them in transitively, newer releases break against
+     the =0.2.9 rudof/shacl stack, and their default `sparql` feature would chain
+     into `rudof_rdf/sparql` and drag in tokio/reqwest/mio — which breaks the
+     wasm build (swls-web). SHACL only uses NativeEngine, so `sparql` is never
+     wanted.
+   - Make `tower-lsp` a direct dependency of the `swls` binary instead of a
+     shared workspace dependency (core only references it in docs).
+   - Remove dead deps `similar`, `lazy_static`, `logos`, `chumsky`, plus a
+     full `cargo machete` sweep across every crate.
+   - Delete the orphaned `swls-token-helpers` crate (not a workspace member,
+     no dependents).
+   - Sync `[workspace.dependencies]` version constraints with the bumped crate
+     versions so the workspace resolves again.
+
+### New Features
+
+ - <csr-id-faad6d5d3e8023269a265c58352644e590bc47f2/> gate features with configuration
+ - <csr-id-71381b48710c992a6233aa080af53730d2657040/> inline and extract blank nodes
+
+### Bug Fixes
+
+ - <csr-id-5085b23f3eb4309daf5d6b13853cfb89facae3d6/> improve rename robustness
+ - <csr-id-3bbf1cd80df9ff26b109c7e30da844cbc262d66e/> remove unused systems
+ - <csr-id-1292fb8ccbdb3b10f01a7eb9e6bc64ccfcbda9dc/> better timing on the validation to reduce race conditions
+ - <csr-id-dc8482d1c433868c18ec54017d4bc2b12776592c/> diagnostics after on change things works way better
+ - <csr-id-00bfb2dc81f0db86b331124e3c0a7856cb5d65da/> nested json-ld objects and arrays
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release over the course of 7 calendar days.
+ - 40 days passed between releases.
+ - 8 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Prune dead features, dependencies, and the swls-token-helpers crate ([`53cc415`](https://github.com/SemanticWebLanguageServer/swls/commit/53cc4155da52b7054793c81009832fba55c3e2fb))
+    - Release swls-core v0.1.4, swls-lang-rdf-base v0.1.4, swls-lang-turtle v0.1.4, swls-lang-jsonld v0.1.6, swls-lang-sparql v0.1.5, swls-lang-trig v0.1.4, swls v0.3.0 ([`df8a0b7`](https://github.com/SemanticWebLanguageServer/swls/commit/df8a0b7b8223d33cc7547692f7cb9040636584ab))
+    - Gate features with configuration ([`faad6d5`](https://github.com/SemanticWebLanguageServer/swls/commit/faad6d5d3e8023269a265c58352644e590bc47f2))
+    - Improve rename robustness ([`5085b23`](https://github.com/SemanticWebLanguageServer/swls/commit/5085b23f3eb4309daf5d6b13853cfb89facae3d6))
+    - Remove unused systems ([`3bbf1cd`](https://github.com/SemanticWebLanguageServer/swls/commit/3bbf1cd80df9ff26b109c7e30da844cbc262d66e))
+    - Inline and extract blank nodes ([`71381b4`](https://github.com/SemanticWebLanguageServer/swls/commit/71381b48710c992a6233aa080af53730d2657040))
+    - Better timing on the validation to reduce race conditions ([`1292fb8`](https://github.com/SemanticWebLanguageServer/swls/commit/1292fb8ccbdb3b10f01a7eb9e6bc64ccfcbda9dc))
+    - Diagnostics after on change things works way better ([`dc8482d`](https://github.com/SemanticWebLanguageServer/swls/commit/dc8482d1c433868c18ec54017d4bc2b12776592c))
+    - Nested json-ld objects and arrays ([`00bfb2d`](https://github.com/SemanticWebLanguageServer/swls/commit/00bfb2dc81f0db86b331124e3c0a7856cb5d65da))
+</details>
+
 ## 0.1.4 (2026-06-22)
 
 ### New Features
@@ -19,31 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - <csr-id-aeb99acaba4869abdf8c7b8608b48c6ff91e0149/> better timing on the validation to reduce race conditions
  - <csr-id-e52d0f65cef812ffeab54b7d110045ce4c74f741/> diagnostics after on change things works way better
  - <csr-id-1b470e19be4b2d8639c2212eaa995dd5face19b8/> nested json-ld objects and arrays
-
-### Commit Statistics
-
-<csr-read-only-do-not-edit/>
-
- - 7 commits contributed to the release over the course of 5 calendar days.
- - 32 days passed between releases.
- - 7 commits were understood as [conventional](https://www.conventionalcommits.org).
- - 0 issues like '(#ID)' were seen in commit messages
-
-### Commit Details
-
-<csr-read-only-do-not-edit/>
-
-<details><summary>view details</summary>
-
- * **Uncategorized**
-    - Gate features with configuration ([`bb4f08b`](https://github.com/SemanticWebLanguageServer/swls/commit/bb4f08bed28af56f776d32f787a459c7325ec47e))
-    - Improve rename robustness ([`3604321`](https://github.com/SemanticWebLanguageServer/swls/commit/3604321f63b609c0095e507c094925d0d49894e5))
-    - Remove unused systems ([`91a3739`](https://github.com/SemanticWebLanguageServer/swls/commit/91a3739936dfb66c688d161c5264c997020abc86))
-    - Inline and extract blank nodes ([`ece0878`](https://github.com/SemanticWebLanguageServer/swls/commit/ece087810771449d6e3e9badcc21b123af613879))
-    - Better timing on the validation to reduce race conditions ([`aeb99ac`](https://github.com/SemanticWebLanguageServer/swls/commit/aeb99acaba4869abdf8c7b8608b48c6ff91e0149))
-    - Diagnostics after on change things works way better ([`e52d0f6`](https://github.com/SemanticWebLanguageServer/swls/commit/e52d0f65cef812ffeab54b7d110045ce4c74f741))
-    - Nested json-ld objects and arrays ([`1b470e1`](https://github.com/SemanticWebLanguageServer/swls/commit/1b470e19be4b2d8639c2212eaa995dd5face19b8))
-</details>
 
 ## 0.1.3 (2026-05-20)
 
