@@ -97,6 +97,8 @@ pub mod backend;
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
 pub mod store;
+/// Minimal text indexing for LSP position math (replaces ropey).
+pub mod text;
 /// Common utils
 ///
 /// Includes range transformations between [`std::ops::Range`] and [`swls_core::lsp_types::Range`].

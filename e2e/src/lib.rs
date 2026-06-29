@@ -34,7 +34,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::{prelude::*, world::World};
 use futures::{channel::mpsc::UnboundedReceiver, executor::block_on};
-use ropey::Rope;
+use swls_core::text::LineIndex;
 use swls_core::{
     feature::{
         code_action::{CodeActionRequest, Label as CodeActionLabel},
@@ -129,7 +129,7 @@ impl LspHarness {
     pub fn update_file(&mut self, handle: &FileHandle, new_content: &str) {
         self.world
             .entity_mut(handle.entity)
-            .insert((Source(new_content.to_string()), RopeC(Rope::from_str(new_content))));
+            .insert((Source(new_content.to_string()), RopeC(LineIndex::new(new_content))));
         self.world.run_schedule(ParseLabel);
     }
 

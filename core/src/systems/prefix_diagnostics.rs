@@ -93,7 +93,12 @@ pub fn prefix_diagnostic_helper<'a>(
             if span.is_empty() {
                 continue;
             }
-            let raw = match rope.0.get_slice(span.start..span.end) {
+            // `span` holds *byte* offsets, so slice by bytes. Slicing by chars
+            // here would read from the wrong place after any multi-byte char
+            // earlier in the line (e.g. an en-dash in a literal), mis-reading a
+            // prefixed name such as `rdfs:domain` as `fs:domain` and reporting a
+            // phantom undefined prefix.
+            let raw = match rope.0.byte_slice(span.start..span.end) {
                 Some(s) => s.to_string(),
                 None => continue,
             };
@@ -231,7 +236,7 @@ pub fn prefix_diagnostic_helper<'a>(
 /// - Turtle/TriG: `@prefix foaf: <…>.`
 /// - SPARQL:       `PREFIX foaf: <…>`
 /// - JSON-LD:      `"foaf": "http://…"` (inside `@context`)
-fn find_prefix_declaration_range(rope: &ropey::Rope, prefix_name: &str) -> (Position, Position) {
+fn find_prefix_declaration_range(rope: &LineIndex, prefix_name: &str) -> (Position, Position) {
     // Patterns that identify a declaration for this prefix, paired with the byte
     // offset (within the match) at which the highlighted key/name begins.
     let turtle_needle = format!("@prefix {}:", prefix_name);
@@ -249,18 +254,17 @@ fn find_prefix_declaration_range(rope: &ropey::Rope, prefix_name: &str) -> (Posi
         (&jsonld_needle, 0, prefix_name.len() + 2),
     ];
 
-    let candidate = rope.lines().enumerate().find_map(|(line_idx, line_slice)| {
-        let line = line_slice.to_string();
-        let line_start = rope.line_to_char(line_idx);
+    let candidate = (0..rope.len_lines()).find_map(|line_idx| {
+        let line = rope.line_str(line_idx)?;
+        let line_start = rope.line_start(line_idx)?;
 
         for (needle, key_off, key_len) in patterns.iter() {
             if let Some(idx) = line.find(needle.as_str()) {
-                let key_byte = idx + key_off;
-                // Convert byte indices within the line to char offsets.
-                let key_start_char = line[..key_byte].chars().count();
-                let key_end_char = line[..key_byte + key_len].chars().count();
-                let start = offset_to_position(line_start + key_start_char, rope)?;
-                let end = offset_to_position(line_start + key_end_char, rope)?;
+                // Byte offsets within the whole document; `offset_to_position`
+                // converts them (and the encoding) for us.
+                let key_byte = line_start + idx + key_off;
+                let start = offset_to_position(key_byte, rope)?;
+                let end = offset_to_position(key_byte + key_len, rope)?;
                 return Some((start, end));
             }
         }

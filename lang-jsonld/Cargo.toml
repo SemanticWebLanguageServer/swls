@@ -21,7 +21,6 @@ agnostic = ["swls-core/agnostic"]
 bevy_ecs.workspace       = true
 futures.workspace        = true
 rdf-parsers.workspace    = true
-ropey.workspace          = true
 tracing.workspace        = true
 rowan = "0.16.1"
 

@@ -3,7 +3,7 @@ use std::{
     ops::Range,
 };
 
-use ropey::Rope;
+use swls_core::text::LineIndex;
 use swls_core::{
     lsp_types::FormattingOptions,
     prelude::{spanned, Spanned},
@@ -29,16 +29,18 @@ impl<'a> FormatState<'a> {
         options: FormattingOptions,
         buf: Buf,
         comments: &'a [Spanned<String>],
-        source: &'a Rope,
+        source: &'a LineIndex,
     ) -> Self {
         let mut indent = String::new();
         for _ in 0..options.tab_size {
             indent.push(' ');
         }
 
+        // Sentinel span past the end of the document, so the trailing comment
+        // bucket sorts after every real span.
         let tail = spanned(
             String::new(),
-            source.len_chars() + 1..source.len_chars() + 1,
+            source.len_bytes() + 1..source.len_bytes() + 1,
         );
         Self {
             tail,
@@ -314,7 +316,7 @@ pub fn format_turtle(
     turtle: &Turtle,
     config: FormattingOptions,
     comments: &[Spanned<String>],
-    source: &Rope,
+    source: &LineIndex,
 ) -> Option<String> {
     let buf: Buf = Cursor::new(Vec::new());
     let mut state = FormatState::new(config, buf, comments, source);
@@ -334,7 +336,7 @@ mod tests {
     use std::str::FromStr;
 
     use rdf_parsers::turtle::SyntaxKind;
-    use ropey::Rope;
+    use swls_core::text::LineIndex;
     use rowan::NodeOrToken;
     use swls_core::prelude::Spanned;
 
@@ -392,7 +394,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -421,7 +423,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -458,7 +460,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -487,7 +489,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -512,7 +514,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -542,7 +544,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -577,7 +579,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -611,7 +613,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -657,7 +659,7 @@ mod tests {
                 ..Default::default()
             },
             &comments,
-            &Rope::from_str(txt),
+            &LineIndex::new(txt),
         )
         .expect("formatting");
         assert_eq!(formatted, expected);

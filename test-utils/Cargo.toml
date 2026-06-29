@@ -15,7 +15,6 @@ homepage.workspace = true
 bevy_ecs.workspace     = true
 chumsky.workspace      = true
 futures.workspace      = true
-ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 async-trait.workspace  = true

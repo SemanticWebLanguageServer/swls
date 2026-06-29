@@ -37,7 +37,7 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
             url.clone(),
             (
                 Source(local.content.to_string()),
-                RopeC(ropey::Rope::from_str(&local.content)),
+                RopeC(LineIndex::new(&*local.content)),
                 Label(url),
                 Wrapped(item),
                 Types(HashMap::new()),

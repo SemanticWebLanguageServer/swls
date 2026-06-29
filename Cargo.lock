@@ -2765,16 +2765,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ropey"
-version = "1.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93411e420bcd1a75ddd1dc3caf18c23155eda2c090631a85af21ba19e97093b5"
-dependencies = [
- "smallvec",
- "str_indices",
-]
-
-[[package]]
 name = "rowan"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3487,12 +3477,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "str_indices"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d08889ec5408683408db66ad89e0e1f93dff55c73a4ccc71c427d5b277ee47e6"
-
-[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3514,7 +3498,6 @@ dependencies = [
  "futures",
  "glob",
  "reqwest",
- "ropey",
  "serde",
  "serde_json",
  "sophia_api",
@@ -3565,7 +3548,6 @@ dependencies = [
  "oxrdf",
  "prefixmap",
  "rdf-parsers",
- "ropey",
  "rowan",
  "rudof_rdf",
  "serde",
@@ -3586,7 +3568,6 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "futures",
- "ropey",
  "swls-core",
  "swls-lang-jsonld",
  "swls-lang-sparql",
@@ -3607,7 +3588,6 @@ dependencies = [
  "futures",
  "oxigraph",
  "rdf-parsers",
- "ropey",
  "rowan",
  "serde_json",
  "swls-core",
@@ -3627,7 +3607,6 @@ dependencies = [
  "bevy_ecs",
  "futures",
  "rdf-parsers",
- "ropey",
  "rowan",
  "sophia_iri",
  "swls-core",
@@ -3658,7 +3637,6 @@ dependencies = [
  "futures",
  "lazy_static",
  "rdf-parsers",
- "ropey",
  "rowan",
  "serde_json",
  "sophia_api",
@@ -3680,7 +3658,6 @@ dependencies = [
  "bevy_ecs",
  "futures",
  "rdf-parsers",
- "ropey",
  "rowan",
  "sophia_iri",
  "swls-core",
@@ -3700,7 +3677,6 @@ dependencies = [
  "bevy_ecs",
  "futures",
  "rdf-parsers",
- "ropey",
  "rowan",
  "serde",
  "serde_json",
@@ -3732,7 +3708,6 @@ dependencies = [
  "chumsky",
  "futures",
  "glob",
- "ropey",
  "serde_json",
  "sophia_api",
  "swls-core",

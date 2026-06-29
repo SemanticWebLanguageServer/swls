@@ -22,7 +22,6 @@ async-trait.workspace  = true
 bevy_ecs.workspace     = true
 futures.workspace      = true
 lazy_static.workspace  = true
-ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true

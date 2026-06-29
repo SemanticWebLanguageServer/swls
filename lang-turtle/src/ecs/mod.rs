@@ -52,7 +52,7 @@ pub fn setup_completion(world: &mut World) {
 #[cfg(test)]
 mod tests {
     use futures::executor::block_on;
-    use ropey::Rope;
+    use swls_core::text::LineIndex;
     use swls_core::{
         components::*,
         prelude::{diagnostics::DiagnosticItem, *},
@@ -94,7 +94,7 @@ mod tests {
         // t3: 'foa' is an invalid token → syntax errors
         world
             .entity_mut(entity)
-            .insert((Source(t3.to_string()), RopeC(Rope::from_str(t3))));
+            .insert((Source(t3.to_string()), RopeC(LineIndex::new(t3))));
         world.run_schedule(ParseLabel);
 
         let diags = last_diags();

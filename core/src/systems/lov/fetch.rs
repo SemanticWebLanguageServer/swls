@@ -187,7 +187,7 @@ pub fn spawn_document(
     let spawn = spawn_or_insert(
         url.clone(),
         (
-            RopeC(ropey::Rope::from_str(&content)),
+            RopeC(LineIndex::new(&content)),
             Source(content.clone()),
             Label(url.clone()),
             Wrapped(item),

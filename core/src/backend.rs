@@ -12,7 +12,7 @@ use futures::lock::Mutex;
 use goto_type::GotoTypeRequest;
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
-use ropey::Rope;
+use crate::text::LineIndex;
 use tracing::{debug, error, info, instrument};
 
 use crate::{
@@ -532,7 +532,7 @@ impl<C: Client> Backend<C> {
             (
                 Source(item.text.clone()),
                 Label(item.uri.clone()),
-                RopeC(Rope::from_str(&item.text)),
+                RopeC(LineIndex::new(&item.text)),
                 Wrapped(item),
                 DocumentLinks(Vec::new()),
                 Open,
@@ -576,7 +576,7 @@ impl<C: Client> Backend<C> {
         };
 
         self.run(move |world| {
-            let rope_c = RopeC(Rope::from_str(&change.text));
+            let rope_c = RopeC(LineIndex::new(&change.text));
             world
                 .entity_mut(entity)
                 .insert((Source(change.text), rope_c));

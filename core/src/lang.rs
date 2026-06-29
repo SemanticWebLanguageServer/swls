@@ -1,6 +1,8 @@
 use std::{borrow::Cow, ops::Range};
 
-use crate::{lsp_types::SemanticTokenType, prelude::TripleTarget, util::offset_to_position};
+use crate::{
+    lsp_types::SemanticTokenType, prelude::TripleTarget, text::LineIndex, util::offset_to_position,
+};
 
 pub fn head() -> crate::lsp_types::Range {
     let start = crate::lsp_types::Position {
@@ -89,7 +91,7 @@ pub trait LangHelper: std::fmt::Debug {
     fn prefix_edits(
         &self,
         _source: &str,
-        _rope: &ropey::Rope,
+        _rope: &LineIndex,
         name: &str,
         namespace: &str,
         format: crate::components::PrefixFormat,
@@ -217,7 +219,7 @@ pub trait LangHelper: std::fmt::Debug {
     fn inlay_types_hint(
         &self,
         subject: &Range<usize>,
-        rope: &ropey::Rope,
+        rope: &LineIndex,
         last_type: Option<&Range<usize>>,
         types: Vec<Cow<'_, str>>,
     ) -> Option<crate::lsp_types::InlayHint> {
@@ -229,7 +231,7 @@ pub trait LangHelper: std::fmt::Debug {
                 return None;
             }
         } else {
-            let offset = if rope.get_char(subject.start) == Some('[') {
+            let offset = if rope.char_at_byte(subject.start) == Some('[') {
                 subject.start + 1
             } else {
                 subject.end

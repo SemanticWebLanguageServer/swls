@@ -255,6 +255,41 @@ fn declared_and_used_prefix_produces_no_prefix_diagnostic() {
     );
 }
 
+// ─── Multi-byte characters must not shift prefix spans ───────────────────────
+
+/// Regression: a multi-byte char (en-dash `–`, U+2013, 3 bytes / 1 char) inside a
+/// literal must not desync the byte-based term spans from the rope slice. Before
+/// the fix, the slice for `rdfs:domain` was read 2 chars too far (`fs:domain`),
+/// producing a phantom "Undefined prefix fs".
+#[test_log::test]
+fn multibyte_literal_does_not_produce_phantom_undefined_prefix() {
+    let mut h = LspHarness::new();
+    let src = "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.\n\
+               @prefix rdfc: <https://w3id.org/rdf-connect#>.\n\
+               \n\
+               rdfc:consistsOf rdfs:comment \"–\";\n\
+               \u{0020} rdfs:domain rdfc:Pipeline.";
+    let file = h.open_file("file:///multibyte_prefix.ttl", "turtle", src);
+
+    let diags = h.run_diagnostics();
+
+    let prefix_errors: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url && d.severity == Some(DiagnosticSeverity::ERROR)
+        })
+        .collect();
+
+    assert!(
+        prefix_errors.is_empty(),
+        "All prefixes are declared; expected no undefined-prefix errors, got: {:?}",
+        prefix_errors
+            .iter()
+            .map(|(_, d)| &d.message)
+            .collect::<Vec<_>>()
+    );
+}
+
 // ─── Multiple undefined prefixes ─────────────────────────────────────────────
 
 #[test_log::test]
