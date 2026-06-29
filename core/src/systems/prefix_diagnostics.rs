@@ -22,7 +22,11 @@ use crate::{
 /// term is written as a prefixed name (`prefix:local`).
 ///
 /// Returns `None` for full IRIs (`<...>` or containing `://`), blank nodes (`_:`),
-/// variables (`?`), and anonymous default prefix (empty string before `:`).
+/// and variables (`?`).
+///
+/// The default prefix (`:local`, empty name before the `:`) returns `Some("")`: it
+/// is a real declared prefix (`@prefix : <...>`) whose usage must be tracked so it
+/// is not wrongly reported "declared but never used".
 pub fn extract_prefix_from_token(raw: &str) -> Option<&str> {
     let text = raw.trim_matches('"'); // JSON-LD wraps IRIs in quotes
     if text.starts_with('<') || text.starts_with("_:") || text.starts_with('?') {
@@ -32,12 +36,7 @@ pub fn extract_prefix_from_token(raw: &str) -> Option<&str> {
         return None;
     }
     let colon = text.find(':')?;
-    let prefix = &text[..colon];
-    if prefix.is_empty() {
-        None // default prefix ":" — not really a declared prefix
-    } else {
-        Some(prefix)
-    }
+    Some(&text[..colon])
 }
 
 // ─── Core helper (mirrors prefix_completion_helper) ───────────────────────────
@@ -69,9 +68,17 @@ pub fn prefix_diagnostic_helper<'a>(
 ) -> (Vec<Diagnostic>, Vec<CodeAction>) {
     let declared: HashSet<&str> = prefixes.iter().map(|p| p.prefix.as_str()).collect();
 
-    // Walk all IRI terms to find used prefix names + first occurrence spans.
+    // Walk all IRI terms to record used prefix names and every undefined-prefix
+    // occurrence.
     let mut used: HashSet<String> = HashSet::new();
-    let mut undefined_spans: HashMap<String, Range> = HashMap::new();
+    // One entry per undefined-prefix *occurrence* (→ one diagnostic each), in
+    // document order. Deduped by (name, byte span): a subject that heads a
+    // predicate-object list (`:a :b :c; :d :e .`) is shared across several quads
+    // with the *same* span and must only be flagged once.
+    let mut undefined_occurrences: Vec<(String, Range)> = Vec::new();
+    // Distinct undefined prefix names (→ one quick-fix each, + URL lookup).
+    let mut undefined_names: HashSet<String> = HashSet::new();
+    let mut seen_spans: HashSet<(String, usize, usize)> = HashSet::new();
     // Resolved IRI values of all IRI terms — used to detect JSON-LD term-alias
     // usage (an alias is used as a bare term, not as `prefix:local`).
     let mut iri_values: HashSet<String> = HashSet::new();
@@ -95,12 +102,17 @@ pub fn prefix_diagnostic_helper<'a>(
             };
             used.insert(prefix_name.to_string());
 
-            if !declared.contains(prefix_name) && !undefined_spans.contains_key(prefix_name) {
+            if declared.contains(prefix_name) {
+                continue;
+            }
+            // Record each distinct (prefix, span) occurrence once.
+            if seen_spans.insert((prefix_name.to_string(), span.start, span.end)) {
                 if let (Some(start), Some(end)) = (
                     offset_to_position(span.start, &rope.0),
                     offset_to_position(span.end, &rope.0),
                 ) {
-                    undefined_spans.insert(prefix_name.to_string(), Range::new(start, end));
+                    undefined_occurrences.push((prefix_name.to_string(), Range::new(start, end)));
+                    undefined_names.insert(prefix_name.to_string());
                 }
             }
         }
@@ -108,16 +120,16 @@ pub fn prefix_diagnostic_helper<'a>(
 
     // Resolve suggested URLs for only the undefined prefixes in a single pass.
     let mut url_lookup: HashMap<&str, String> = HashMap::new();
-    if !undefined_spans.is_empty() {
+    if !undefined_names.is_empty() {
         for lp in lovs {
-            if undefined_spans.contains_key(lp.name.as_ref()) {
+            if undefined_names.contains(lp.name.as_ref()) {
                 url_lookup
                     .entry(lp.name.as_ref())
                     .or_insert_with(|| lp.namespace.to_string());
             }
         }
         for pe in prefix_cc {
-            if undefined_spans.contains_key(pe.name.as_ref()) {
+            if undefined_names.contains(pe.name.as_ref()) {
                 url_lookup
                     .entry(pe.name.as_ref())
                     .or_insert_with(|| pe.namespace.to_string());
@@ -129,27 +141,51 @@ pub fn prefix_diagnostic_helper<'a>(
     let mut code_actions: Vec<CodeAction> = Vec::new();
 
     // ── ERROR: used but not declared ─────────────────────────────────────────
-    for (prefix_name, range) in report_undefined.then_some(&undefined_spans).into_iter().flatten() {
-        let suggested_url = url_lookup
-            .get(prefix_name.as_str())
-            .map(|s| s.as_str())
-            .unwrap_or("");
+    if report_undefined {
+        // One diagnostic per occurrence, so every offending token is underlined.
+        // Keep them grouped by prefix so the per-prefix quick-fix can reference
+        // every occurrence it resolves.
+        let mut diags_by_prefix: HashMap<&str, Vec<Diagnostic>> = HashMap::new();
+        for (prefix_name, range) in &undefined_occurrences {
+            let diag = Diagnostic {
+                range: range.clone(),
+                severity: Some(DiagnosticSeverity::ERROR),
+                message: format!("Undefined prefix \"{}\"", prefix_name),
+                ..Default::default()
+            };
+            diagnostics.push(diag.clone());
+            diags_by_prefix
+                .entry(prefix_name.as_str())
+                .or_default()
+                .push(diag);
+        }
 
-        let fix_edits = make_fix_edit(prefix_name, suggested_url);
+        // One quick-fix per distinct prefix (in document order): the fix inserts
+        // a single declaration at the top of the file, resolving *every*
+        // occurrence at once — so per-occurrence quick-fixes would be duplicates.
+        // The action links back to all of the prefix's diagnostics (via their
+        // ranges) so editors associate the fix with each underlined occurrence.
+        let mut emitted: HashSet<&str> = HashSet::new();
+        for (prefix_name, _) in &undefined_occurrences {
+            if !emitted.insert(prefix_name.as_str()) {
+                continue;
+            }
+            let suggested_url = url_lookup
+                .get(prefix_name.as_str())
+                .map(|s| s.as_str())
+                .unwrap_or("");
 
-        diagnostics.push(Diagnostic {
-            range: range.clone(),
-            severity: Some(DiagnosticSeverity::ERROR),
-            message: format!("Undefined prefix \"{}\"", prefix_name),
-            ..Default::default()
-        });
+            let fix_edits = make_fix_edit(prefix_name, suggested_url);
+            if fix_edits.is_empty() {
+                continue;
+            }
 
-        if !fix_edits.is_empty() {
             let mut changes = std::collections::HashMap::new();
             changes.insert(label.0.clone(), fix_edits);
             code_actions.push(CodeAction {
                 title: format!("Add prefix declaration for \"{}\"", prefix_name),
                 kind: Some(CodeActionKind::QUICKFIX),
+                diagnostics: diags_by_prefix.remove(prefix_name.as_str()),
                 edit: Some(WorkspaceEdit {
                     changes: Some(changes),
                     ..Default::default()
@@ -180,10 +216,7 @@ pub fn prefix_diagnostic_helper<'a>(
             diagnostics.push(Diagnostic {
                 range: Range::new(start, end),
                 severity: Some(DiagnosticSeverity::WARNING),
-                message: format!(
-                    "Prefix \"{}\" is declared but never used",
-                    prefix.prefix
-                ),
+                message: format!("Prefix \"{}\" is declared but never used", prefix.prefix),
                 ..Default::default()
             });
         }
@@ -198,10 +231,7 @@ pub fn prefix_diagnostic_helper<'a>(
 /// - Turtle/TriG: `@prefix foaf: <…>.`
 /// - SPARQL:       `PREFIX foaf: <…>`
 /// - JSON-LD:      `"foaf": "http://…"` (inside `@context`)
-fn find_prefix_declaration_range(
-    rope: &ropey::Rope,
-    prefix_name: &str,
-) -> (Position, Position) {
+fn find_prefix_declaration_range(rope: &ropey::Rope, prefix_name: &str) -> (Position, Position) {
     // Patterns that identify a declaration for this prefix, paired with the byte
     // offset (within the match) at which the highlighted key/name begins.
     let turtle_needle = format!("@prefix {}:", prefix_name);

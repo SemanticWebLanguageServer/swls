@@ -66,6 +66,111 @@ fn undefined_prefix_diagnostic_spans_the_token() {
     assert_eq!(diag.range.start.line, 0, "Diagnostic should be on line 0");
 }
 
+// ─── Every occurrence flagged, but a single quick-fix ─────────────────────────
+
+#[test_log::test]
+fn undefined_prefix_flags_every_occurrence_with_one_quickfix() {
+    let mut h = LspHarness::new();
+    // `ex` is undefined and used three times (two on line 0, one on line 1).
+    let src = "<> ex:a ex:b .\n<> ex:c <http://x/x> .";
+    let file = h.open_file("file:///multi_occurrence.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let diags = h.run_diagnostics();
+    let ex_errors: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::ERROR)
+                && d.message.contains("\"ex\"")
+        })
+        .collect();
+    assert_eq!(
+        ex_errors.len(),
+        3,
+        "expected one error per occurrence, got: {:?}",
+        ex_errors.iter().map(|(_, d)| &d.range).collect::<Vec<_>>()
+    );
+
+    let actions = h.code_actions(&file);
+    let ex_actions: Vec<_> = actions
+        .iter()
+        .filter(|a| a.title.contains("Add prefix") && a.title.contains("ex"))
+        .collect();
+    assert_eq!(
+        ex_actions.len(),
+        1,
+        "the document-wide fix should be offered once per prefix, got: {:?}",
+        ex_actions.iter().map(|a| &a.title).collect::<Vec<_>>()
+    );
+}
+
+#[test_log::test]
+fn undefined_prefix_quickfix_links_all_occurrence_diagnostics() {
+    let mut h = LspHarness::new();
+    // `ex` undefined and used twice → the single quick-fix must reference both
+    // occurrence diagnostics (so editors associate the fix with each squiggle).
+    let src = "<> ex:a ex:b .";
+    let file = h.open_file("file:///quickfix_link.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let actions = h.code_actions(&file);
+    let ex_action = actions
+        .iter()
+        .find(|a| a.title.contains("Add prefix") && a.title.contains("ex"))
+        .expect("expected an 'Add prefix' quick-fix for 'ex'");
+
+    let linked = ex_action
+        .diagnostics
+        .as_ref()
+        .expect("quick-fix should link the diagnostics it resolves");
+    assert_eq!(
+        linked.len(),
+        2,
+        "quick-fix should reference both occurrence diagnostics, got: {:?}",
+        linked.iter().map(|d| &d.range).collect::<Vec<_>>()
+    );
+    assert!(
+        linked
+            .iter()
+            .all(|d| d.severity == Some(DiagnosticSeverity::ERROR)
+                && d.message.contains("\"ex\"")),
+        "linked diagnostics should be the undefined-prefix errors, got: {:?}",
+        linked.iter().map(|d| &d.message).collect::<Vec<_>>()
+    );
+    // The linked diagnostics carry distinct spans (the two occurrences).
+    assert_ne!(
+        linked[0].range, linked[1].range,
+        "linked diagnostics should cover the distinct occurrences"
+    );
+}
+
+#[test_log::test]
+fn shared_subject_in_predicate_object_list_flagged_once() {
+    let mut h = LspHarness::new();
+    // `ex:s` heads a predicate-object list, so it is shared across two quads with
+    // the same source span. It must be reported once, not once per quad.
+    let src = "ex:s <http://p/p> <http://o/o>;\n     <http://p/q> <http://o/r> .";
+    let file = h.open_file("file:///shared_subject.ttl", "turtle", src);
+    h.drain_tasks();
+
+    let diags = h.run_diagnostics();
+    let ex_errors: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::ERROR)
+                && d.message.contains("\"ex\"")
+        })
+        .collect();
+    assert_eq!(
+        ex_errors.len(),
+        1,
+        "a shared subject must be flagged once, got: {:?}",
+        ex_errors.iter().map(|(_, d)| &d.range).collect::<Vec<_>>()
+    );
+}
+
 // ─── Unused prefix → WARNING ──────────────────────────────────────────────────
 
 #[test_log::test]
@@ -89,6 +194,35 @@ fn unused_prefix_produces_warning_diagnostic() {
     assert!(
         !warnings.is_empty(),
         "Expected at least one WARNING for unused prefix 'foaf', got: {:?}",
+        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+    );
+}
+
+// ─── Default (empty) prefix is tracked like any other ─────────────────────────
+
+#[test_log::test]
+fn used_default_prefix_produces_no_unused_warning() {
+    let mut h = LspHarness::new();
+    // The default prefix `:` is declared and used (`:a`, `:b`, `:c`). It must not
+    // be reported "declared but never used" — regression for the empty prefix
+    // being skipped during usage tracking.
+    let src = "@prefix : <http://ex/> .\n:a :b :c .";
+    let file = h.open_file("file:///default_prefix.ttl", "turtle", src);
+
+    let diags = h.run_diagnostics();
+
+    let warnings: Vec<_> = diags
+        .iter()
+        .filter(|(url, d)| {
+            url.as_str() == file.url
+                && d.severity == Some(DiagnosticSeverity::WARNING)
+                && d.message.contains("never used")
+        })
+        .collect();
+
+    assert!(
+        warnings.is_empty(),
+        "Used default prefix should not warn, got: {:?}",
         diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
     );
 }

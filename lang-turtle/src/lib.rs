@@ -35,7 +35,13 @@ impl LangHelper for TurtleHelper {
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
-    register_rdf_lang::<TurtleLang, TurtleHelper>(world, &["turtle"], &[".ttl"]);
+    register_rdf_lang::<TurtleLang, TurtleHelper>(
+        world,
+        &["turtle"],
+        // .owl ontologies are commonly serialized as Turtle; N-Triples (.nt) is a
+        // strict subset of Turtle. (.n3 is handled by the dedicated N3 language.)
+        &[".ttl", ".owl", ".nt"],
+    );
 
     world.schedule_scope(swls_core::Startup, |_, schedule| {
         schedule.add_systems((

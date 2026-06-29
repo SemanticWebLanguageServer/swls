@@ -157,13 +157,58 @@ pub struct Config {
     pub turtle: Option<bool>,
     /// Enable trig
     pub trig: Option<bool>,
+    /// Enable n3
+    pub n3: Option<bool>,
     /// Enable jsonld
     pub jsonld: Option<bool>,
     /// Enable sparql
     pub sparql: Option<bool>,
+    /// Per-language `textDocument/formatting` toggles. Formatting is disabled by
+    /// default for every language except Turtle.
+    #[serde(default)]
+    pub format: FormatConfig,
     /// Extra local configuration
     #[serde(flatten)]
     pub local: LocalConfig,
+}
+
+/// Per-language toggles for `textDocument/formatting`.
+///
+/// Each field is an `Option<bool>`, but the *effective* default differs per
+/// language: Turtle formatting is on unless explicitly disabled, while every
+/// other language is off unless explicitly enabled. Use the accessor methods
+/// ([`FormatConfig::turtle`] etc.) to resolve a field to its effective value
+/// rather than reading the `Option` directly.
+#[derive(Debug, Deserialize, Serialize, Default)]
+#[serde(default)]
+pub struct FormatConfig {
+    /// Enable Turtle formatting (default: `true`).
+    pub turtle: Option<bool>,
+    /// Enable TriG formatting (default: `false`).
+    pub trig: Option<bool>,
+    /// Enable N3 formatting (default: `false`).
+    pub n3: Option<bool>,
+    /// Enable JSON-LD formatting (default: `false`).
+    pub jsonld: Option<bool>,
+}
+
+impl FormatConfig {
+    /// Whether Turtle formatting is enabled (defaults to `true`).
+    pub fn turtle(&self) -> bool {
+        self.turtle.unwrap_or(true)
+    }
+    /// Whether TriG formatting is enabled (defaults to `false`).
+    pub fn trig(&self) -> bool {
+        self.trig.unwrap_or(false)
+    }
+    /// Whether N3 formatting is enabled (defaults to `false`).
+    pub fn n3(&self) -> bool {
+        self.n3.unwrap_or(false)
+    }
+    /// Whether JSON-LD formatting is enabled (defaults to `false`).
+    pub fn jsonld(&self) -> bool {
+        self.jsonld.unwrap_or(false)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -382,8 +427,10 @@ impl Default for Config {
             log: "debug".to_string(),
             turtle: None,
             trig: None,
+            n3: None,
             jsonld: None,
             sparql: None,
+            format: FormatConfig::default(),
             local: LocalConfig::default(),
         }
     }

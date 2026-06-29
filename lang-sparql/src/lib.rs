@@ -11,7 +11,13 @@ use crate::ecs::{setup_completion, setup_parse};
 pub mod lang;
 
 pub fn setup_world(world: &mut World) {
-    register_rdf_lang::<Sparql, SparqlHelper>(world, &["sparql"], &[".sq"]);
+    // .rq (query) and .ru (update) are the W3C-registered extensions; .sparql is
+    // also widely used. .sq is kept for backwards compatibility.
+    register_rdf_lang::<Sparql, SparqlHelper>(
+        world,
+        &["sparql"],
+        &[".sq", ".rq", ".ru", ".sparql"],
+    );
     setup_parse(world);
     setup_completion(world);
     swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<Sparql>(world);

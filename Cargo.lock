@@ -2588,9 +2588,9 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfe6d27af89d2b3c55604bed8e52e220b56e664aacf5df48b45da1451833cf21"
+checksum = "d88949f8c3217a3a1aaae0dc827d662cfcccef8d3b1772bb0e6509bc2eed414c"
 dependencies = [
  "async-trait",
  "logos",
@@ -3521,6 +3521,7 @@ dependencies = [
  "sophia_iri",
  "swls-core",
  "swls-lang-jsonld",
+ "swls-lang-n3",
  "swls-lang-sparql",
  "swls-lang-trig",
  "swls-lang-turtle",
@@ -3609,6 +3610,26 @@ dependencies = [
  "ropey",
  "rowan",
  "serde_json",
+ "swls-core",
+ "swls-lang-rdf-base",
+ "swls-lang-turtle",
+ "swls-lov",
+ "swls-test-utils",
+ "test-log",
+ "tracing",
+]
+
+[[package]]
+name = "swls-lang-n3"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "futures",
+ "rdf-parsers",
+ "ropey",
+ "rowan",
+ "sophia_iri",
  "swls-core",
  "swls-lang-rdf-base",
  "swls-lang-turtle",

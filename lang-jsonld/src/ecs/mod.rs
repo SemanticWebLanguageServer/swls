@@ -536,8 +536,13 @@ fn derive_jsonld_prefixes(
 
 pub(crate) fn format_jsonld_system(
     mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<JsonLdLang>>,
+    config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Position, Range};
+    if !config.config.format.jsonld() {
+        tracing::debug!("JSON-LD formatting disabled by config");
+        return;
+    }
     for (source, node, mut request) in &mut query {
         if request.0.is_some() {
             tracing::debug!("Didn't format with the jsonld format system, already formatted");

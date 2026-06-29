@@ -144,8 +144,13 @@ fn parse_trig_system(
 
 pub(crate) fn format_trig_system(
     mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<TriGLang>>,
+    config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Position, Range};
+    if !config.config.format.trig() {
+        tracing::debug!("TriG formatting disabled by config");
+        return;
+    }
     for (source, node, mut request) in &mut query {
         if request.0.is_some() {
             tracing::debug!("Didn't format with the trig format system, already formatted");
@@ -164,5 +169,57 @@ pub(crate) fn format_trig_system(
             ),
             formatted,
         )]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use swls_core::prelude::*;
+    use swls_test_utils::{create_file, setup_world, TestClient};
+    use test_log::test;
+
+    fn format_with(trig_enabled: Option<bool>) -> Option<String> {
+        let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+
+        let mut cfg = ServerConfig::default();
+        cfg.config.format.trig = trig_enabled;
+        world.insert_resource(cfg);
+
+        let entity = create_file(
+            &mut world,
+            "<a> <b> <c>;<d> <e>.",
+            "http://example.com/ns#",
+            "trig",
+            Open,
+        );
+        // ParseLabel populates the green node the formatter consumes.
+        world.run_schedule(ParseLabel);
+
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(FormatLabel);
+
+        world
+            .entity_mut(entity)
+            .take::<FormatRequest>()
+            .and_then(|r| r.0)
+            .map(|edits| edits[0].new_text.clone())
+    }
+
+    #[test]
+    fn trig_formatting_off_by_default() {
+        assert!(
+            format_with(None).is_none(),
+            "TriG formatting should be disabled unless explicitly enabled"
+        );
+    }
+
+    #[test]
+    fn trig_formatting_can_be_enabled() {
+        let formatted = format_with(Some(true));
+        assert!(
+            formatted.is_some(),
+            "TriG formatting should run when enabled via config"
+        );
+        assert!(formatted.unwrap().contains("<a> <b> <c>;"));
     }
 }

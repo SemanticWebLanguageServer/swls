@@ -1,18 +1,6 @@
-@prefix ldes: <https://w3id.org/ldes#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-@prefix mtg: <https://mtg.example.org/ontology#>.
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
-@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix rdfc: <https://w3id.org/rdf-connect#>.
 
-[ ] a sh:NodeShape;
-  sh:property [ sh:path <> ].
-
-[ ] rdf:type mtg:Card.
-<abc> a "test"^^xsd:datatime, foaf:Agent.
-<me> foaf:knows <abc>.
-[ ] a sh:NodeShape;
-  sh:property [ ].
-
-[ ] a sh:NodeShape;
-  sh:property [ sh:name "" ].
+rdfc:consistsOf rdfs:comment "–";
+  rdfs:domain rdfc:Pipeline.
 

@@ -10,8 +10,14 @@ use crate::{lang::formatter::format_turtle, TurtleLang};
 
 pub fn format_turtle_system(
     mut query: Query<(&RopeC, &Element<TurtleLang>, &Comments, &mut FormatRequest), Without<Dirty>>,
+    config: Res<ServerConfig>,
 ) {
     debug!("Format turtle system");
+
+    if !config.config.format.turtle() {
+        debug!("Turtle formatting disabled by config");
+        return;
+    }
 
     for (source, turtle, comments, mut request) in &mut query {
         if request.0.is_some() {

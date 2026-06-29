@@ -20,7 +20,7 @@ logos = "0.15.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 ropey = "1.6.1"
 # rdf-parsers = "0.1.8"
-rdf-parsers = { version = "0.1.14" }
+rdf-parsers = { version = "0.1.15" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 similar = "2.7"
@@ -39,6 +39,7 @@ swls-lang-turtle   = { path = "lang-turtle",       version = "0.1.0", default-fe
 swls-lang-jsonld   = { path = "lang-jsonld",       version = "0.1.0", default-features = false }
 swls-lang-sparql   = { path = "lang-sparql",       version = "0.1.0", default-features = false }
 swls-lang-trig     = { path = "lang-trig",         version = "0.1.0", default-features = false }
+swls-lang-n3       = { path = "lang-n3",           version = "0.1.0", default-features = false }
 
 [workspace]
 default-members = [
@@ -49,6 +50,7 @@ default-members = [
   "lang-turtle",
   "lang-sparql",
   "lang-trig",
+  "lang-n3",
   "lang-jsonld",
   "swls",
 ]
@@ -60,6 +62,7 @@ members = [
   "lang-turtle",
   "lang-sparql",
   "lang-trig",
+  "lang-n3",
   "lang-jsonld",
   "swls",
   "test-utils",
