@@ -379,7 +379,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
     let c2 = client.clone();
 
     client.spawn_local(move || async move {
-        let mut all_results: Vec<(Entity, Element<JsonLdLang>, JsonLdActiveContext)> =
+        let mut all_results: Vec<(Entity, Element, JsonLdActiveContext)> =
             Vec::with_capacity(items.len());
 
         for (e, gn, base, span_len) in items {
@@ -392,7 +392,7 @@ pub fn derive_jsonld_triples<C: Client + Resource + Clone>(
             let (jsonld_model, ctx) = convert_with_loader(&syntax, &mut loader, Some(base)).await;
 
             tracing::debug!("{} triples", jsonld_model.triples.len());
-            let element = Element::<JsonLdLang>(spanned(jsonld_model, 0..span_len));
+            let element = Element(spanned(jsonld_model, 0..span_len));
             all_results.push((e, element, JsonLdActiveContext(ctx)));
         }
 
@@ -457,7 +457,7 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
 
             tracing::debug!("{} triples", jsonld_model.triples.len());
 
-            let element = Element::<JsonLdLang>(spanned(jsonld_model, span));
+            let element = Element(spanned(jsonld_model, span));
 
             let mut command_queue = CommandQueue::default();
             command_queue.push(move |world: &mut World| {
@@ -466,7 +466,8 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
                     .insert((element, JsonLdActiveContext(ctx)));
                 // Re-run ParseLabel so that derive_triples_system and
                 // derive_jsonld_prefixes see the newly-inserted element
-                // (they react to Changed<Element<JsonLdLang>>).  Without
+                // (they react to Changed<Element> filtered by With<JsonLdLang>).
+                // Without
                 // this, those systems only fire on the *next* user edit.
                 world.run_schedule(ParseLabel);
             });
@@ -500,7 +501,7 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
 /// generic completion and hover systems that rely on [`Prefixes`] work for
 /// JSON-LD documents.
 fn derive_jsonld_prefixes(
-    query: Query<(Entity, &Label, &Element<JsonLdLang>), Changed<Element<JsonLdLang>>>,
+    query: Query<(Entity, &Label, &Element), (Changed<Element>, With<JsonLdLang>)>,
     mut commands: Commands,
 ) {
     use swls_lang_rdf_base::traits::NamedNodeExt;

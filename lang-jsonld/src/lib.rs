@@ -647,7 +647,6 @@ fn start_jsonld<C: Client + Resource + Clone>(
 }
 
 impl Lang for JsonLdLang {
-    type Element = rdf_parsers::model::Turtle;
     type ElementError = TurtleParseError;
 
     const LANG: &'static str = "jsonld";

@@ -6,10 +6,16 @@ use swls_core::{
 };
 use tracing::debug;
 
-use crate::{lang::formatter::format_turtle, TurtleLang};
+use crate::{
+    lang::formatter::{format_turtle, PrefixStyle},
+    TurtleLang,
+};
 
 pub fn format_turtle_system(
-    mut query: Query<(&RopeC, &Element<TurtleLang>, &Comments, &mut FormatRequest), Without<Dirty>>,
+    mut query: Query<
+        (&RopeC, &Element, &Comments, &mut FormatRequest),
+        (With<TurtleLang>, Without<Dirty>),
+    >,
     config: Res<ServerConfig>,
 ) {
     debug!("Format turtle system");
@@ -26,6 +32,17 @@ pub fn format_turtle_system(
         }
         debug!("Formatting with turtle format system");
 
+        let style = config
+            .config
+            .local
+            .prefix_format
+            .as_ref()
+            .map(|x| match x {
+                PrefixFormat::Turtle => PrefixStyle::OldSchool,
+                PrefixFormat::Sparql => PrefixStyle::Sparql,
+            })
+            .unwrap_or_default();
+
         let formatted = format_turtle(
             &turtle.0,
             swls_core::lsp_types::FormattingOptions {
@@ -34,6 +51,7 @@ pub fn format_turtle_system(
             },
             &comments.0,
             &source.0,
+            style,
         );
 
         request.0 = formatted.map(|x| {

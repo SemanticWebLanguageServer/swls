@@ -3,19 +3,20 @@ use std::collections::HashSet;
 use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 
-use crate::{
-    lang::{Lang, LangHelper},
-    lsp_types::Position,
-    prelude::*,
-    systems::TypeId,
-};
+use crate::{lang::LangHelper, lsp_types::Position, prelude::*, systems::TypeId};
 
 #[derive(Component, Default, Debug, Clone, Eq, PartialEq)]
 pub struct CurrentType(pub HashSet<TypeId>);
 
-/// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
+/// [`Component`] that contains the parsed semantic element.
+///
+/// Every RDF language (Turtle, TriG, SPARQL, N3, JSON-LD) parses into the shared
+/// [`Turtle`](rdf_parsers::model::Turtle) model, so this is a single concrete
+/// component rather than being generic over the language.  Systems that must run
+/// for one language only pair a `&Element` query with a `With<LangMarker>` filter
+/// (e.g. `With<TurtleLang>`).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Element<L: Lang>(pub Spanned<L::Element>);
+pub struct Element(pub Spanned<rdf_parsers::model::Turtle>);
 
 /// Simple wrapper structure that derives [`Component`]
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]

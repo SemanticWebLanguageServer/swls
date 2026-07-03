@@ -16,8 +16,6 @@ pub fn head() -> crate::lsp_types::Range {
 }
 
 pub trait Lang: 'static {
-    /// Type of the parsed element.
-    type Element: Send + Sync;
     type ElementError: Into<crate::feature::diagnostics::SimpleDiagnostic>
         + Send
         + Sync
@@ -210,6 +208,16 @@ pub trait LangHelper: std::fmt::Debug {
     /// Text RDF syntaxes (Turtle / TriG / SPARQL) override this to `true`;
     /// JSON-LD keeps the default and stays on the agnostic path.
     fn model_based_rename(&self) -> bool {
+        false
+    }
+    /// Return `true` if this language supports the generic blank-node refactor
+    /// code actions (extract a nested `[ … ]` to a labelled `_:bN`, and inline a
+    /// labelled `_:bN` back into `[ … ]`).
+    ///
+    /// These actions emit Turtle-family syntax, so the text RDF syntaxes
+    /// (Turtle / TriG / SPARQL / N3) override this to `true`.  JSON-LD keeps the
+    /// default because its blank nodes are JSON objects, not `[ … ]` / `_:bN`.
+    fn blank_node_code_actions(&self) -> bool {
         false
     }
     fn supports_shape_validation(&self) -> bool {

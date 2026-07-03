@@ -13,6 +13,12 @@ use tracing::{trace, warn};
 use swls_lang_rdf_base::traits::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
 type Buf = Cursor<Vec<u8>>;
+#[derive(Default, Clone, Copy)]
+pub enum PrefixStyle {
+    #[default]
+    OldSchool,
+    Sparql,
+}
 struct FormatState<'a> {
     indent_level: usize,
     indent: String,
@@ -22,6 +28,7 @@ struct FormatState<'a> {
     comments_idx: usize,
     tail: Spanned<String>,
     line_count: usize,
+    prefix_style: PrefixStyle,
 }
 
 impl<'a> FormatState<'a> {
@@ -30,6 +37,7 @@ impl<'a> FormatState<'a> {
         buf: Buf,
         comments: &'a [Spanned<String>],
         source: &'a LineIndex,
+        prefix_style: PrefixStyle,
     ) -> Self {
         let mut indent = String::new();
         for _ in 0..options.tab_size {
@@ -42,6 +50,7 @@ impl<'a> FormatState<'a> {
             String::new(),
             source.len_bytes() + 1..source.len_bytes() + 1,
         );
+
         Self {
             tail,
             line_start: 0,
@@ -51,6 +60,7 @@ impl<'a> FormatState<'a> {
             comments,
             comments_idx: 0,
             line_count: 0,
+            prefix_style,
         }
     }
 
@@ -127,11 +137,25 @@ impl FormatState<'_> {
     }
 
     fn write_prefix(&mut self, prefix: &TurtlePrefix) -> io::Result<()> {
-        write!(self.buf, "@prefix {}: {}.", prefix.prefix.0, prefix.value.0)
+        match self.prefix_style {
+            PrefixStyle::OldSchool => {
+                write!(self.buf, "@prefix {}: {}.", prefix.prefix.0, prefix.value.0)
+            }
+            PrefixStyle::Sparql => {
+                write!(self.buf, "PREFIX {}: {}", prefix.prefix.0, prefix.value.0)
+            }
+        }
     }
 
     fn write_base(&mut self, base: &Base) -> io::Result<()> {
-        write!(self.buf, "@base {}.", base.1 .0)
+        match self.prefix_style {
+            PrefixStyle::OldSchool => {
+                write!(self.buf, "@base {}.", base.1 .0)
+            }
+            PrefixStyle::Sparql => {
+                write!(self.buf, "BASE {}", base.1 .0)
+            }
+        }
     }
 
     fn write_bnode(&mut self, bnode: &BlankNode) -> io::Result<()> {
@@ -317,9 +341,10 @@ pub fn format_turtle(
     config: FormattingOptions,
     comments: &[Spanned<String>],
     source: &LineIndex,
+    prefix_style: impl Into<PrefixStyle>,
 ) -> Option<String> {
     let buf: Buf = Cursor::new(Vec::new());
-    let mut state = FormatState::new(config, buf, comments, source);
+    let mut state = FormatState::new(config, buf, comments, source, prefix_style.into());
     match state.write_turtle(turtle) {
         Ok(_) => tracing::debug!("Format successful"),
         Err(e) => {
@@ -336,11 +361,15 @@ mod tests {
     use std::str::FromStr;
 
     use rdf_parsers::turtle::SyntaxKind;
-    use swls_core::text::LineIndex;
     use rowan::NodeOrToken;
     use swls_core::prelude::Spanned;
+    use swls_core::text::LineIndex;
 
-    use crate::lang::{formatter::format_turtle, parser::parse_new, Turtle};
+    use crate::lang::{
+        formatter::{format_turtle, PrefixStyle},
+        parser::parse_new,
+        Turtle,
+    };
 
     fn parse_turtle(inp: &str, url: &swls_core::lsp_types::Url) -> (Turtle, Vec<Spanned<String>>) {
         let (turtle, errs, _, syntax, _) = parse_new(inp, url.as_str(), None);
@@ -395,6 +424,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -424,6 +454,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -461,6 +492,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -490,6 +522,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -515,6 +548,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -545,6 +579,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -580,6 +615,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -614,6 +650,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);
@@ -660,6 +697,7 @@ mod tests {
             },
             &comments,
             &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
         )
         .expect("formatting");
         assert_eq!(formatted, expected);

@@ -97,7 +97,7 @@ fn parse_sparql_system(
         let cst_tokens = extract_sparql_cst_tokens(&syntax);
 
         let span = 0..source.0.len();
-        let element = Element::<Sparql>(swls_core::prelude::spanned(turtle_model, span));
+        let element = Element(swls_core::prelude::spanned(turtle_model, span));
 
         if errors.is_empty() {
             commands
@@ -154,7 +154,7 @@ fn collect_errors(
 
 #[instrument(skip(query, commands))]
 fn derive_triples(
-    query: Query<(Entity, &Label, &Element<Sparql>), Changed<Element<Sparql>>>,
+    query: Query<(Entity, &Label, &Element), (Changed<Element>, With<Sparql>)>,
     mut commands: Commands,
 ) {
     for (entity, label, el) in &query {

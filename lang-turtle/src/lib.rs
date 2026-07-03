@@ -32,6 +32,9 @@ impl LangHelper for TurtleHelper {
     fn model_based_rename(&self) -> bool {
         true
     }
+    fn blank_node_code_actions(&self) -> bool {
+        true
+    }
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
@@ -54,11 +57,9 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     setup_completion(world);
     setup_formatting(world);
     setup_code_action(world);
-    swls_lang_rdf_base::rename::setup_rename::<TurtleLang>(world);
 }
 
 impl Lang for TurtleLang {
-    type Element = rdf_parsers::model::Turtle;
     type ElementError = crate::lang::parser::TurtleParseError;
 
     const LANG: &'static str = "turtle";

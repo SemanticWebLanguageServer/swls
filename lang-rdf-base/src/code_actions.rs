@@ -1,5 +1,5 @@
 //! Shared, language-agnostic code actions for the text RDF syntaxes
-//! (Turtle / TriG / SPARQL / N3 — anything whose [`Lang::Element`] is the
+//! (Turtle / TriG / SPARQL / N3 — anything whose parsed [`Element`] is the
 //! [`Turtle`] model).
 //!
 //! These systems are generic over the language marker `L` and are opted into by
@@ -13,8 +13,7 @@ use std::ops::Range as StdRange;
 use bevy_ecs::prelude::*;
 use rdf_parsers::model::{BlankNode, Term, Turtle, PO};
 use swls_core::{
-    feature::code_action::{CodeActionRequest, Label as CodeActionLabel},
-    lang::Lang,
+    feature::code_action::CodeActionRequest,
     lsp_types::{CodeAction, CodeActionKind, Range, TextEdit, WorkspaceEdit},
     prelude::*,
     util::{offset_to_position, offsets_to_range, position_to_offset},
@@ -85,23 +84,25 @@ fn fresh_blank_label(source: &str) -> String {
 ///
 /// This is generic over the language marker `L`; every text RDF syntax whose
 /// parsed model is [`Turtle`] (Turtle, TriG, SPARQL, N3, …) can reuse it.
-pub fn extract_blank_node<L>(
+pub fn extract_blank_node(
     mut query: Query<(
-        &Element<L>,
+        &Element,
         &Source,
         &RopeC,
         &Label,
         &PositionComponent,
+        &DynLang,
         &mut CodeActionRequest,
     )>,
     config: Res<ServerConfig>,
-) where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
+) {
     if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
         return;
     }
-    for (element, source, rope, label, position, mut req) in &mut query {
+    for (element, source, rope, label, position, lang, mut req) in &mut query {
+        if !lang.0.blank_node_code_actions() {
+            continue;
+        }
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             continue;
         };
@@ -265,23 +266,25 @@ fn collect_named_refs(term: &Spanned<Term>, name: &str, out: &mut Vec<StdRange<u
 /// ```
 ///
 /// Generic over the language marker `L`, mirroring [`extract_blank_node`].
-pub fn inline_blank_node<L>(
+pub fn inline_blank_node(
     mut query: Query<(
-        &Element<L>,
+        &Element,
         &Source,
         &RopeC,
         &Label,
         &PositionComponent,
+        &DynLang,
         &mut CodeActionRequest,
     )>,
     config: Res<ServerConfig>,
-) where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
+) {
     if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
         return;
     }
-    for (element, source, rope, label, position, mut req) in &mut query {
+    for (element, source, rope, label, position, lang, mut req) in &mut query {
+        if !lang.0.blank_node_code_actions() {
+            continue;
+        }
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             continue;
         };
@@ -394,14 +397,6 @@ pub fn inline_blank_node<L>(
     }
 }
 
-/// Register the [`extract_blank_node`] and [`inline_blank_node`] code actions for
-/// language `L` in the shared `CodeAction` schedule.  Call this from a text RDF
-/// language's `setup_world`.
-pub fn setup_blank_node_code_action<L>(world: &mut World)
-where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
-    world.schedule_scope(CodeActionLabel, |_, schedule| {
-        schedule.add_systems((extract_blank_node::<L>, inline_blank_node::<L>));
-    });
-}
+// Registered once (non-generic) by `register_rdf_lang`; each invocation is gated
+// at runtime by `LangHelper::blank_node_code_actions`, so JSON-LD (JSON blank
+// nodes) is skipped while the Turtle-family syntaxes opt in.

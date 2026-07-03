@@ -5,9 +5,9 @@ pub mod traits;
 pub mod triples;
 
 use bevy_ecs::{
-    component::Component, event::EntityEvent, observer::On, system::Commands, world::World,
+    component::Component, event::EntityEvent, observer::On, prelude::Resource, system::Commands,
+    world::World,
 };
-use rdf_parsers::model::Turtle;
 use swls_core::{
     feature::{
         diagnostics::publish_diagnostics,
@@ -34,10 +34,12 @@ pub fn register_rdf_lang<L, H>(
     language_id: &'static [&'static str],
     extensions: &'static [&'static str],
 ) where
-    L: Lang<Element = Turtle> + Component + Default + Send + Sync + 'static,
+    L: Lang + Component + Default + Send + Sync + 'static,
     L::ElementError: 'static + Clone,
     H: LangHelper + Default + Send + Sync + 'static,
 {
+    ensure_shared_rdf_systems(world);
+
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
     L::LEGEND_TYPES.iter().for_each(|lt| {
         if !semantic_token_dict.contains_key(lt) {
@@ -78,10 +80,42 @@ pub fn register_rdf_lang<L, H>(
     });
 }
 
+#[derive(Resource)]
+struct SharedRdfSystemsRegistered;
+
+/// Register the shared, [`DynLang`]-gated systems that apply to *some* RDF
+/// languages but not all — model-based rename and the blank-node refactor code
+/// actions — exactly once, no matter how many languages are installed.
+///
+/// Instead of each language opting in with a `setup_*::<L>` call, every system
+/// asks the document's [`LangHelper`] at runtime whether it applies (via
+/// [`LangHelper::model_based_rename`] / [`LangHelper::blank_node_code_actions`]).
+/// Adding a language therefore means overriding those capability methods in its
+/// helper — there is no scheduling wiring to keep in sync.
+fn ensure_shared_rdf_systems(world: &mut World) {
+    if world.contains_resource::<SharedRdfSystemsRegistered>() {
+        return;
+    }
+    world.insert_resource(SharedRdfSystemsRegistered);
+
+    world.schedule_scope(swls_core::feature::code_action::Label, |_, schedule| {
+        schedule.add_systems((
+            code_actions::extract_blank_node,
+            code_actions::inline_blank_node,
+        ));
+    });
+    world.schedule_scope(swls_core::feature::rename::PrepareRename, |_, schedule| {
+        schedule.add_systems(rename::prepare_rename);
+    });
+    world.schedule_scope(swls_core::feature::rename::Rename, |_, schedule| {
+        schedule.add_systems(rename::rename);
+    });
+}
+
 pub use tokens::semantic_tokens;
 mod tokens {
     use bevy_ecs::prelude::*;
-    use rdf_parsers::model::{BlankNode, NamedNode, Term, Turtle};
+    use rdf_parsers::model::{BlankNode, NamedNode, Term};
     use swls_core::lsp_types::SemanticTokenType;
     use swls_core::prelude::semantic::*;
     use swls_core::prelude::*;
@@ -141,8 +175,11 @@ mod tokens {
         }
     }
 
-    pub fn semantic_tokens<L: Lang<Element = Turtle> + Component>(
-        query: Query<(&Element<L>, &Source, &mut TokenTypesComponent), With<HighlightRequest>>,
+    pub fn semantic_tokens<L: Component>(
+        query: Query<
+            (&Element, &Source, &mut TokenTypesComponent),
+            (With<L>, With<HighlightRequest>),
+        >,
     ) {
         for (turtle, source, mut ttc) in query {
             let source = source.0.as_str();

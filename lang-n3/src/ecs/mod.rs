@@ -124,7 +124,7 @@ fn parse_n3_system(
         );
 
         let span = 0..source.0.len();
-        let element = Element::<N3Lang>(spanned(n3_model, span));
+        let element = Element(spanned(n3_model, span));
 
         if errors.is_empty() {
             commands
@@ -162,7 +162,7 @@ mod tests {
         world.run_schedule(ParseLabel);
 
         // The N3 source is detected, parsed without errors, and yields triples.
-        let element: &Element<N3Lang> = world
+        let element: &Element = world
             .entity(entity)
             .get()
             .expect("N3 element should be present");

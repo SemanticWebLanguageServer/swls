@@ -86,7 +86,7 @@ pub fn parse_turtle_system(
         let (cst_tokens, cst_comments) = extract_cst_tokens(&syntax, source.0.as_str());
 
         let span = 0..source.0.len();
-        let element = Element::<TurtleLang>(swls_core::prelude::spanned(turtle, span));
+        let element = Element(swls_core::prelude::spanned(turtle, span));
         if errors.is_empty() {
             commands
                 .entity(entity)
@@ -115,13 +115,10 @@ pub fn parse_turtle_system(
 ///
 /// Register this in your language crate's `setup_parsing()` after the parse system,
 /// using `.before(swls_core::feature::parse::triples)`.
-pub fn derive_triples_system<L>(
-    query: Query<(Entity, &Label, &Element<L>), (Changed<Element<L>>, With<L>)>,
+pub fn derive_triples_system<L: Component>(
+    query: Query<(Entity, &Label, &Element), (Changed<Element>, With<L>)>,
     mut commands: Commands,
-) where
-    L: swls_core::lang::Lang + Component,
-    L::Element: TurtleExt,
-{
+) {
     use std::sync::Arc;
 
     for (entity, label, element) in &query {

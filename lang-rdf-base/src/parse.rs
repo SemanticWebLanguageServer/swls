@@ -1,22 +1,19 @@
 //! Shared, language-agnostic parse-phase systems for the text RDF syntaxes whose
-//! [`Lang::Element`] is the [`Turtle`] model (Turtle / TriG / …).
+//! parsed model is the [`Turtle`](rdf_parsers::model::Turtle) model (Turtle / TriG / …).
 
 use bevy_ecs::prelude::*;
-use rdf_parsers::model::Turtle;
-use swls_core::{lang::Lang, prelude::*};
+use swls_core::prelude::*;
 
 use crate::traits::NamedNodeExt;
 
 /// Derive the [`Prefixes`] component (declared prefix → namespace map + base URL)
-/// from the parsed [`Turtle`] model.  Generic over the language marker `L`, so
-/// Turtle, TriG and any other language with `Element = Turtle` share one
-/// implementation.
-pub fn derive_prefixes_system<L>(
-    query: Query<(Entity, &Label, &Element<L>), Changed<Element<L>>>,
+/// from the parsed [`Element`] model.  The language marker `L` is used only to
+/// scope the query (`With<L>`), so Turtle, TriG and any other language whose
+/// element is the shared `Turtle` model reuse one implementation.
+pub fn derive_prefixes_system<L: Component>(
+    query: Query<(Entity, &Label, &Element), (Changed<Element>, With<L>)>,
     mut commands: Commands,
-) where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
+) {
     for (entity, url, turtle) in &query {
         let prefixes: Vec<_> = turtle
             .prefixes

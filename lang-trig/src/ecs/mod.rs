@@ -123,7 +123,7 @@ fn parse_trig_system(
         );
 
         let span = 0..source.0.len();
-        let element = Element::<TriGLang>(spanned(trig_model, span));
+        let element = Element(spanned(trig_model, span));
 
         if errors.is_empty() {
             commands

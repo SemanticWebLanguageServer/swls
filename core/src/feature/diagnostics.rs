@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash, ops::Range};
+use std::{collections::HashMap, ops::Range};
 
 use bevy_ecs::prelude::*;
 use futures::channel::mpsc;

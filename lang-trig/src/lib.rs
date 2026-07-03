@@ -23,13 +23,14 @@ impl LangHelper for TriGHelper {
     fn model_based_rename(&self) -> bool {
         true
     }
+    fn blank_node_code_actions(&self) -> bool {
+        true
+    }
 }
 
 pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World) {
     register_rdf_lang::<TriGLang, TriGHelper>(world, &["trig"], &[".trig"]);
     setup_parsing(world);
-    swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<TriGLang>(world);
-    swls_lang_rdf_base::rename::setup_rename::<TriGLang>(world);
 
     world.schedule_scope(FormatLabel, |_, schedule| {
         schedule.add_systems(format_trig_system);
@@ -37,7 +38,6 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
 }
 
 impl Lang for TriGLang {
-    type Element = rdf_parsers::model::Turtle;
     type ElementError = TurtleParseError;
 
     const LANG: &'static str = "trig";

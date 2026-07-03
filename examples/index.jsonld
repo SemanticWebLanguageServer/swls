@@ -1,4 +1,4 @@
 {
   "@context": { "name": "foaf:name", "foaf": "http://xmlns.com/foaf/0.1/" },
-  "foaf:": "name"
+  "name": "name"
 }

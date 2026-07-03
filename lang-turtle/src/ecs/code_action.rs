@@ -12,7 +12,7 @@ use swls_lang_rdf_base::traits::NamedNodeExt as _;
 use crate::TurtleLang;
 
 pub fn organize_imports(
-    mut query: Query<(&Element<TurtleLang>, &RopeC, &Label, &mut CodeActionRequest)>,
+    mut query: Query<(&Element, &RopeC, &Label, &mut CodeActionRequest), With<TurtleLang>>,
     config: Res<ServerConfig>,
 ) {
     if config.config.local.is_disabled(Disabled::CodeActionOrganizeImports) {

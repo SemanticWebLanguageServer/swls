@@ -12,12 +12,15 @@ use crate::TurtleLang;
 use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 
 pub fn subject_completion(
-    mut query: Query<(
-        &TokenComponent,
-        &Element<TurtleLang>,
-        &Prefixes,
-        &mut CompletionRequest,
-    )>,
+    mut query: Query<
+        (
+            &TokenComponent,
+            &Element,
+            &Prefixes,
+            &mut CompletionRequest,
+        ),
+        With<TurtleLang>,
+    >,
     triples: Query<(&Triples, &Label), With<Open>>,
     config: Res<ServerConfig>,
 ) {
@@ -82,7 +85,7 @@ pub fn infer_predicate_position_from_cst(
             &PositionComponent,
             &RopeC,
             &Source,
-            &Element<TurtleLang>,
+            &Element,
         ),
         (With<TurtleLang>, Without<TripleComponent>),
     >,

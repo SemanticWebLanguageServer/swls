@@ -1,5 +1,5 @@
 //! Shared, model-based rename for the text RDF syntaxes (Turtle / TriG / SPARQL /
-//! N3 — anything whose [`Lang::Element`] is the [`Turtle`] model).
+//! N3 — anything whose parsed [`Element`] is the [`Turtle`] model).
 //!
 //! Unlike the language-agnostic rename in `swls-core` (which slices the rope at a
 //! term span and classifies the raw string), these systems work off the parsed
@@ -19,8 +19,7 @@ use std::ops::Range as StdRange;
 use bevy_ecs::prelude::*;
 use rdf_parsers::model::{BlankNode, NamedNode, Term, Turtle, PO};
 use swls_core::{
-    feature::rename::{PrepareRename, PrepareRenameRequest, Rename, RenameEdits},
-    lang::Lang,
+    feature::rename::{PrepareRenameRequest, RenameEdits},
     lsp_types::TextEdit,
     prelude::*,
     util::{offsets_to_range, position_to_offset},
@@ -156,13 +155,16 @@ fn find_renameable_with(
 
 /// Model-based `prepare_rename`: report the range and placeholder of the term
 /// under the cursor.
-pub fn prepare_rename<L>(
-    query: Query<(Entity, &Element<L>, &RopeC, &PositionComponent)>,
+pub fn prepare_rename(
+    query: Query<(Entity, &Element, &RopeC, &PositionComponent, &DynLang)>,
     mut commands: Commands,
-) where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
-    for (entity, element, rope, position) in &query {
+) {
+    for (entity, element, rope, position, lang) in &query {
+        // Only the languages that rename via this model-based path (Turtle-family)
+        // opt in; the rest are handled by the core agnostic rename.
+        if !lang.0.model_based_rename() {
+            continue;
+        }
         commands.entity(entity).remove::<PrepareRenameRequest>();
 
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
@@ -182,19 +184,20 @@ pub fn prepare_rename<L>(
 
 /// Model-based `rename`: replace every occurrence of the term under the cursor
 /// (matched by canonical key) with the wrapped new text.
-pub fn rename<L>(
+pub fn rename(
     mut query: Query<(
-        &Element<L>,
+        &Element,
         &RopeC,
         &Label,
         &PositionComponent,
         &DynLang,
         &mut RenameEdits,
     )>,
-) where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
+) {
     for (element, rope, label, position, lang, mut edits) in &mut query {
+        if !lang.0.model_based_rename() {
+            continue;
+        }
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             continue;
         };
@@ -221,18 +224,7 @@ pub fn rename<L>(
     }
 }
 
-/// Register the model-based [`prepare_rename`] and [`rename`] systems for
-/// language `L`.  Call this from a text RDF language's `setup_world`, and make
-/// the language's [`LangHelper::model_based_rename`] return `true` so the core
-/// agnostic rename systems skip its documents.
-pub fn setup_rename<L>(world: &mut World)
-where
-    L: Lang<Element = Turtle> + Send + Sync + 'static,
-{
-    world.schedule_scope(PrepareRename, |_, schedule| {
-        schedule.add_systems(prepare_rename::<L>);
-    });
-    world.schedule_scope(Rename, |_, schedule| {
-        schedule.add_systems(rename::<L>);
-    });
-}
+// [`prepare_rename`] and [`rename`] are registered once (non-generic) by
+// `register_rdf_lang`.  A language opts into this model-based path simply by
+// making [`LangHelper::model_based_rename`] return `true`; that same flag makes
+// the core agnostic rename skip the document, so the two never both fire.

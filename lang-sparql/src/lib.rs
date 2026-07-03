@@ -20,15 +20,12 @@ pub fn setup_world(world: &mut World) {
     );
     setup_parse(world);
     setup_completion(world);
-    swls_lang_rdf_base::code_actions::setup_blank_node_code_action::<Sparql>(world);
-    swls_lang_rdf_base::rename::setup_rename::<Sparql>(world);
 }
 
 #[derive(Debug, Component, Default)]
 pub struct Sparql;
 
 impl Lang for Sparql {
-    type Element = rdf_parsers::model::Turtle;
     type ElementError = TurtleParseError;
 
     const PATTERN: Option<&'static str> = None;
@@ -293,6 +290,9 @@ impl LangHelper for SparqlHelper {
         false
     }
     fn model_based_rename(&self) -> bool {
+        true
+    }
+    fn blank_node_code_actions(&self) -> bool {
         true
     }
     fn prefix_keyword(&self) -> &str {

@@ -1,8 +1,49 @@
 {
   "@context": {
-    "foaf": "http://xmlns.com/foaf/0.1/",
-    "name": "foaf:name",
-    "knows": "foaf:knows"
+    "rsp":  "https://w3id.org/rsp/",
+    "ex":   "https://example.org/",
+    "sosa": "http://www.w3.org/ns/sosa/",
+    "xsd":  "http://www.w3.org/2001/XMLSchema#"
   },
-  "foaf:name": "arthur Vercruysse"
+  "@graph": [
+    {
+      "@type": "rsp:Message",
+      "rsp:primaryTopic": { "@id": "ex:obs1" },
+      "rsp:timestamp": { "@value": "2024-01-01T09:00:00Z", "@type": "xsd:dateTime" }
+    },
+    {
+      "@id": "ex:obs1",
+      "@type": "sosa:Observation",
+      "sosa:observedProperty": { "@id": "ex:Temperature" },
+      "sosa:isObservedBy":     { "@id": "ex:sensor-1" },
+      "sosa:resultTime":       { "@value": "2024-01-01T09:00:00Z", "@type": "xsd:dateTime" },
+      "sosa:hasSimpleResult":  "21.3"
+    },
+    {
+      "@type": "rsp:Message",
+      "rsp:primaryTopic": { "@id": "ex:obs2" },
+      "rsp:timestamp": { "@value": "2024-01-01T09:05:00Z", "@type": "xsd:dateTime" }
+    },
+    {
+      "@id": "ex:obs2",
+      "@type": "sosa:Observation",
+      "sosa:observedProperty": { "@id": "ex:Temperature" },
+      "sosa:isObservedBy":     { "@id": "ex:sensor-1" },
+      "sosa:resultTime":       { "@value": "2024-01-01T09:05:00Z", "@type": "xsd:dateTime" },
+      "sosa:hasSimpleResult":  "21.7"
+    },
+    {
+      "@type": "rsp:Message",
+      "rsp:primaryTopic": { "@id": "ex:obs3" },
+      "rsp:timestamp": { "@value": "2024-01-01T09:10:00Z", "@type": "xsd:dateTime" }
+    },
+    {
+      "@id": "ex:obs3",
+      "@type": "sosa:Observation",
+      "sosa:observedProperty": { "@id": "ex:Temperature" },
+      "sosa:isObservedBy":     { "@id": "ex:sensor-1" },
+      "sosa:resultTime":       { "@value": "2024-01-01T09:10:00Z", "@type": "xsd:dateTime" },
+      "sosa:hasSimpleResult":  "22.1"
+    }
+  ]
 }
