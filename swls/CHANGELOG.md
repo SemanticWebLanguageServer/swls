@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.4.1 (2026-07-07)
 
+### New Features
+
+ - <csr-id-43a8054c274bde6e63475dcdccd65af9d24b7613/> prefix hover/goto-definition + JSON-LD prefix-diagnostics opt-out
+   Prefix handling across languages, plus model-authoritative JSON-LD
+   semantic-token colouring and the datatype-span work this built on.
+   
+   Hover / goto-definition on prefixes (new core/src/systems/prefix_hover.rs):
+   - get_current_prefix detects a prefix declaration / JSON-LD @context term at the
+   cursor from the parsed model (which, unlike derived triples, carries spans) and
+   drops the wrong nearest-triple fallback so the triple-based hovers no-op.
+   - hover_prefix shows the prefix -> namespace mapping (+ LOV title when known).
+   - goto_prefix jumps a real namespace to its ontology file; goto_cjs now steps
+   aside for namespaces but still resolves term aliases to their CJS definition.
+   - Wired into the Hover and GotoDefinition schedules; new `definition()` e2e
+   harness helper; e2e/tests/prefix_hover.rs.
+   
+   JSON-LD prefix diagnostics:
+   - supports_prefix_diagnostics() = false for JSON-LD; @context has no prefix/alias
+   distinction and pulls in shared/remote terms, so the span-based detector emitted
+   false positives. e2e/tests/prefix_diagnostics.rs updated to assert the opt-out.
+   
+   Prefix diagnostics core:
+   - Walk the parsed Turtle model instead of the derived triples so prefixes that
+   only appear in a datatype ("5"^^xsd:integer) are detected.
+   
+   JSON-LD semantic tokens (model-authoritative):
+   - Colour every term from the parsed model: a compact IRI `"ex:obs1"` is the term
+   colour (quotes + local = enumMember) with `prefix:` NAMESPACE on top, applied
+   consistently to @id subjects and nested object references; @context prefix keys
+   are NAMESPACE.
+   - The lexer supplies only what the model can't see: keywords (`@id`, `@type`, …)
+   and the STRING/NUMBER/BOOLEAN base for real literals. Its previous
+   string-followed-by-`:` NAMESPACE guess is removed.
+   - Keep KEYWORD colouring for `@type` even though it is the rdf:type predicate in
+   the model. Adapt to the rdf-parsers Spanned lang/ty API and carry
+   context-computed IRIs. Tests in lang-jsonld/src/ecs/mod.rs pin the byte types.
+   
+   Depends on rdf-parsers 0.1.16.
+ - <csr-id-817cc6bfcc92911b6c6be7b491ab1b00b85e13b9/> better turtle formatting + consolidate language specific implementation (removing generic marker)
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 7 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-core v0.2.1, swls-lang-rdf-base v0.2.1, swls-lang-turtle v0.2.1, swls-lang-jsonld v0.2.1, swls-lang-n3 v0.1.1, swls-lang-sparql v0.2.1, swls-lang-trig v0.2.1, swls v0.4.1 ([`2f1e550`](https://github.com/SemanticWebLanguageServer/swls/commit/2f1e5503bae9428b76613ab8b110700234569e1e))
+</details>
+
 ## 0.4.0 (2026-06-29)
 
 <csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/>
