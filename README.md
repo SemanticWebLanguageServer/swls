@@ -1,7 +1,7 @@
 # Semantic Web Language Server
 
-[![CI](https://github.com/semanticweblanguageserver/swls/actions/workflows/ci.yml/badge.svg)](https://github.com/semanticweblanguageserver/swls/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-latest-blue)](https://semanticweblanguageserver.github.io/swls/docs/lsp_core/index.html)
+[![CI](https://github.com/SemanticWebLanguageServer/swls/actions/workflows/ci.yml/badge.svg)](https://github.com/SemanticWebLanguageServer/swls/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-latest-blue)](https://semanticweblanguageserver.github.io/swls/docs/swls_core/index.html)
 ![LICENSE](https://img.shields.io/badge/License-MIT-8A2BE2)
 [![Visual Studio Marketplace Last Updated](https://img.shields.io/visual-studio-marketplace/last-updated/ajuvercr.semantic-web-lsp?label=VSCode%20Extension)](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp)
 
@@ -62,7 +62,7 @@ A NeoVim plugin is available at [SemanticWebLanguageServer/swls.nvim](https://gi
 
 SWLS is a standard LSP server (stdio transport), so any editor with a generic LSP client
 (Sublime Text, Helix, Emacs `lsp-mode`/`eglot`, Kate, ...) can run it directly. Grab the `swls`
-binary from the [latest release](https://github.com/semanticweblanguageserver/swls/releases) and
+binary from the [latest release](https://github.com/SemanticWebLanguageServer/swls/releases) and
 point your editor's LSP client at it for `.ttl`, `.trig`, `.jsonld` and `.sparql`/`.rq` files.
 
 ## Configuration
@@ -84,11 +84,12 @@ SWLS reads configuration from the client's `initializationOptions`, plus optiona
 
 ## Documentation
 
-- [lsp-core](https://semanticweblanguageserver.github.io/swls/docs/lsp_core/index.html)
-- [lang-turtle](https://semanticweblanguageserver.github.io/swls/docs/lang_turtle/index.html)
-- [lang-jsonld](https://semanticweblanguageserver.github.io/swls/docs/lang_jsonld/index.html)
-- [lang-sparql](https://semanticweblanguageserver.github.io/swls/docs/lang_sparql/index.html)
-- [lsp-bin](https://semanticweblanguageserver.github.io/swls/docs/swls/index.html)
+- [swls-core](https://semanticweblanguageserver.github.io/swls/docs/swls_core/index.html)
+- [swls-lang-turtle](https://semanticweblanguageserver.github.io/swls/docs/swls_lang_turtle/index.html)
+- [swls-lang-trig](https://semanticweblanguageserver.github.io/swls/docs/swls_lang_trig/index.html)
+- [swls-lang-jsonld](https://semanticweblanguageserver.github.io/swls/docs/swls_lang_jsonld/index.html)
+- [swls-lang-sparql](https://semanticweblanguageserver.github.io/swls/docs/swls_lang_sparql/index.html)
+- [swls (binary)](https://semanticweblanguageserver.github.io/swls/docs/swls/index.html)
 
 ## Screenshots
 
