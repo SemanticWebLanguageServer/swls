@@ -5,7 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### New Features
+
+ - <csr-id-43a8054c274bde6e63475dcdccd65af9d24b7613/> prefix hover/goto-definition + JSON-LD prefix-diagnostics opt-out
+   Prefix handling across languages, plus model-authoritative JSON-LD
+   semantic-token colouring and the datatype-span work this built on.
+   
+   Hover / goto-definition on prefixes (new core/src/systems/prefix_hover.rs):
+   - get_current_prefix detects a prefix declaration / JSON-LD @context term at the
+     cursor from the parsed model (which, unlike derived triples, carries spans) and
+     drops the wrong nearest-triple fallback so the triple-based hovers no-op.
+   - hover_prefix shows the prefix -> namespace mapping (+ LOV title when known).
+   - goto_prefix jumps a real namespace to its ontology file; goto_cjs now steps
+     aside for namespaces but still resolves term aliases to their CJS definition.
+   - Wired into the Hover and GotoDefinition schedules; new `definition()` e2e
+     harness helper; e2e/tests/prefix_hover.rs.
+   
+   JSON-LD prefix diagnostics:
+   - supports_prefix_diagnostics() = false for JSON-LD; @context has no prefix/alias
+     distinction and pulls in shared/remote terms, so the span-based detector emitted
+     false positives. e2e/tests/prefix_diagnostics.rs updated to assert the opt-out.
+   
+   Prefix diagnostics core:
+   - Walk the parsed Turtle model instead of the derived triples so prefixes that
+     only appear in a datatype ("5"^^xsd:integer) are detected.
+   
+   JSON-LD semantic tokens (model-authoritative):
+   - Colour every term from the parsed model: a compact IRI `"ex:obs1"` is the term
+     colour (quotes + local = enumMember) with `prefix:` NAMESPACE on top, applied
+     consistently to @id subjects and nested object references; @context prefix keys
+     are NAMESPACE.
+   - The lexer supplies only what the model can't see: keywords (`@id`, `@type`, …)
+     and the STRING/NUMBER/BOOLEAN base for real literals. Its previous
+     string-followed-by-`:` NAMESPACE guess is removed.
+   - Keep KEYWORD colouring for `@type` even though it is the rdf:type predicate in
+     the model. Adapt to the rdf-parsers Spanned lang/ty API and carry
+     context-computed IRIs. Tests in lang-jsonld/src/ecs/mod.rs pin the byte types.
+   
+   Depends on rdf-parsers 0.1.16.
+ - <csr-id-817cc6bfcc92911b6c6be7b491ab1b00b85e13b9/> better turtle formatting + consolidate language specific implementation (removing generic marker)
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release over the course of 3 calendar days.
+ - 7 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Prefix hover/goto-definition + JSON-LD prefix-diagnostics opt-out ([`43a8054`](https://github.com/SemanticWebLanguageServer/swls/commit/43a8054c274bde6e63475dcdccd65af9d24b7613))
+    - Better turtle formatting + consolidate language specific implementation (removing generic marker) ([`817cc6b`](https://github.com/SemanticWebLanguageServer/swls/commit/817cc6bfcc92911b6c6be7b491ab1b00b85e13b9))
+</details>
+
 ## v0.2.0 (2026-06-29)
+
+<csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/>
 
 ### Chore
 
@@ -37,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - parse gate (`parse_n3_system`): `.n3` documents aren't parsed by default.
    - document selector (`backend.rs`): the server no longer advertises handling
-     the `n3` language, so clients don't route `.n3` files to it.
+   the `n3` language, so clients don't route `.n3` files to it.
    
    The n3 unit tests set `config.n3 = Some(true)` so they still exercise the
    parser. Other languages remain enabled by default.
@@ -61,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 17 commits contributed to the release over the course of 7 calendar days.
+ - 18 commits contributed to the release over the course of 7 calendar days.
  - 40 days passed between releases.
  - 14 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)
@@ -75,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)**
     - Refactor/replace ropey lineindex ([`81148b6`](https://github.com/SemanticWebLanguageServer/swls/commit/81148b64d51d9399a6d8d76b8f6c5114b90450af))
  * **Uncategorized**
+    - Release swls-core v0.2.0, swls-lang-rdf-base v0.2.0, swls-lang-turtle v0.2.0, swls-lang-jsonld v0.2.0, swls-lang-n3 v0.1.0, swls-lang-sparql v0.2.0, swls-lang-trig v0.2.0, swls v0.4.0 ([`9de2e61`](https://github.com/SemanticWebLanguageServer/swls/commit/9de2e6140c68f374c9dbc0c981647f71dd26d26d))
     - Make N3 support opt-in (disabled by default) ([`832b6ae`](https://github.com/SemanticWebLanguageServer/swls/commit/832b6ae7122bc4b071a1a68ffba7c9bc2956d7e3))
     - Prune dead features, dependencies, and the swls-token-helpers crate ([`53cc415`](https://github.com/SemanticWebLanguageServer/swls/commit/53cc4155da52b7054793c81009832fba55c3e2fb))
     - Feat: add lang n3 feat: update prefix diagnostics feat: add format settings ([`c0e3888`](https://github.com/SemanticWebLanguageServer/swls/commit/c0e3888d726463bffd360a3758a33e4df7aa9b02))
