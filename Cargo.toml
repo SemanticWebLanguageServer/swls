@@ -15,8 +15,8 @@ bevy_ecs = { version = "0.18", default-features = true, features = [
 derive_more = { version = "2", features = ["as_ref", "deref", "deref_mut", "is_variant"] }
 futures = { version = "0.3.31", features = ["alloc", "executor"], default-features = false }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
-# rdf-parsers = "0.1.8"
-rdf-parsers = { version = "0.1.15" }
+# rdf-parsers = { path = "../rdf-parsers/" }
+rdf-parsers = { version = "0.1.16" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 sophia_api = "0.9.0"

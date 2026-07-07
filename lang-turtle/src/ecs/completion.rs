@@ -171,6 +171,7 @@ fn expand_subject_iri(text: &str, turtle: &rdf_parsers::model::Turtle) -> Option
             prefix,
             value,
             idx: 0,
+            computed: None,
         };
         return NamedNodeExt::expand(&nn, turtle);
     }

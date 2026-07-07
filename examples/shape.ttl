@@ -1,6 +1,7 @@
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfc: <https://w3id.org/rdf-connect#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
-rdfc:consistsOf rdfs:comment "–";
+rdfc:consistsOf rdfs:comment "–"^^xsd:integer;
   rdfs:domain rdfc:Pipeline.
 

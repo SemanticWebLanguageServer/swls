@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::prelude::*;
-use sophia_api::{quad::Quad as _, term::TermKind};
+use rdf_parsers::{
+    model::{BlankNode, Literal, NamedNode, Term, Turtle},
+    Spanned,
+};
 use swls_lov::LocalPrefix;
 use tracing::instrument;
 
@@ -16,33 +19,15 @@ use crate::{
     util::offset_to_position,
 };
 
-// ─── Token-level helper ───────────────────────────────────────────────────────
-
-/// Given the raw source text of a single term token, return the prefix name if the
-/// term is written as a prefixed name (`prefix:local`).
-///
-/// Returns `None` for full IRIs (`<...>` or containing `://`), blank nodes (`_:`),
-/// and variables (`?`).
-///
-/// The default prefix (`:local`, empty name before the `:`) returns `Some("")`: it
-/// is a real declared prefix (`@prefix : <...>`) whose usage must be tracked so it
-/// is not wrongly reported "declared but never used".
-pub fn extract_prefix_from_token(raw: &str) -> Option<&str> {
-    let text = raw.trim_matches('"'); // JSON-LD wraps IRIs in quotes
-    if text.starts_with('<') || text.starts_with("_:") || text.starts_with('?') {
-        return None;
-    }
-    if text.contains("://") {
-        return None;
-    }
-    let colon = text.find(':')?;
-    Some(&text[..colon])
-}
-
 // ─── Core helper (mirrors prefix_completion_helper) ───────────────────────────
 
-/// Analyse a document's triples against its declared prefixes and return
-/// (diagnostics, code_actions).
+/// Analyse a document's parsed [`Turtle`] model against its declared prefixes and
+/// return (diagnostics, code_actions).
+///
+/// Walking the model (rather than the derived `Triples`) is what makes prefix
+/// usage detection correct for prefixes that appear only in a literal's datatype
+/// (`"5"^^xsd:integer`) — the triple form stores datatypes pre-expanded, dropping
+/// the prefix entirely.
 ///
 /// The caller supplies `make_fix_edit(prefix_name, suggested_url) -> Vec<TextEdit>` —
 /// identical in spirit to the `extra_edits` callback in `prefix_completion_helper`.
@@ -56,7 +41,7 @@ pub fn extract_prefix_from_token(raw: &str) -> Option<&str> {
 /// to resolve just those — rather than materialising the entire prefix universe
 /// into a lookup map.
 pub fn prefix_diagnostic_helper<'a>(
-    triples: &Triples,
+    turtle: &Turtle,
     prefixes: &Prefixes,
     rope: &RopeC,
     label: &Label,
@@ -68,57 +53,50 @@ pub fn prefix_diagnostic_helper<'a>(
 ) -> (Vec<Diagnostic>, Vec<CodeAction>) {
     let declared: HashSet<&str> = prefixes.iter().map(|p| p.prefix.as_str()).collect();
 
-    // Walk all IRI terms to record used prefix names and every undefined-prefix
-    // occurrence.
+    // Collect every prefixed-name usage straight from the parsed model, as
+    // (prefix name, byte span of the occurrence).  This includes datatypes, which
+    // the derived triples cannot express.
+    let mut uses: Vec<(String, std::ops::Range<usize>)> = Vec::new();
+    // Resolved absolute IRIs of every named node.  Used to detect JSON-LD term
+    // aliases, which are used as bare terms (not `prefix:local`) and so resolve
+    // directly to their target IRI rather than showing up as a prefix usage.
+    let mut resolved: HashSet<String> = HashSet::new();
+    for triple in &turtle.triples {
+        let triple = triple.value();
+        collect_prefix_uses(&triple.subject, &mut uses, &mut resolved);
+        for po in &triple.po {
+            let po = po.value();
+            collect_prefix_uses(&po.predicate, &mut uses, &mut resolved);
+            for object in &po.object {
+                collect_prefix_uses(object, &mut uses, &mut resolved);
+            }
+        }
+    }
+
     let mut used: HashSet<String> = HashSet::new();
     // One entry per undefined-prefix *occurrence* (→ one diagnostic each), in
     // document order. Deduped by (name, byte span): a subject that heads a
-    // predicate-object list (`:a :b :c; :d :e .`) is shared across several quads
-    // with the *same* span and must only be flagged once.
+    // predicate-object list (`:a :b :c; :d :e .`) yields one usage per object in
+    // the model and must only be flagged once.
     let mut undefined_occurrences: Vec<(String, Range)> = Vec::new();
     // Distinct undefined prefix names (→ one quick-fix each, + URL lookup).
     let mut undefined_names: HashSet<String> = HashSet::new();
     let mut seen_spans: HashSet<(String, usize, usize)> = HashSet::new();
-    // Resolved IRI values of all IRI terms — used to detect JSON-LD term-alias
-    // usage (an alias is used as a bare term, not as `prefix:local`).
-    let mut iri_values: HashSet<String> = HashSet::new();
 
-    for quad in triples.0.iter() {
-        for term in [quad.s(), quad.p(), quad.o()] {
-            if term.ty != Some(TermKind::Iri) {
-                continue;
-            }
-            iri_values.insert(term.value.to_string());
-            let span = &term.span;
-            if span.is_empty() {
-                continue;
-            }
-            // `span` holds *byte* offsets, so slice by bytes. Slicing by chars
-            // here would read from the wrong place after any multi-byte char
-            // earlier in the line (e.g. an en-dash in a literal), mis-reading a
-            // prefixed name such as `rdfs:domain` as `fs:domain` and reporting a
-            // phantom undefined prefix.
-            let raw = match rope.0.byte_slice(span.start..span.end) {
-                Some(s) => s.to_string(),
-                None => continue,
-            };
-            let Some(prefix_name) = extract_prefix_from_token(&raw) else {
-                continue;
-            };
-            used.insert(prefix_name.to_string());
+    for (prefix_name, span) in &uses {
+        used.insert(prefix_name.clone());
 
-            if declared.contains(prefix_name) {
-                continue;
-            }
-            // Record each distinct (prefix, span) occurrence once.
-            if seen_spans.insert((prefix_name.to_string(), span.start, span.end)) {
-                if let (Some(start), Some(end)) = (
-                    offset_to_position(span.start, &rope.0),
-                    offset_to_position(span.end, &rope.0),
-                ) {
-                    undefined_occurrences.push((prefix_name.to_string(), Range::new(start, end)));
-                    undefined_names.insert(prefix_name.to_string());
-                }
+        if declared.contains(prefix_name.as_str()) {
+            continue;
+        }
+        // Record each distinct (prefix, span) occurrence once.
+        if seen_spans.insert((prefix_name.clone(), span.start, span.end)) {
+            if let (Some(start), Some(end)) = (
+                offset_to_position(span.start, &rope.0),
+                offset_to_position(span.end, &rope.0),
+            ) {
+                undefined_occurrences.push((prefix_name.clone(), Range::new(start, end)));
+                undefined_names.insert(prefix_name.clone());
             }
         }
     }
@@ -206,28 +184,92 @@ pub fn prefix_diagnostic_helper<'a>(
             continue;
         }
 
-        // JSON-LD term aliases (e.g. `"name": "foaf:name"`) are not used as
-        // `prefix:local`, but as a bare term whose resolved IRI is the alias
-        // target. Such an entry's namespace does not end in `/` or `#`; treat it
-        // as used if its target IRI appears among the document's IRI terms.
+        // JSON-LD term aliases (`"name": "foaf:name"`) are used as bare terms, not
+        // as `prefix:local`; their target is a specific IRI rather than a namespace
+        // (it does not end in `/` or `#`).  Treat the alias as used when that target
+        // resolves somewhere in the document.
         let target = prefix.url.as_str();
         let is_alias = !target.ends_with('/') && !target.ends_with('#');
-        if is_alias && iri_values.contains(target) {
+        if is_alias && resolved.contains(target) {
             continue;
         }
 
-        {
-            let (start, end) = find_prefix_declaration_range(&rope.0, &prefix.prefix);
-            diagnostics.push(Diagnostic {
-                range: Range::new(start, end),
-                severity: Some(DiagnosticSeverity::WARNING),
-                message: format!("Prefix \"{}\" is declared but never used", prefix.prefix),
-                ..Default::default()
-            });
-        }
+        let (start, end) = find_prefix_declaration_range(&rope.0, &prefix.prefix);
+        diagnostics.push(Diagnostic {
+            range: Range::new(start, end),
+            severity: Some(DiagnosticSeverity::WARNING),
+            message: format!("Prefix \"{}\" is declared but never used", prefix.prefix),
+            ..Default::default()
+        });
     }
 
     (diagnostics, code_actions)
+}
+
+/// Walk `term`, recursing into RDF collections and anonymous blank-node property
+/// lists (and a literal's datatype `"x"^^prefix:local`), collecting:
+/// - `uses`: every prefixed-name usage as `(prefix name, byte span)`, and
+/// - `resolved`: the resolved absolute IRI of every named node.
+fn collect_prefix_uses(
+    term: &Spanned<Term>,
+    uses: &mut Vec<(String, std::ops::Range<usize>)>,
+    resolved: &mut HashSet<String>,
+) {
+    match term.value() {
+        Term::NamedNode(nn) => record_named_node(nn, term.span(), uses, resolved),
+        Term::Literal(Literal::RDF(lit)) => {
+            // The datatype carries its own span (over the `^^<iri>` term), which is
+            // what makes a prefix that only appears in a datatype visible here.
+            if let Some(datatype) = &lit.ty {
+                record_named_node(datatype.value(), datatype.span(), uses, resolved);
+            }
+        }
+        Term::Collection(items) => {
+            for item in items {
+                collect_prefix_uses(item, uses, resolved);
+            }
+        }
+        Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
+            for po in pos {
+                let po = po.value();
+                collect_prefix_uses(&po.predicate, uses, resolved);
+                for object in &po.object {
+                    collect_prefix_uses(object, uses, resolved);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Record a named node's prefix usage (at `span`) and its resolved absolute IRI.
+fn record_named_node(
+    nn: &NamedNode,
+    span: &std::ops::Range<usize>,
+    uses: &mut Vec<(String, std::ops::Range<usize>)>,
+    resolved: &mut HashSet<String>,
+) {
+    match nn {
+        NamedNode::Prefixed {
+            prefix, computed, ..
+        } => {
+            // JSON-LD stores a registered whole-term compact IRI as
+            // `Prefixed(term, "")` where `prefix` is the whole term including the
+            // ':'.  A real prefix name never contains ':', so that identifies the
+            // whole-term case — it is not a `prefix:local` split and so not a
+            // prefix usage.
+            if !prefix.contains(':') {
+                uses.push((prefix.clone(), span.clone()));
+            }
+            if let Some(computed) = computed {
+                resolved.insert(computed.clone());
+            }
+        }
+        NamedNode::Full(iri, _) => {
+            resolved.insert(iri.clone());
+        }
+        _ => {}
+    }
 }
 
 /// Scan the rope for the declaration line of `prefix_name`.
@@ -285,7 +327,7 @@ fn find_prefix_declaration_range(rope: &LineIndex, prefix_name: &str) -> (Positi
 pub fn prefix_diagnostics(
     query: Query<
         (
-            &Triples,
+            &Element,
             &Prefixes,
             &Source,
             &RopeC,
@@ -293,7 +335,7 @@ pub fn prefix_diagnostics(
             &Wrapped<crate::lsp_types::TextDocumentItem>,
             &DynLang,
         ),
-        (Or<(Changed<Triples>, Changed<Prefixes>)>, With<Open>),
+        (Or<(Changed<Element>, Changed<Prefixes>)>, With<Open>),
     >,
     mut client: ResMut<DiagnosticPublisher>,
     lovs: Query<&LocalPrefix>,
@@ -303,7 +345,7 @@ pub fn prefix_diagnostics(
     let fmt = config.config.local.prefix_format.unwrap_or_default();
     let report_undefined = !config.config.local.is_disabled(Disabled::UndefinedPrefix);
     let report_unused = !config.config.local.is_disabled(Disabled::UnusedPrefix);
-    for (triples, prefixes, source, rope, label, params, lang) in &query {
+    for (element, prefixes, source, rope, label, params, lang) in &query {
         if !lang.0.supports_prefix_diagnostics() {
             // Clear any stale prefix diagnostics for this language and skip.
             let _ = client.publish(&params.0, vec![], "prefix");
@@ -311,7 +353,7 @@ pub fn prefix_diagnostics(
         }
 
         let (diagnostics, _) = prefix_diagnostic_helper(
-            triples,
+            element.value(),
             prefixes,
             rope,
             label,
@@ -338,7 +380,7 @@ pub fn prefix_diagnostics(
 pub fn add_missing_prefix_code_action(
     mut query: Query<
         (
-            &Triples,
+            &Element,
             &Prefixes,
             &Source,
             &RopeC,
@@ -356,13 +398,13 @@ pub fn add_missing_prefix_code_action(
     if config.config.local.is_disabled(Disabled::UndefinedPrefix) {
         return;
     }
-    for (triples, prefixes, source, rope, label, lang, mut req) in &mut query {
+    for (element, prefixes, source, rope, label, lang, mut req) in &mut query {
         if !lang.0.supports_prefix_diagnostics() {
             continue;
         }
 
         let (_, actions) = prefix_diagnostic_helper(
-            triples,
+            element.value(),
             prefixes,
             rope,
             label,

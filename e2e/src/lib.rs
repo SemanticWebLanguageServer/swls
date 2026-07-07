@@ -41,6 +41,7 @@ use swls_core::{
         completion::{CompletionRequest, Label as CompletionLabel, SimpleCompletion},
         diagnostics::DiagnosticItem,
         format::{FormatRequest, Label as FormatLabel},
+        goto_definition::{GotoDefinitionRequest, Label as GotoDefinitionLabel},
         hover::{HoverRequest, Label as HoverLabel},
         on_type_format::{Label as OnTypeFormatLabel, OnTypeFormatRequest},
         parse::Label as ParseLabel,
@@ -207,6 +208,26 @@ impl LspHarness {
         self.world
             .entity_mut(handle.entity)
             .take::<HoverRequest>()
+            .map(|r| r.0)
+            .unwrap_or_default()
+    }
+
+    /// Request goto-definition at `(line, character)`.  Returns the target
+    /// locations the server would send.
+    pub fn definition(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+    ) -> Vec<swls_core::lsp_types::Location> {
+        self.world.entity_mut(handle.entity).insert((
+            GotoDefinitionRequest::default(),
+            PositionComponent(Position { line, character }),
+        ));
+        self.world.run_schedule(GotoDefinitionLabel);
+        self.world
+            .entity_mut(handle.entity)
+            .take::<GotoDefinitionRequest>()
             .map(|r| r.0)
             .unwrap_or_default()
     }

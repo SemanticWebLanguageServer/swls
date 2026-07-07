@@ -564,3 +564,122 @@ pub(crate) fn format_jsonld_system(
         )]);
     }
 }
+
+#[cfg(test)]
+mod id_highlight {
+    use swls_core::feature::semantic::{HighlightRequest, TokenTypesComponent};
+    use swls_core::feature::{ParseLabel, SemanticLabel};
+    use swls_core::lsp_types::SemanticTokenType;
+    use swls_core::prelude::*;
+    use swls_test_utils::{create_file, setup_world, TestClient};
+
+    /// A prefixed IRI must be highlighted the same way whether it appears as a
+    /// subject `"@id": "ex:obs1"` or as an object reference `{ "@id": "ex:x" }`:
+    /// `prefix:` as NAMESPACE and the local part as an IRI colour — never STRING.
+    #[test]
+    fn id_iris_consistently_highlighted_not_string() {
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let src = "{\n  \"@context\": { \"ex\": \"https://example.org/\", \"sosa\": \"http://www.w3.org/ns/sosa/\" },\n  \"@graph\": [\n    { \"@type\": \"sosa:Message\", \"sosa:primaryTopic\": { \"@id\": \"ex:obs1\" } },\n    { \"@id\": \"ex:obs1\", \"sosa:isObservedBy\": { \"@id\": \"ex:sensor-1\" } }\n  ]\n}";
+        let entity = create_file(&mut world, src, "http://example.com/ns#", "jsonld", Open);
+        world.run_schedule(ParseLabel);
+        let client = world.resource::<TestClient>().clone();
+        futures::executor::block_on(client.await_futures(|| world.run_schedule(swls_core::Tasks)));
+        world.entity_mut(entity).insert(HighlightRequest(vec![]));
+        world.run_schedule(SemanticLabel);
+
+        let ttc = world.entity(entity).get::<TokenTypesComponent>().expect("ttc");
+        let mut ts: Vec<Option<SemanticTokenType>> = vec![None; src.len()];
+        for s in &ttc.0 {
+            for j in s.span().clone() {
+                if j < ts.len() {
+                    ts[j] = Some(s.value().clone());
+                }
+            }
+        }
+        let ty_at = |b: usize| ts[b].as_ref().map(|t| t.as_str().to_string());
+
+        // Check the full `"prefix:local"` token, quotes included, for every
+        // occurrence — subject and object alike.  This pins down the byte
+        // boundaries so a one-off (the parser's `idx` points at the opening quote)
+        // is caught.
+        let check = |iri: &str| {
+            let quoted = format!("\"{iri}\"");
+            let colon = iri.find(':').unwrap();
+            for (q, _) in src.match_indices(&quoted) {
+                let open = q; // opening quote
+                let content = q + 1; // first char of the IRI
+                let close = q + 1 + iri.len(); // closing quote
+                assert_ne!(
+                    ty_at(open).as_deref(),
+                    Some("namespace"),
+                    "opening quote of {quoted} at {open} must not be coloured as the IRI"
+                );
+                // `prefix:` (through the ':') is NAMESPACE.
+                for b in content..content + colon + 1 {
+                    assert_eq!(
+                        ty_at(b).as_deref(),
+                        Some("namespace"),
+                        "{quoted}: byte {b} ({:?}) should be NAMESPACE",
+                        &src[b..b + 1]
+                    );
+                }
+                // The whole local part — including the last char — is enumMember.
+                for b in content + colon + 1..close {
+                    assert_eq!(
+                        ty_at(b).as_deref(),
+                        Some("enumMember"),
+                        "{quoted}: byte {b} ({:?}) should be enumMember (not string)",
+                        &src[b..b + 1]
+                    );
+                }
+            }
+        };
+        check("ex:obs1");
+        check("ex:sensor-1");
+    }
+
+    /// The model is authoritative for term-shaped content while the lexer keeps
+    /// keywords: `@context` prefix keys are NAMESPACE, keyword tokens (`@id`,
+    /// `@type`) stay KEYWORD (even though `@type` is the `rdf:type` predicate in
+    /// the model), a compact-IRI value splits NAMESPACE/enumMember, and a plain
+    /// string literal stays STRING (the lexer's job, not overwritten).
+    #[test]
+    fn context_keywords_and_literals_coloured_correctly() {
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let src = "{\n  \"@context\": { \"ex\": \"https://example.org/\" },\n  \"@id\": \"ex:alice\",\n  \"@type\": \"ex:Person\",\n  \"ex:label\": \"Alice\"\n}";
+        let entity = create_file(&mut world, src, "http://example.com/ns#", "jsonld", Open);
+        world.run_schedule(ParseLabel);
+        let client = world.resource::<TestClient>().clone();
+        futures::executor::block_on(client.await_futures(|| world.run_schedule(swls_core::Tasks)));
+        world.entity_mut(entity).insert(HighlightRequest(vec![]));
+        world.run_schedule(SemanticLabel);
+
+        let ttc = world.entity(entity).get::<TokenTypesComponent>().expect("ttc");
+        let mut ts: Vec<Option<SemanticTokenType>> = vec![None; src.len()];
+        for s in &ttc.0 {
+            for j in s.span().clone() {
+                if j < ts.len() {
+                    ts[j] = Some(s.value().clone());
+                }
+            }
+        }
+        // Assert every byte of `needle`'s single occurrence has type `expected`.
+        let all = |needle: &str, expected: &str| {
+            let q = src.find(needle).unwrap_or_else(|| panic!("missing {needle:?}"));
+            for b in q..q + needle.len() {
+                assert_eq!(
+                    ts[b].as_ref().map(|t| t.as_str()),
+                    Some(expected),
+                    "{needle:?} byte {b} ({:?})",
+                    &src[b..b + 1]
+                );
+            }
+        };
+
+        all("\"ex\"", "namespace"); // @context prefix key (from the model)
+        all("\"@id\"", "keyword"); // keyword kept by the lexer
+        all("\"@type\"", "keyword"); // keyword, not the rdf:type predicate colour
+        all("\"Alice\"", "string"); // plain literal, lexer's job, not overwritten
+        all("\"https://example.org/\"", "string"); // @context IRI value stays a literal
+    }
+}

@@ -5,6 +5,7 @@ use bevy_ecs::{
 };
 
 use crate::prelude::get_current_cst_token;
+pub use crate::systems::{get_current_prefix, goto_prefix};
 pub use crate::util::triple::get_current_triple;
 
 /// [`Component`] indicating that the current document is handling a GotoDefinition request.
@@ -20,7 +21,12 @@ pub fn setup_schedule(world: &mut World) {
     references.add_systems((
         get_current_cst_token.before(get_current_triple),
         get_current_triple,
-        system::goto_definition.after(get_current_triple),
+        // Drops the (wrong) triple when the cursor is on a prefix declaration, so
+        // the subject-locator below skips it and `goto_prefix` jumps to the
+        // ontology file instead.
+        get_current_prefix.after(get_current_triple),
+        goto_prefix.after(get_current_prefix),
+        system::goto_definition.after(get_current_prefix),
     ));
     world.add_schedule(references);
 }

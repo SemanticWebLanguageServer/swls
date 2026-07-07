@@ -12,8 +12,11 @@ pub use links::*;
 pub mod prefix;
 mod prefix_diagnostics;
 pub use prefix_diagnostics::{
-    add_missing_prefix_code_action, extract_prefix_from_token, prefix_diagnostic_helper,
-    prefix_diagnostics,
+    add_missing_prefix_code_action, prefix_diagnostic_helper, prefix_diagnostics,
+};
+mod prefix_hover;
+pub use prefix_hover::{
+    get_current_prefix, goto_prefix, hover_prefix, PrefixComponent,
 };
 mod namespace_properties;
 pub use namespace_properties::{

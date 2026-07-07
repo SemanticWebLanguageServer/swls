@@ -115,7 +115,7 @@ fn ensure_shared_rdf_systems(world: &mut World) {
 pub use tokens::semantic_tokens;
 mod tokens {
     use bevy_ecs::prelude::*;
-    use rdf_parsers::model::{BlankNode, NamedNode, Term};
+    use rdf_parsers::model::{BlankNode, Literal, NamedNode, RDFLiteral, Term};
     use swls_core::lsp_types::SemanticTokenType;
     use swls_core::prelude::semantic::*;
     use swls_core::prelude::*;
@@ -136,11 +136,41 @@ mod tokens {
         kind: SemanticTokenType,
         source: &str,
     ) {
+        // A JSON-LD keyword surfaces in the model as a term over its own token —
+        // e.g. `@type` becomes the `rdf:type` predicate spanning `"@type"`. Leave
+        // it with the KEYWORD colour the lexer gave it instead of overwriting it.
+        if source
+            .get(term.span().clone())
+            .is_some_and(|s| s.trim_start_matches('"').starts_with('@'))
+        {
+            return;
+        }
         match term.value() {
-            Term::NamedNode(NamedNode::Prefixed { prefix, .. }) => {
-                let skip = prefix.len();
-                let (start, end) = (term.span().start, term.span().end);
-                ttc.push(spanned(kind, start + skip + 1..end));
+            Term::NamedNode(NamedNode::Prefixed {
+                prefix, value, idx, ..
+            }) => {
+                let start = *idx;
+                if source.as_bytes().get(start) == Some(&b'"') && !value.is_empty() {
+                    // JSON-LD writes a compact IRI as a JSON string: `"ex:obs1"`.
+                    // The lexer coloured the whole token STRING; recolour the whole
+                    // quoted token as the term (quotes included, like the Full-IRI
+                    // arm) and stamp `prefix:` NAMESPACE on top. `idx` is the opening
+                    // quote — even for an object reference nested in a `{ "@id": … }`
+                    // object it points at the inner `"ex:obs1"`, not the `{`.
+                    let sep = start + prefix.len() + 2; // one past the ':'
+                    let close = sep + value.len(); // closing quote
+                    ttc.push(spanned(kind, start..close + 1));
+                    ttc.push(spanned(SemanticTokenType::NAMESPACE, start + 1..sep));
+                } else if source.as_bytes().get(start) == Some(&b'"') {
+                    // Whole-term compact IRI stored as `Prefixed(term, "")`: no
+                    // prefix/local split — colour the whole quoted token as the term.
+                    ttc.push(spanned(kind, term.span().clone()));
+                } else {
+                    // Text syntaxes (Turtle/TriG/SPARQL): the CST pass already
+                    // coloured `prefix:`; only stamp the local part here.
+                    let sep = start + prefix.len() + 1; // one past the ':'
+                    ttc.push(spanned(kind, sep..sep + value.len()));
+                }
             }
             Term::Variable(_) | Term::NamedNode(_) => {
                 // A JSON-LD node object with an @id becomes a NamedNode whose
@@ -171,6 +201,10 @@ mod tokens {
                     add_term(e, ttc, kind.clone(), source);
                 }
             }
+            Term::Literal(Literal::RDF(RDFLiteral { ty: Some(la), .. })) => {
+                let dt = la.as_ref().map(|x| Term::NamedNode(x.clone()));
+                add_term(&dt, ttc, kind, source);
+            }
             _ => return,
         }
     }
@@ -183,9 +217,25 @@ mod tokens {
     ) {
         for (turtle, source, mut ttc) in query {
             let source = source.0.as_str();
+            // `@context` prefix / term definitions: colour each declared name
+            // NAMESPACE from the model. Gated to JSON-LD's quoted keys (`"ex"`);
+            // text syntaxes (Turtle/TriG/SPARQL) already colour their prefix
+            // declarations in the CST pass and must not be re-stamped here.
+            for p in &turtle.prefixes {
+                let span = p.value().prefix.span();
+                if source.as_bytes().get(span.start) == Some(&b'"') {
+                    ttc.push(spanned(SemanticTokenType::NAMESPACE, span.clone()));
+                }
+            }
             for t in &turtle.triples {
                 add_term(&t.subject, &mut ttc, SemanticTokenType::ENUM_MEMBER, source);
                 for po in &t.po {
+                    add_term(
+                        &po.predicate,
+                        &mut ttc,
+                        SemanticTokenType::ENUM_MEMBER,
+                        source,
+                    );
                     for o in &po.object {
                         add_term(o, &mut ttc, SemanticTokenType::ENUM_MEMBER, source);
                     }

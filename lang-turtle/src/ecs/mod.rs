@@ -132,3 +132,68 @@ mod tests {
         assert_eq!(links[0].1, "prefix import");
     }
 }
+
+/// Prefix-usage diagnostics must see prefixes that appear only in a literal's
+/// datatype (`"5"^^xsd:integer`).  These exercise the model-based
+/// `prefix_diagnostic_helper` directly, since the derived triples store datatypes
+/// pre-expanded and cannot express the prefix.
+#[cfg(test)]
+mod prefix_datatype_tests {
+    use swls_core::lsp_types::Url;
+    use swls_core::prelude::*;
+    use swls_core::systems::prefix_diagnostic_helper;
+    use swls_core::text::LineIndex;
+
+    use crate::lang::parser::parse_new;
+
+    const BASE: &str = "http://example.com/";
+
+    fn run(src: &str, declared: &[&str], report_unused: bool) -> Vec<String> {
+        let (turtle, ..) = parse_new(src, BASE, None);
+        let prefixes = Prefixes(
+            declared
+                .iter()
+                .map(|p| Prefix {
+                    prefix: p.to_string(),
+                    url: Url::parse("http://www.w3.org/2001/XMLSchema#").unwrap(),
+                })
+                .collect(),
+            Url::parse(BASE).unwrap(),
+        );
+        let rope = RopeC(LineIndex::new(src));
+        let label = Label(Url::parse(BASE).unwrap());
+
+        let (diags, _) = prefix_diagnostic_helper(
+            &turtle,
+            &prefixes,
+            &rope,
+            &label,
+            std::iter::empty(),
+            std::iter::empty(),
+            |_, _| Vec::new(),
+            true,
+            report_unused,
+        );
+        diags.into_iter().map(|d| d.message).collect()
+    }
+
+    #[test]
+    fn datatype_prefix_counts_as_used() {
+        let src = "@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.\n<s> <p> \"5\"^^xsd:integer .\n";
+        let msgs = run(src, &["xsd"], true);
+        assert!(
+            !msgs.iter().any(|m| m.contains("never used")),
+            "xsd used only in a datatype must not be reported unused: {msgs:?}",
+        );
+    }
+
+    #[test]
+    fn undefined_datatype_prefix_is_flagged() {
+        let src = "<s> <p> \"5\"^^xsd:integer .\n";
+        let msgs = run(src, &[], false);
+        assert!(
+            msgs.iter().any(|m| m.contains("Undefined prefix \"xsd\"")),
+            "xsd in a datatype but undeclared must be flagged: {msgs:?}",
+        );
+    }
+}

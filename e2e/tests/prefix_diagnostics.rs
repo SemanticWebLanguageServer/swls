@@ -384,16 +384,31 @@ fn add_missing_prefix_code_action_inserts_at_file_top() {
 }
 
 // ─── JSON-LD prefix diagnostics ──────────────────────────────────────────────
-// Note: JSON-LD silently drops triples with undefined prefix terms (JSON-LD
-// semantics), so "undefined prefix" detection is only possible for prefixes
-// that DO appear in successfully-produced triples.  What we CAN reliably test:
-// * Unused prefixes (declared in @context but never appear in a triple)
-// * No false positives when all declared prefixes are used
+// JSON-LD opts out of the generic prefix-diagnostics system entirely (see
+// `JsonLdHelper::supports_prefix_diagnostics`). `@context` has no syntactic
+// distinction between a namespace prefix and a term alias, terms can come from
+// shared/remote contexts, and a namespace can be "used" purely to define other
+// terms — none of which the span-based, body-walking detector models correctly.
+// So the invariant we test is simply: JSON-LD never emits unused/undefined
+// prefix warnings, even in cases that would fire (falsely) if it were enabled.
+
+/// Collect unused-prefix WARNING messages for a JSON-LD document.
+fn jsonld_prefix_warnings(src: &str, url: &str) -> Vec<String> {
+    let mut h = LspHarness::new();
+    let file = h.open_file(url, "json-ld", src);
+    h.drain_tasks();
+    h.run_diagnostics()
+        .into_iter()
+        .filter(|(u, d)| {
+            u.as_str() == file.url && d.severity == Some(DiagnosticSeverity::WARNING)
+        })
+        .map(|(_, d)| d.message)
+        .collect()
+}
 
 #[test_log::test]
-fn jsonld_unused_prefix_produces_warning_diagnostic() {
-    let mut h = LspHarness::new();
-    // `rdfs2` declared but never used as a prefix in any triple
+fn jsonld_declared_unused_prefix_produces_no_warning() {
+    // `rdfs2` is declared but never used — Turtle would warn; JSON-LD must not.
     let src = r#"{
   "@context": {
     "foaf": "http://xmlns.com/foaf/0.1/",
@@ -401,142 +416,54 @@ fn jsonld_unused_prefix_produces_warning_diagnostic() {
   },
   "foaf:knows": "foaf:testing"
 }"#;
-    let file = h.open_file("file:///unused_jsonld.jsonld", "json-ld", src);
-    h.drain_tasks();
-    let diags = h.run_diagnostics();
-
-    let warnings: Vec<_> = diags
-        .iter()
-        .filter(|(url, d)| {
-            url.as_str() == file.url
-                && d.severity == Some(DiagnosticSeverity::WARNING)
-                && d.message.contains("rdfs2")
-        })
-        .collect();
-
-    assert!(
-        !warnings.is_empty(),
-        "Expected WARNING for unused prefix 'rdfs2' in JSON-LD, got: {:?}",
-        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
-    );
-}
-
-#[test_log::test]
-fn jsonld_unused_prefix_warning_spans_declaration_line() {
-    let mut h = LspHarness::new();
-    let src = r#"{
-  "@context": {
-    "foaf": "http://xmlns.com/foaf/0.1/",
-    "rdfs2": "http://www.w3.org/2000/01/rdf-schema#"
-  },
-  "foaf:name": "Alice"
-}"#;
-    let file = h.open_file("file:///unused_jsonld_span.jsonld", "json-ld", src);
-    h.drain_tasks();
-    let diags = h.run_diagnostics();
-
-    let warning = diags.iter().find(|(url, d)| {
-        url.as_str() == file.url
-            && d.severity == Some(DiagnosticSeverity::WARNING)
-            && d.message.contains("rdfs2")
-    });
-
-    assert!(warning.is_some(), "Expected WARNING for 'rdfs2'");
-    let (_, diag) = warning.unwrap();
-    // `"rdfs2": ...` is on line 3 (0-indexed)
-    assert_eq!(
-        diag.range.start.line, 3,
-        "Diagnostic should be on the 'rdfs2' declaration line (line 3), got line {}",
-        diag.range.start.line
-    );
-}
-
-#[test_log::test]
-fn jsonld_used_term_alias_produces_no_warning() {
-    let mut h = LspHarness::new();
-    // `name` is a JSON-LD term alias (value is a specific term, not a
-    // namespace). It is used as a bare key `"name"`, not as `name:local`, so it
-    // must NOT be flagged as "declared but never used".
-    let src = r#"{ "@context": { "name": "foaf:name" }, "name": "name" }"#;
-    let file = h.open_file("file:///alias_used.jsonld", "json-ld", src);
-    h.drain_tasks();
-    let diags = h.run_diagnostics();
-
-    let warnings: Vec<_> = diags
-        .iter()
-        .filter(|(url, d)| {
-            url.as_str() == file.url
-                && d.severity == Some(DiagnosticSeverity::WARNING)
-                && d.message.contains("name")
-        })
-        .collect();
-
+    let warnings = jsonld_prefix_warnings(src, "file:///unused_jsonld.jsonld");
     assert!(
         warnings.is_empty(),
-        "Used term alias 'name' should not warn, got: {:?}",
-        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+        "JSON-LD must not emit prefix warnings, got: {warnings:?}"
     );
 }
 
 #[test_log::test]
-fn jsonld_unused_term_alias_still_warns() {
-    let mut h = LspHarness::new();
-    // `name` alias is declared but never referenced anywhere → should warn.
+fn jsonld_unused_term_alias_produces_no_warning() {
+    // A declared-but-unreferenced term alias must not warn either.
     let src = r#"{ "@context": { "name": "foaf:name" }, "foaf:knows": "x" }"#;
-    let file = h.open_file("file:///alias_unused.jsonld", "json-ld", src);
-    h.drain_tasks();
-    let diags = h.run_diagnostics();
-
-    let warning = diags.iter().find(|(url, d)| {
-        url.as_str() == file.url
-            && d.severity == Some(DiagnosticSeverity::WARNING)
-            && d.message.contains("name")
-    });
-
+    let warnings = jsonld_prefix_warnings(src, "file:///alias_unused.jsonld");
     assert!(
-        warning.is_some(),
-        "Unused term alias 'name' should warn, got: {:?}",
-        diags.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+        warnings.is_empty(),
+        "JSON-LD must not emit prefix warnings, got: {warnings:?}"
     );
-    let (_, diag) = warning.unwrap();
-    // The warning must point at the `"name"` context key, not at 0..0.
-    assert_eq!(diag.range.start.line, 0);
-    assert_eq!(
-        &src[diag.range.start.character as usize..diag.range.end.character as usize],
-        "\"name\"",
-        "Warning range should cover the context key, got {:?}",
-        diag.range
+}
+
+#[test_log::test]
+fn jsonld_namespace_used_only_in_context_def_produces_no_warning() {
+    // Regression for the "falls through" case: `foaf` is used only to define the
+    // `name` alias, and `name` is declared before `foaf`. With prefix diagnostics
+    // enabled this wrongly warned for BOTH `foaf` (never appears as `foaf:x` in
+    // the body) and `name` (context ordering left its stored target unexpanded,
+    // defeating the alias-usage check). Opted out, it must be silent.
+    let src = r#"{
+  "@context": { "name": "foaf:name", "foaf": "http://xmlns.com/foaf/0.1/" },
+  "name": "name"
+}"#;
+    let warnings = jsonld_prefix_warnings(src, "file:///falls_through.jsonld");
+    assert!(
+        warnings.is_empty(),
+        "JSON-LD must not emit prefix warnings, got: {warnings:?}"
     );
 }
 
 #[test_log::test]
 fn jsonld_no_false_positives_when_all_prefixes_used() {
-    let mut h = LspHarness::new();
     let src = r#"{
   "@context": {
     "foaf": "http://xmlns.com/foaf/0.1/"
   },
   "foaf:name": "Alice"
 }"#;
-    let file = h.open_file("file:///valid_jsonld.jsonld", "json-ld", src);
-    h.drain_tasks();
-    let diags = h.run_diagnostics();
-
-    let prefix_diags: Vec<_> = diags
-        .iter()
-        .filter(|(url, d)| {
-            url.as_str() == file.url
-                && (d.message.contains("prefix") || d.message.contains("foaf"))
-        })
-        .collect();
-
+    let warnings = jsonld_prefix_warnings(src, "file:///valid_jsonld.jsonld");
     assert!(
-        prefix_diags.is_empty(),
-        "Expected no prefix diagnostics for valid JSON-LD, got: {:?}",
-        prefix_diags
-            .iter()
-            .map(|(_, d)| &d.message)
-            .collect::<Vec<_>>()
+        warnings.is_empty(),
+        "Expected no prefix diagnostics for valid JSON-LD, got: {warnings:?}"
     );
 }
 

@@ -21,6 +21,7 @@ pub use crate::{
     systems,
     systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
+    systems::PrefixComponent,
     util::{
         fs::*,
         lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,

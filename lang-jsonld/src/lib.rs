@@ -85,6 +85,19 @@ impl LangHelper for JsonLdHelper {
         true
     }
 
+    /// Opt JSON-LD out of the generic prefix-diagnostics system.
+    ///
+    /// `@context` has no syntactic distinction between a namespace prefix and a
+    /// term alias, and terms can be declared via shared/remote contexts or used
+    /// purely to define other terms — none of which the span-based, body-walking
+    /// detector models correctly, so it produces false positives (see the module
+    /// docs on [`swls_core::systems::prefix_diagnostic_helper`]). Undefined-prefix
+    /// detection is moot too: JSON-LD silently drops terms with unknown prefixes,
+    /// so they never reach a triple to flag.
+    fn supports_prefix_diagnostics(&self) -> bool {
+        false
+    }
+
     /// Extract the prefix name whose `:` was just typed *inside a JSON string*
     /// (e.g. typing `:` in `"foaf:knows"`), so on-type formatting can splice the
     /// prefix into `@context`.  Unlike the text-RDF default, the term boundary is
@@ -227,7 +240,7 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
     });
 
     world.schedule_scope(GotoDefinitionLabel, |_, schedule| {
-        schedule.add_systems(goto_cjs.after(get_current_triple));
+        schedule.add_systems(goto_cjs.after(swls_core::systems::get_current_prefix));
     });
 }
 
@@ -308,6 +321,7 @@ fn goto_cjs(
             &Label,
             &mut GotoDefinitionRequest,
             Option<&JsonLdActiveContext>,
+            Option<&PrefixComponent>,
         ),
         With<JsonLdLang>,
     >,
@@ -320,7 +334,14 @@ fn goto_cjs(
         return;
     }
 
-    for (token, triple, label, mut req, active_ctx) in &mut query {
+    for (token, triple, label, mut req, active_ctx, prefix) in &mut query {
+        // A real namespace prefix (`"foaf": "…/"`) is handled by the shared
+        // `goto_prefix`, which jumps to the ontology file. Term aliases
+        // (`"Component": "oo:Component"`) are not namespaces and still resolve to
+        // their Components.js definition here.
+        if prefix.map(|p| p.is_namespace()).unwrap_or(false) {
+            continue;
+        }
         // Only use the expanded IRI from the TripleComponent if the cursor token
         // actually overlaps the matched term's span.  get_current_triple is lenient
         // and may fall back to a nearby triple (e.g. the first triple in the
@@ -687,12 +708,16 @@ impl Lang for JsonLdLang {
         span: std::ops::Range<usize>,
         text: &str,
     ) -> Vec<(SemanticTokenType, std::ops::Range<usize>)> {
+        // Keywords (`"@id"`, `"@type"`, …) are the one thing only the lexer knows.
         if text.get(span.start + 1..span.start + 2) == Some("@") {
             return vec![(SemanticTokenType::KEYWORD, span)];
         }
-        if text.get(span.end..span.end + 1) == Some(":") {
-            return vec![(SemanticTokenType::NAMESPACE, span)];
-        }
+        // Everything term-shaped — compact/full IRIs and `@context` prefix keys —
+        // is coloured from the parsed model (`semantic_tokens` / `add_term`), which
+        // knows the prefix/local split and the resolved IRI. The lexer only sees an
+        // opaque JSON string, so it must not guess; it just supplies the STRING /
+        // NUMBER / BOOLEAN base for real literals, which the model overrides for the
+        // strings that are actually IRIs.
         Self::semantic_token_type(kind)
             .map(|t| vec![(t, span)])
             .unwrap_or_default()

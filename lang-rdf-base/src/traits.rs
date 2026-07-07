@@ -49,7 +49,19 @@ impl NamedNodeExt for NamedNode {
     fn expand_step<T: Based>(&self, turtle: &T, mut done: HashSet<String>) -> Option<String> {
         match self {
             Self::Full(s, _) => Some(s.clone()),
-            Self::Prefixed { prefix, value, .. } => {
+            Self::Prefixed {
+                prefix,
+                value,
+                computed,
+                ..
+            } => {
+                // A pre-resolved IRI (currently from JSON-LD `@context` expansion,
+                // whose semantics are not plain prefix substitution) is
+                // authoritative — use it verbatim instead of re-expanding
+                // `prefix`/`value` against the prefix map.
+                if let Some(computed) = computed {
+                    return Some(computed.clone());
+                }
                 if done.contains(prefix.as_str()) {
                     return None;
                 }
@@ -178,9 +190,10 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
             }
             Ok(Spanned(Term::Literal(Literal::RDF(lit)), span)) => {
                 let term_context = match (&lit.lang, &lit.ty) {
-                    (Some(l), _) => TermContext::LangTag(Cow::Owned(l.to_string())),
+                    (Some(l), _) => TermContext::LangTag(Cow::Owned(l.value().clone())),
                     (_, Some(dt)) => {
-                        if let Some(dt) = NamedNodeExt::expand_step(dt, self.based, HashSet::new())
+                        if let Some(dt) =
+                            NamedNodeExt::expand_step(dt.value(), self.based, HashSet::new())
                         {
                             TermContext::DataType(dt.into())
                         } else {

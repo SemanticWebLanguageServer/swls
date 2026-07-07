@@ -5,7 +5,10 @@ use bevy_ecs::{
 };
 
 pub use crate::{
-    systems::{hover_class, hover_excluded_property, hover_property, hover_types, infer_types},
+    systems::{
+        get_current_prefix, hover_class, hover_excluded_property, hover_prefix, hover_property,
+        hover_types, infer_types,
+    },
     util::triple::get_current_triple,
 };
 
@@ -22,14 +25,19 @@ pub fn setup_schedule(world: &mut World) {
     hover.add_systems((
         infer_types,
         get_current_triple,
+        // Runs after the triple lookup and drops its (wrong) result when the
+        // cursor is on a prefix declaration, so the triple-based hovers below
+        // no-op and `hover_prefix` describes the namespace instead.
+        get_current_prefix.after(get_current_triple),
+        hover_prefix.after(get_current_prefix),
         hover_types
             .before(hover_class)
             .before(hover_property)
-            .after(get_current_triple)
+            .after(get_current_prefix)
             .after(infer_types),
-        hover_class.after(get_current_triple),
-        hover_property.after(get_current_triple),
-        hover_excluded_property.after(get_current_triple),
+        hover_class.after(get_current_prefix),
+        hover_property.after(get_current_prefix),
+        hover_excluded_property.after(get_current_prefix),
     ));
     world.add_schedule(hover);
 }
