@@ -171,8 +171,8 @@ pub struct Config {
 /// Per-language toggles for `textDocument/formatting`.
 ///
 /// Each field is an `Option<bool>`, but the *effective* default differs per
-/// language: Turtle formatting is on unless explicitly disabled, while every
-/// other language is off unless explicitly enabled. Use the accessor methods
+/// language: Turtle and TriG formatting are on unless explicitly disabled,
+/// while every other language is off unless explicitly enabled. Use the accessor methods
 /// ([`FormatConfig::turtle`] etc.) to resolve a field to its effective value
 /// rather than reading the `Option` directly.
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -181,7 +181,7 @@ pub struct FormatConfig {
     /// Enable Turtle formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turtle: Option<bool>,
-    /// Enable TriG formatting (default: `false`).
+    /// Enable TriG formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trig: Option<bool>,
     /// Enable N3 formatting (default: `false`).
@@ -217,9 +217,9 @@ impl FormatConfig {
     pub fn turtle(&self) -> bool {
         self.turtle.unwrap_or(true)
     }
-    /// Whether TriG formatting is enabled (defaults to `false`).
+    /// Whether TriG formatting is enabled (defaults to `true`).
     pub fn trig(&self) -> bool {
-        self.trig.unwrap_or(false)
+        self.trig.unwrap_or(true)
     }
     /// Whether N3 formatting is enabled (defaults to `false`).
     pub fn n3(&self) -> bool {
@@ -251,7 +251,7 @@ pub struct LocalConfig {
     /// Preferred way to write Turtle/TriG prefix declarations when inserting them.
     pub prefix_format: Option<PrefixFormat>,
     /// Per-language `textDocument/formatting` toggles. Formatting is disabled by
-    /// default for every language except Turtle.
+    /// default for every language except Turtle and TriG.
     pub format: FormatConfig,
     /// Namespaces for which IRIs used as properties (predicates) must be defined in a
     /// known ontology. Predicate IRIs that start with one of these namespaces but are
@@ -477,14 +477,14 @@ mod tests {
             serde_json::from_str(r#"{ "format": { "sparql": true } }"#).unwrap();
         assert!(local.format.sparql());
         assert!(local.format.turtle(), "unset toggles keep their defaults");
-        assert!(!local.format.trig());
+        assert!(!local.format.n3());
     }
 
     #[test]
     fn format_from_initialization_options() {
         let config: Config =
-            serde_json::from_value(serde_json::json!({ "format": { "trig": true } })).unwrap();
-        assert!(config.local.format.trig());
+            serde_json::from_value(serde_json::json!({ "format": { "trig": false } })).unwrap();
+        assert!(!config.local.format.trig());
     }
 
     #[test]
