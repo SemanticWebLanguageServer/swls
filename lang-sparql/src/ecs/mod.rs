@@ -299,7 +299,7 @@ mod format_tests {
     fn format_update(src: &str) -> (bool, Option<String>) {
         let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world);
         let mut cfg = ServerConfig::default();
-        cfg.config.local.format.sparql = Some(true);
+        cfg.config.local.format.sparql = None;
         world.insert_resource(cfg);
 
         let entity = create_file(&mut world, src, "http://example.com/update.ru", "sparql", Open);
@@ -331,17 +331,17 @@ mod format_tests {
     }
 
     #[test]
-    fn sparql_formatting_off_by_default() {
+    fn sparql_formatting_can_be_disabled() {
         assert!(
-            format_with(None).is_none(),
-            "SPARQL formatting should be disabled unless explicitly enabled"
+            format_with(Some(false)).is_none(),
+            "SPARQL formatting should not run when disabled via config"
         );
     }
 
     #[test]
-    fn sparql_formatting_can_be_enabled() {
+    fn sparql_formatting_on_by_default() {
         assert_eq!(
-            format_with(Some(true)).as_deref(),
+            format_with(None).as_deref(),
             Some("SELECT ?s\nWHERE {\n  ?s <a> ?o.\n  FILTER (?o > 5)\n}\n")
         );
     }

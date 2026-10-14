@@ -76,7 +76,7 @@ win: a workspace file overrides the global one, which overrides `initializationO
   "turtle": true,
   "sparql": false,
   "disabled": ["unused_prefix", "hover_excluded_property"],
-  "format": { "sparql": true },
+  "format": { "jsonld": false },
   "prefix_format": "sparql"
 }
 ```
@@ -85,8 +85,8 @@ win: a workspace file overrides the global one, which overrides `initializationO
   These are only read from `initializationOptions`.
 - `disabled` — a list of individual diagnostics or LSP (sub-)features to turn off, e.g. just the
   "unused prefix" warning, or just hover-on-class without touching the rest of hover.
-- `format` — turn document formatting on or off per language: `turtle`, `trig` (default `true`),
-  `sparql`, `n3`, `jsonld` (default `false`).
+- `format` — turn document formatting off per language: `turtle`, `trig`, `sparql`, `n3`,
+  `jsonld` (all default `true`).
 - `prefix_format` — `"turtle"` (default) writes `@prefix ex: <…>.`, `"sparql"` writes
   `PREFIX ex: <…>`. Used when inserting prefixes, and the Turtle formatter rewrites existing
   declarations to match.

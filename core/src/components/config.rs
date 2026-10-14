@@ -170,11 +170,10 @@ pub struct Config {
 
 /// Per-language toggles for `textDocument/formatting`.
 ///
-/// Each field is an `Option<bool>`, but the *effective* default differs per
-/// language: Turtle and TriG formatting are on unless explicitly disabled,
-/// while every other language is off unless explicitly enabled. Use the accessor methods
-/// ([`FormatConfig::turtle`] etc.) to resolve a field to its effective value
-/// rather than reading the `Option` directly.
+/// Each field is an `Option<bool>`; formatting is on for every language unless
+/// explicitly disabled. Use the accessor methods ([`FormatConfig::turtle`]
+/// etc.) to resolve a field to its effective value rather than reading the
+/// `Option` directly.
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[serde(default)]
 pub struct FormatConfig {
@@ -184,13 +183,13 @@ pub struct FormatConfig {
     /// Enable TriG formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trig: Option<bool>,
-    /// Enable N3 formatting (default: `false`).
+    /// Enable N3 formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub n3: Option<bool>,
-    /// Enable JSON-LD formatting (default: `false`).
+    /// Enable JSON-LD formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub jsonld: Option<bool>,
-    /// Enable SPARQL formatting (default: `false`).
+    /// Enable SPARQL formatting (default: `true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sparql: Option<bool>,
 }
@@ -221,17 +220,17 @@ impl FormatConfig {
     pub fn trig(&self) -> bool {
         self.trig.unwrap_or(true)
     }
-    /// Whether N3 formatting is enabled (defaults to `false`).
+    /// Whether N3 formatting is enabled (defaults to `true`).
     pub fn n3(&self) -> bool {
-        self.n3.unwrap_or(false)
+        self.n3.unwrap_or(true)
     }
-    /// Whether JSON-LD formatting is enabled (defaults to `false`).
+    /// Whether JSON-LD formatting is enabled (defaults to `true`).
     pub fn jsonld(&self) -> bool {
-        self.jsonld.unwrap_or(false)
+        self.jsonld.unwrap_or(true)
     }
-    /// Whether SPARQL formatting is enabled (defaults to `false`).
+    /// Whether SPARQL formatting is enabled (defaults to `true`).
     pub fn sparql(&self) -> bool {
-        self.sparql.unwrap_or(false)
+        self.sparql.unwrap_or(true)
     }
 }
 
@@ -250,8 +249,8 @@ pub struct LocalConfig {
     pub completion: CompletionConfig,
     /// Preferred way to write Turtle/TriG prefix declarations when inserting them.
     pub prefix_format: Option<PrefixFormat>,
-    /// Per-language `textDocument/formatting` toggles. Formatting is disabled by
-    /// default for every language except Turtle and TriG.
+    /// Per-language `textDocument/formatting` toggles. Formatting is enabled
+    /// by default for every language.
     pub format: FormatConfig,
     /// Namespaces for which IRIs used as properties (predicates) must be defined in a
     /// known ontology. Predicate IRIs that start with one of these namespaces but are
@@ -474,10 +473,10 @@ mod tests {
     #[test]
     fn format_from_config_file() {
         let local: LocalConfig =
-            serde_json::from_str(r#"{ "format": { "sparql": true } }"#).unwrap();
-        assert!(local.format.sparql());
+            serde_json::from_str(r#"{ "format": { "sparql": false } }"#).unwrap();
+        assert!(!local.format.sparql());
         assert!(local.format.turtle(), "unset toggles keep their defaults");
-        assert!(!local.format.n3());
+        assert!(local.format.n3());
     }
 
     #[test]
