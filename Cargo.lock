@@ -1197,10 +1197,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0de51e6874e94e7bf76d726fc5d13ba782deca734ff60d5bb2fb2607c7406555"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 6.0.0",
  "wasip2",
  "wasip3",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1570,6 +1572,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6095a1b3076fd217898181e2ad380500ce684ce3c51bcf1db8e612a89e9c191a"
 dependencies = [
  "getrandom 0.3.4",
+ "getrandom 0.4.2",
  "oxiri",
  "oxrdf",
  "proptest",
@@ -2471,9 +2474,9 @@ dependencies = [
 
 [[package]]
 name = "rdf-parsers"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4dd8b56ae953c70f9e8588acb98dcf6ecccc52adb8c49e056c27c4cbf068fa1"
+checksum = "58edf19248e1589e98836d557a8545265590a9b4241fd5efabfa305b8018de03"
 dependencies = [
  "async-trait",
  "logos",
