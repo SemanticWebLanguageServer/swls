@@ -1,338 +1,311 @@
-use std::{
-    io::{self, Cursor, Write},
-    ops::Range,
-};
+//! Turtle formatter.
+//!
+//! Formatting happens in two passes:
+//! 1. The AST is converted into a [`pretty`] document. All style decisions
+//!    (what must break, what may break, where comments go) are made here.
+//! 2. `pretty` renders the document, choosing per group whether it fits on
+//!    the current line. A hard line inside a group always breaks that group,
+//!    so "a child is multi-line" propagates upwards without backtracking.
 
+use std::ops::Range;
+
+use pretty::RcDoc;
 use swls_core::text::LineIndex;
-use swls_core::{
-    lsp_types::FormattingOptions,
-    prelude::{spanned, Spanned},
-};
-use tracing::{trace, warn};
+use swls_core::{lsp_types::FormattingOptions, prelude::Spanned};
+use tracing::warn;
 
 use swls_lang_rdf_base::traits::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
-type Buf = Cursor<Vec<u8>>;
+type Doc = RcDoc<'static, ()>;
+
 #[derive(Default, Clone, Copy)]
 pub enum PrefixStyle {
     #[default]
     OldSchool,
     Sparql,
 }
-struct FormatState<'a> {
-    indent_level: usize,
-    indent: String,
-    buf: Buf,
-    line_start: u64,
+
+/// Knobs that influence how the document is laid out.
+#[derive(Clone, Copy)]
+struct Style {
+    indent: isize,
+    max_width: usize,
+    /// Blank nodes with more than one predicate-object pair are always
+    /// written over multiple lines, even when they would fit.
+    break_multi_po_bnodes: bool,
+}
+
+impl Style {
+    fn new(options: &FormattingOptions) -> Self {
+        Self {
+            indent: options.tab_size as isize,
+            max_width: 80,
+            break_multi_po_bnodes: true,
+        }
+    }
+}
+
+struct FormatError(&'static str);
+
+type Result<T> = std::result::Result<T, FormatError>;
+
+struct DocBuilder<'a> {
+    style: Style,
     comments: &'a [Spanned<String>],
     comments_idx: usize,
-    tail: Spanned<String>,
-    line_count: usize,
-    prefix_style: PrefixStyle,
 }
 
-impl<'a> FormatState<'a> {
-    fn new(
-        options: FormattingOptions,
-        buf: Buf,
-        comments: &'a [Spanned<String>],
-        source: &'a LineIndex,
-        prefix_style: PrefixStyle,
-    ) -> Self {
-        let mut indent = String::new();
-        for _ in 0..options.tab_size {
-            indent.push(' ');
-        }
-
-        // Sentinel span past the end of the document, so the trailing comment
-        // bucket sorts after every real span.
-        let tail = spanned(
-            String::new(),
-            source.len_bytes() + 1..source.len_bytes() + 1,
-        );
-
-        Self {
-            tail,
-            line_start: 0,
-            indent_level: 0,
-            indent,
-            buf,
-            comments,
-            comments_idx: 0,
-            line_count: 0,
-            prefix_style,
-        }
-    }
-
-    fn check_comments(&mut self, span: &Range<usize>) -> io::Result<bool> {
-        trace!("checking comments with span {:?}", span);
-        let mut first = true;
-        loop {
-            let current = self.comments.get(self.comments_idx).unwrap_or(&self.tail);
-
-            if current.1.start > span.start {
+impl<'a> DocBuilder<'a> {
+    /// Takes all not yet emitted comments that start before `pos`.
+    fn take_comments(&mut self, pos: usize) -> Vec<&'a str> {
+        let mut out = Vec::new();
+        while let Some(c) = self.comments.get(self.comments_idx) {
+            if c.1.start > pos {
                 break;
             }
-
-            first = false;
-            write!(self.buf, "{}", current.0)?;
-            self.new_line()?;
+            out.push(c.0.as_str());
             self.comments_idx += 1;
         }
-        Ok(!first)
+        out
     }
-    fn current_line_length(&self) -> u64 {
-        self.buf.position() - self.line_start
-    }
-    fn new_line(&mut self) -> io::Result<()> {
-        self.line_count += 1;
-        write!(self.buf, "\n")?;
-        self.line_start = self.buf.position();
-        for _ in 0..self.indent_level {
-            write!(self.buf, "{}", &self.indent)?;
-        }
-        Ok(())
-    }
-    fn inc(&mut self) {
-        self.indent_level += 1;
-    }
-    fn decr(&mut self) {
-        self.indent_level -= 1;
-    }
-}
 
-impl FormatState<'_> {
-    fn write_turtle(&mut self, turtle: &Turtle) -> io::Result<()> {
+    /// Comments before `pos`, each followed by a hard line.
+    fn comments_doc(&mut self, pos: usize) -> Doc {
+        Doc::concat(
+            self.take_comments(pos)
+                .into_iter()
+                .map(|c| Doc::text(c.to_string()).append(Doc::hardline())),
+        )
+    }
+
+    fn has_comment_in(&self, span: &Range<usize>) -> bool {
+        self.comments[self.comments_idx..]
+            .iter()
+            .any(|c| span.contains(&c.1.start))
+    }
+
+    /// Whether this term is always written over multiple lines,
+    /// independent of where it ends up on the line.
+    fn forces_break(&self, term: &Term, span: &Range<usize>) -> bool {
+        match term {
+            Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => self.forces_break_bnode(pos, span),
+            Term::Collection(items) => {
+                self.has_comment_in(span) || items.iter().any(|t| self.forces_break(&t.0, &t.1))
+            }
+            _ => false,
+        }
+    }
+
+    fn forces_break_bnode(&self, pos: &[Spanned<PO>], span: &Range<usize>) -> bool {
+        (self.style.break_multi_po_bnodes && pos.len() > 1)
+            || self.has_comment_in(span)
+            || pos
+                .iter()
+                .flat_map(|po| po.object.iter())
+                .any(|o| self.forces_break(&o.0, &o.1))
+    }
+
+    fn prefix(&self, prefix: &TurtlePrefix, style: PrefixStyle) -> String {
+        match style {
+            PrefixStyle::OldSchool => format!("@prefix {}: {}.", prefix.prefix.0, prefix.value.0),
+            PrefixStyle::Sparql => format!("PREFIX {}: {}", prefix.prefix.0, prefix.value.0),
+        }
+    }
+
+    fn base(&self, base: &Base, style: PrefixStyle) -> String {
+        match style {
+            PrefixStyle::OldSchool => format!("@base {}.", base.1 .0),
+            PrefixStyle::Sparql => format!("BASE {}", base.1 .0),
+        }
+    }
+
+    fn term(&mut self, term: &Spanned<Term>) -> Result<Doc> {
+        match &term.0 {
+            Term::Literal(s) => Ok(Doc::text(s.to_string())),
+            Term::NamedNode(n) => Ok(Doc::text(n.to_string())),
+            Term::BlankNode(b) => self.bnode(b, &term.1),
+            Term::Collection(items) => self.collection(items),
+            Term::Invalid => Err(FormatError("cannot format turtle with invalid terms")),
+            Term::Variable(_) => Err(FormatError("cannot format turtle with variables")),
+        }
+    }
+
+    fn bnode(&mut self, bnode: &BlankNode, span: &Range<usize>) -> Result<Doc> {
+        let pos = match bnode {
+            BlankNode::Named(x, _) => return Ok(Doc::text(format!("_:{}", x))),
+            BlankNode::Unnamed(pos, _, _) => pos,
+            BlankNode::Invalid => return Err(FormatError("invalid blank node")),
+        };
+        if pos.is_empty() {
+            return Ok(Doc::text("[ ]"));
+        }
+
+        let forced = self.forces_break_bnode(pos, span);
+        if pos.len() == 1 && !forced {
+            // `[ p o ]` when it fits, otherwise break after `[`.
+            let body = self.comments_doc(pos[0].1.start).append(self.po(&pos[0])?);
+            return Ok(Doc::text("[")
+                .append(Doc::line().append(body).nest(self.style.indent))
+                .append(Doc::line())
+                .append(Doc::text("]"))
+                .group());
+        }
+
+        if pos.len() == 1 {
+            // Multi-line content: break after `[`, no trailing `;`.
+            let body = self.comments_doc(pos[0].1.start).append(self.po(&pos[0])?);
+            return Ok(Doc::text("[")
+                .append(Doc::hardline().append(body).nest(self.style.indent))
+                .append(Doc::hardline())
+                .append(Doc::text("]")));
+        }
+
+        let mut body = Doc::nil();
+        for po in pos {
+            body = body
+                .append(Doc::hardline())
+                .append(self.comments_doc(po.1.start))
+                .append(self.po(po)?)
+                .append(Doc::text(";"));
+        }
+        Ok(Doc::text("[")
+            .append(body.nest(self.style.indent))
+            .append(Doc::hardline())
+            .append(Doc::text("]")))
+    }
+
+    fn collection(&mut self, items: &[Spanned<Term>]) -> Result<Doc> {
+        if items.is_empty() {
+            return Ok(Doc::text("( )"));
+        }
+        // `( a b )` when it fits, otherwise one item per line.
+        let mut body = Doc::nil();
+        for item in items {
+            body = body
+                .append(Doc::line())
+                .append(self.comments_doc(item.1.start))
+                .append(self.term(item)?);
+        }
+        Ok(Doc::text("(")
+            .append(body.nest(self.style.indent))
+            .append(Doc::line())
+            .append(Doc::text(")"))
+            .group())
+    }
+
+    fn is_atomic(term: &Term) -> bool {
+        match term {
+            Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => pos.is_empty(),
+            Term::Collection(items) => items.is_empty(),
+            _ => true,
+        }
+    }
+
+    fn po(&mut self, po: &PO) -> Result<Doc> {
+        let mut doc = Doc::text(format!("{} ", po.predicate.0));
+        let Some((first, rest)) = po.object.split_first() else {
+            return Err(FormatError("predicate without object"));
+        };
+        doc = doc.append(self.term(first)?);
+
+        if po.object.iter().all(|o| Self::is_atomic(&o.0)) {
+            // All on one line, or every object on its own (indented) line.
+            let mut tail = Doc::nil();
+            for o in rest {
+                tail = tail
+                    .append(Doc::text(","))
+                    .append(Doc::line())
+                    .append(self.comments_doc(o.1.start))
+                    .append(self.term(o)?);
+            }
+            Ok(doc.append(tail.nest(self.style.indent)).group())
+        } else {
+            // Nested structures lay themselves out; keep `], [` together.
+            for o in rest {
+                doc = doc
+                    .append(Doc::text(", "))
+                    .append(self.comments_doc(o.1.start))
+                    .append(self.term(o)?);
+            }
+            Ok(doc)
+        }
+    }
+
+    fn triple(&mut self, triple: &Triple) -> Result<Doc> {
+        let mut doc = match &triple.subject.0 {
+            Term::BlankNode(bn) => self.bnode(bn, &triple.subject.1)?,
+            Term::NamedNode(n) => Doc::text(n.to_string()),
+            _ => Doc::text("invalid"),
+        };
+        let Some((first, rest)) = triple.po.split_first() else {
+            return Ok(doc.append(Doc::text(".")));
+        };
+        doc = doc.append(Doc::text(" ")).append(self.po(first)?);
+
+        let mut tail = Doc::nil();
+        for po in rest {
+            tail = tail
+                .append(Doc::text(";"))
+                .append(Doc::hardline())
+                .append(self.comments_doc(po.1.start))
+                .append(self.po(po)?);
+        }
+        Ok(doc
+            .append(tail.nest(self.style.indent))
+            .append(Doc::text(".")))
+    }
+
+    fn render(&self, doc: Doc) -> String {
+        let mut out = String::new();
+        // Writing to a String cannot fail.
+        let _ = doc.render_fmt(self.style.max_width, &mut out);
+        out
+    }
+
+    fn turtle(&mut self, turtle: &Turtle, prefix_style: PrefixStyle) -> Result<String> {
+        let mut out = String::new();
+        let mut line_count = 0;
+        let push_line = |out: &mut String, line_count: &mut usize, s: &str| {
+            out.push_str(s);
+            out.push('\n');
+            *line_count += s.matches('\n').count() + 1;
+        };
+
         if let Some(ref b) = turtle.base {
-            self.check_comments(&b.1)?;
-            self.write_base(b)?;
-            self.new_line()?;
+            for c in self.take_comments(b.1.start) {
+                push_line(&mut out, &mut line_count, c);
+            }
+            push_line(&mut out, &mut line_count, &self.base(b, prefix_style));
         }
         for p in &turtle.prefixes {
-            self.check_comments(&p.1)?;
-            self.write_prefix(p)?;
-            self.new_line()?;
+            for c in self.take_comments(p.1.start) {
+                push_line(&mut out, &mut line_count, c);
+            }
+            push_line(&mut out, &mut line_count, &self.prefix(p, prefix_style));
         }
 
+        // Separate a statement from the previous one with a blank line
+        // when the previous chunk spanned multiple lines.
         let mut prev_line = 0;
-
         for t in &turtle.triples {
-            if prev_line + 1 < self.line_count {
-                self.new_line()?;
+            if prev_line + 1 < line_count {
+                push_line(&mut out, &mut line_count, "");
             }
-            prev_line = self.line_count;
-            self.check_comments(&t.1)?;
-            self.write_triple(&t)?;
-            self.new_line()?;
-            // request_newline = t.0.po.len() > 1 || t.0.po[0].0.object.len() > 1;
-        }
-        self.new_line()?;
-
-        for i in self.comments_idx..self.comments.len() {
-            write!(self.buf, "{}", self.comments[i].0)?;
-            self.new_line()?;
-        }
-
-        Ok(())
-    }
-
-    fn write_prefix(&mut self, prefix: &TurtlePrefix) -> io::Result<()> {
-        match self.prefix_style {
-            PrefixStyle::OldSchool => {
-                write!(self.buf, "@prefix {}: {}.", prefix.prefix.0, prefix.value.0)
+            prev_line = line_count;
+            for c in self.take_comments(t.1.start) {
+                push_line(&mut out, &mut line_count, c);
             }
-            PrefixStyle::Sparql => {
-                write!(self.buf, "PREFIX {}: {}", prefix.prefix.0, prefix.value.0)
-            }
+            let doc = self.triple(t)?;
+            let rendered = self.render(doc);
+            push_line(&mut out, &mut line_count, &rendered);
         }
-    }
+        push_line(&mut out, &mut line_count, "");
 
-    fn write_base(&mut self, base: &Base) -> io::Result<()> {
-        match self.prefix_style {
-            PrefixStyle::OldSchool => {
-                write!(self.buf, "@base {}.", base.1 .0)
-            }
-            PrefixStyle::Sparql => {
-                write!(self.buf, "BASE {}", base.1 .0)
-            }
-        }
-    }
-
-    fn write_bnode(&mut self, bnode: &BlankNode) -> io::Result<()> {
-        match bnode {
-            BlankNode::Named(x, _) => write!(self.buf, "_:{}", x)?,
-            BlankNode::Unnamed(pos, _, _) => {
-                if pos.len() == 0 {
-                    return write!(self.buf, "[ ]");
-                }
-                if pos.len() == 1 {
-                    write!(self.buf, "[ ")?;
-                    self.write_po(&pos[0])?;
-                    return write!(self.buf, " ]");
-                }
-                let is_first_of_line = self.current_line_length() == 0;
-                self.inc();
-                write!(self.buf, "[")?;
-                let should_skip = if is_first_of_line {
-                    write!(self.buf, " ")?;
-                    self.write_po(&pos[0])?;
-                    write!(self.buf, ";")?;
-                    1
-                } else {
-                    0
-                };
-                for po in pos.iter().skip(should_skip) {
-                    self.new_line()?;
-                    self.check_comments(&po.1)?;
-                    self.write_po(&po)?;
-                    write!(self.buf, ";")?;
-                }
-                self.decr();
-                self.new_line()?;
-                write!(self.buf, "]")?;
-            }
-            BlankNode::Invalid => return Err(io::Error::new(io::ErrorKind::Other, "")),
-        }
-        Ok(())
-    }
-
-    fn write_collection(&mut self, coll: &Vec<Spanned<Term>>) -> io::Result<()> {
-        if coll.is_empty() {
-            return write!(self.buf, "( )");
+        for c in self.take_comments(usize::MAX) {
+            push_line(&mut out, &mut line_count, c);
         }
 
-        let mut should_indent = false;
-        let start = self.buf.position();
-        let current_line = self.line_count;
-
-        write!(self.buf, "( ")?;
-
-        self.check_comments(&coll[0].1)?;
-        self.write_term(&coll[0])?;
-
-        for po in coll.iter().skip(1) {
-            self.check_comments(&po.1)?;
-            write!(self.buf, " ")?;
-            self.write_term(&po)?;
-            if self.current_line_length() > 80 {
-                should_indent = true;
-                break;
-            }
-        }
-        write!(self.buf, " )")?;
-
-        if should_indent {
-            self.buf.set_position(start);
-            self.line_count = current_line;
-            write!(self.buf, "(")?;
-            self.inc();
-            for po in coll.iter() {
-                self.new_line()?;
-                self.check_comments(&po.1)?;
-                self.write_term(&po)?;
-            }
-            self.decr();
-            self.new_line()?;
-            write!(self.buf, ")")?;
-        }
-
-        Ok(())
-    }
-
-    fn write_term(&mut self, term: &Term) -> io::Result<()> {
-        match term {
-            Term::Literal(s) => write!(self.buf, "{}", s)?,
-            Term::BlankNode(b) => self.write_bnode(b)?,
-            Term::NamedNode(n) => write!(self.buf, "{}", n)?,
-            Term::Collection(ts) => self.write_collection(ts)?,
-            Term::Invalid => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "cannot format turtle with invalid terms",
-                ))
-            }
-            Term::Variable(_) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "cannot format turtle with variables",
-                ))
-            }
-        }
-        Ok(())
-    }
-
-    fn write_po(&mut self, po: &PO) -> io::Result<()> {
-        write!(self.buf, "{} ", po.predicate.0)?;
-        self.write_term(&po.object[0])?;
-        let mut should_indent = false;
-
-        let start = self.buf.position();
-        let current_line = self.line_count;
-        for i in 1..po.object.len() {
-            write!(self.buf, ", ")?;
-            self.write_term(&po.object[i])?;
-
-            if self.current_line_length() > 80 {
-                should_indent = true;
-                break;
-            }
-        }
-
-        if should_indent {
-            self.buf.set_position(start);
-            self.line_count = current_line;
-            self.inc();
-            for i in 1..po.object.len() {
-                write!(self.buf, ",")?;
-                self.new_line()?;
-                self.check_comments(&po.object[i].1)?;
-                self.write_term(&po.object[i])?;
-            }
-            self.decr();
-        }
-
-        Ok(())
-    }
-
-    fn write_triple(&mut self, triple: &Triple) -> io::Result<()> {
-        match &triple.subject.0 {
-            Term::BlankNode(bn) => self.write_bnode(bn)?,
-            Term::NamedNode(n) => write!(self.buf, "{}", n)?,
-            _ => write!(self.buf, "invalid")?,
-        }
-        if triple.po.is_empty() {
-            write!(self.buf, ".")?;
-            return Ok(());
-        }
-        write!(self.buf, " ")?;
-        self.write_po(&triple.po[0])?;
-        if triple.po.len() == 1 {
-            write!(self.buf, ".")?;
-            return Ok(());
-        }
-        write!(self.buf, ";")?;
-        self.inc();
-
-        self.new_line()?;
-        self.check_comments(&triple.po[1].1)?;
-        self.write_po(&triple.po[1])?;
-
-        if triple.po.len() == 2 {
-            self.decr();
-            write!(self.buf, ".")?;
-            return Ok(());
-        }
-
-        for i in 2..triple.po.len() {
-            write!(self.buf, ";")?;
-            self.new_line()?;
-            self.check_comments(&triple.po[i].1)?;
-            self.write_po(&triple.po[i])?;
-        }
-
-        write!(self.buf, ".")?;
-        self.decr();
-        Ok(())
+        Ok(out)
     }
 }
 
@@ -340,19 +313,24 @@ pub fn format_turtle(
     turtle: &Turtle,
     config: FormattingOptions,
     comments: &[Spanned<String>],
-    source: &LineIndex,
+    _source: &LineIndex,
     prefix_style: impl Into<PrefixStyle>,
 ) -> Option<String> {
-    let buf: Buf = Cursor::new(Vec::new());
-    let mut state = FormatState::new(config, buf, comments, source, prefix_style.into());
-    match state.write_turtle(turtle) {
-        Ok(_) => tracing::debug!("Format successful"),
+    let mut builder = DocBuilder {
+        style: Style::new(&config),
+        comments,
+        comments_idx: 0,
+    };
+    match builder.turtle(turtle, prefix_style.into()) {
+        Ok(out) => {
+            tracing::debug!("Format successful");
+            Some(out)
+        }
         Err(e) => {
-            warn!("Format unsuccessful {:?}", e);
-            return None;
+            warn!("Format unsuccessful: {}", e.0);
+            None
         }
     }
-    String::from_utf8(state.buf.into_inner()).ok()
 }
 
 #[cfg(test)]
@@ -471,7 +449,8 @@ mod tests {
 
 "#;
 
-        let expected = r#"[ <a> foaf:Person;
+        let expected = r#"[
+  <a> foaf:Person;
   foaf:knows <abc>;
   foaf:knows <def>;
 ] foaf:knows [
@@ -700,6 +679,51 @@ mod tests {
             PrefixStyle::OldSchool,
         )
         .expect("formatting");
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn format_nested_bnodes() {
+        let txt = r#"[] sh:or ( [ sh:property [
+    sh:path crm:P4_has_time-span;
+    sh:minCount 1;
+  ] ] [ sh:property [
+    sh:path crm:P7_took_place_at;
+    sh:minCount 1;
+  ] ] ).
+        "#;
+
+        let expected = r#"[ ] sh:or (
+  [
+    sh:property [
+      sh:path crm:P4_has_time-span;
+      sh:minCount 1;
+    ]
+  ]
+  [
+    sh:property [
+      sh:path crm:P7_took_place_at;
+      sh:minCount 1;
+    ]
+  ]
+).
+
+"#;
+
+        let url = swls_core::lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let (output, comments) = parse_turtle(txt, &url);
+        let formatted = format_turtle(
+            &output,
+            swls_core::lsp_types::FormattingOptions {
+                tab_size: 2,
+                ..Default::default()
+            },
+            &comments,
+            &LineIndex::new(txt),
+            PrefixStyle::OldSchool,
+        )
+        .expect("formatting");
+
         assert_eq!(formatted, expected);
     }
 }
