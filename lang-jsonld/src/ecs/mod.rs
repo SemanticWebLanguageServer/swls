@@ -540,7 +540,7 @@ pub(crate) fn format_jsonld_system(
     config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Position, Range};
-    if !config.config.format.jsonld() {
+    if !config.config.local.format.jsonld() {
         tracing::debug!("JSON-LD formatting disabled by config");
         return;
     }

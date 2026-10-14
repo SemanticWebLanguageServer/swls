@@ -7,7 +7,7 @@ use swls_lang_rdf_base::register_rdf_lang;
 use swls_lang_turtle::lang::parser::TurtleParseError;
 
 pub mod ecs;
-use crate::ecs::{setup_completion, setup_parse};
+use crate::ecs::{setup_completion, setup_format, setup_parse};
 pub mod lang;
 
 pub fn setup_world(world: &mut World) {
@@ -20,6 +20,7 @@ pub fn setup_world(world: &mut World) {
     );
     setup_parse(world);
     setup_completion(world);
+    setup_format(world);
 }
 
 #[derive(Debug, Component, Default)]

@@ -31,7 +31,7 @@ Details and caveats for each editor are in [Installation](#installation) below.
 | **Hover** | Inferred RDF type · class & property documentation from the ontology · explanation when a property is only accepted via your allow-list |
 | **Navigation** | Go to definition (RDF terms and, for JSON-LD, Components.js modules/parameters) · go to type definition · find references · rename |
 | **Code actions** | Add missing prefix declaration · allow-list an unknown property · organize/sort `@prefix` imports (Turtle) · extract/inline a blank node |
-| **Formatting** | Document formatting for Turtle and JSON-LD · auto-insert the prefix declaration while typing |
+| **Formatting** | Document formatting for Turtle, TriG, SPARQL, N3 and JSON-LD · auto-insert the prefix declaration while typing |
 | **Highlighting** | Semantic syntax highlighting |
 | **Inlay hints** | Inferred type shown inline next to subjects missing an explicit `rdf:type` |
 
@@ -68,19 +68,31 @@ point your editor's LSP client at it for `.ttl`, `.trig`, `.jsonld` and `.sparql
 ## Configuration
 
 SWLS reads configuration from the client's `initializationOptions`, plus optional
-`.swls/config.json` (workspace) and `~/.config/swls/config.json` (global) files.
+`~/.config/swls/config.json` (global) and `.swls/config.json` (workspace) files. Later sources
+win: a workspace file overrides the global one, which overrides `initializationOptions`.
 
 ```json
 {
   "turtle": true,
   "sparql": false,
-  "disabled": ["unused_prefix", "hover_excluded_property"]
+  "disabled": ["unused_prefix", "hover_excluded_property"],
+  "format": { "trig": true, "sparql": true },
+  "prefix_format": "sparql"
 }
 ```
 
 - `turtle` / `trig` / `jsonld` / `sparql` (default `true`) — enable/disable a language plugin entirely.
+  These are only read from `initializationOptions`.
 - `disabled` — a list of individual diagnostics or LSP (sub-)features to turn off, e.g. just the
   "unused prefix" warning, or just hover-on-class without touching the rest of hover.
+- `format` — turn document formatting on or off per language: `turtle` (default `true`), `trig`,
+  `sparql`, `n3`, `jsonld` (default `false`).
+- `prefix_format` — `"turtle"` (default) writes `@prefix ex: <…>.`, `"sparql"` writes
+  `PREFIX ex: <…>`. Used when inserting prefixes, and the Turtle formatter rewrites existing
+  declarations to match.
+
+If `initializationOptions` contains an invalid value, SWLS logs a warning to the editor's output
+and falls back to the defaults.
 
 ## Documentation
 

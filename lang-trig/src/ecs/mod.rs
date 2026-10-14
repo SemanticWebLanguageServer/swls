@@ -24,7 +24,6 @@ pub fn setup_parsing(world: &mut World) {
     });
 }
 
-
 fn extract_trig_cst_tokens(
     node: &rowan::SyntaxNode<rdf_parsers::trig::parser::Lang>,
 ) -> Vec<Spanned<rowan::SyntaxKind>> {
@@ -147,7 +146,7 @@ pub(crate) fn format_trig_system(
     config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Position, Range};
-    if !config.config.format.trig() {
+    if !config.config.local.format.trig() {
         tracing::debug!("TriG formatting disabled by config");
         return;
     }
@@ -182,7 +181,7 @@ mod tests {
         let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let mut cfg = ServerConfig::default();
-        cfg.config.format.trig = trig_enabled;
+        cfg.config.local.format.trig = trig_enabled;
         world.insert_resource(cfg);
 
         let entity = create_file(

@@ -237,7 +237,7 @@ pub(crate) fn format_n3_system(
     config: Res<ServerConfig>,
 ) {
     use swls_core::lsp_types::{Position, Range};
-    if !config.config.format.n3() {
+    if !config.config.local.format.n3() {
         tracing::debug!("N3 formatting disabled by config");
         return;
     }

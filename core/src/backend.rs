@@ -13,7 +13,7 @@ use goto_type::GotoTypeRequest;
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use crate::text::LineIndex;
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::{
     client::Client,
@@ -143,9 +143,20 @@ impl<C: Client> Backend<C> {
         info!("Initialize");
 
         let workspaces = init.workspace_folders.clone().unwrap_or_default();
-        let config: Config =
-            serde_json::from_value(init.initialization_options.clone().unwrap_or_default())
-                .unwrap_or_default();
+        let config: Config = match init.initialization_options.clone() {
+            None | Some(serde_json::Value::Null) => Config::default(),
+            Some(options) => match serde_json::from_value(options) {
+                Ok(config) => config,
+                Err(e) => {
+                    // A single wrong value would otherwise reset every setting
+                    // without a trace.
+                    let msg = format!("Invalid swls initializationOptions, using defaults: {e}");
+                    warn!("{msg}");
+                    self.client.log_message(MessageType::WARNING, msg).await;
+                    Config::default()
+                }
+            },
+        };
 
         let mut server_config = ServerConfig { config, workspaces };
 

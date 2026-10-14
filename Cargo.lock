@@ -2472,12 +2472,11 @@ dependencies = [
 [[package]]
 name = "rdf-parsers"
 version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d1eee344235c9e9d033caed31059cf226f24e81e0621297c57506a0b513a5a8"
 dependencies = [
  "async-trait",
  "logos",
  "oxiri",
+ "pretty",
  "rowan",
  "similar",
 ]
@@ -3468,7 +3467,6 @@ version = "0.2.1"
 dependencies = [
  "bevy_ecs",
  "futures",
- "pretty",
  "rdf-parsers",
  "rowan",
  "swls-core",
