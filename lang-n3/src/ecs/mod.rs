@@ -230,6 +230,30 @@ mod tests {
             messages
         );
     }
+
+    #[test]
+    fn n3_formatting_uses_n3_rules() {
+        let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        {
+            let mut cfg = world.resource_mut::<ServerConfig>();
+            cfg.config.n3 = Some(true);
+            cfg.config.local.format.n3 = Some(true);
+        }
+        let src = "@prefix ex: <http://ex/>. { ?x ex:parent ?y } => { ?x ex:child ?y }. ex:a ex:p ex:b; ex:q ex:c.";
+        let entity = create_file(&mut world, src, "http://example.com/rules.n3", "n3", Open);
+        world.run_schedule(ParseLabel);
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(FormatLabel);
+        let formatted = world
+            .entity_mut(entity)
+            .take::<FormatRequest>()
+            .and_then(|r| r.0)
+            .map(|edits| edits[0].new_text.clone());
+        assert_eq!(
+            formatted.as_deref(),
+            Some("@prefix ex: <http://ex/>.\n\n{ ?x ex:parent ?y } => { ?x ex:child ?y }.\n\nex:a ex:p ex:b;\n  ex:q ex:c.\n")
+        );
+    }
 }
 
 pub(crate) fn format_n3_system(
