@@ -1,13 +1,14 @@
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 SELECT *
 {
   ?class a foaf:Image;
-    foaf:focus <#me>;
-    foaf:name [
-      a foaf:Person; foaf:friend [ a foaf:Person ]
-    ],
-    [],
-    "long name",
-    "and another very long name".
+    sh:or ([
+        sh:property [ sh:path crm:P4_has_time-span; sh:minCount 1;  ]
+      ][
+        sh:property [ sh:path crm:P7_took_place_at; sh:minCount 1;  ]
+      ]).
+
 }

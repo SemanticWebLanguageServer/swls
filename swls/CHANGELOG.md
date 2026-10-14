@@ -5,21 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.5.2 (2026-10-14)
+
+### Chore
+
+ - <csr-id-d8cbc023cf6459d6c60d25301151200910dd479a/> bump rdf-parsers to 0.2.2
 
 ### Bug Fixes
 
  - Bump `rdf-parsers` to 0.2.2.
-
-## 0.5.1 (2026-10-14)
-
-### Chore
-
- - <csr-id-3837e56e5332727db4e66dc611811a29c69d48fe/> changelog for rdf-parsers 0.2.1 bump
-
-### Bug Fixes
-
- - Bump `rdf-parsers` to 0.2.1.
 
 ### Commit Statistics
 
@@ -36,6 +30,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Bump rdf-parsers to 0.2.2 ([`d8cbc02`](https://github.com/SemanticWebLanguageServer/swls/commit/d8cbc023cf6459d6c60d25301151200910dd479a))
+</details>
+
+## 0.5.1 (2026-10-14)
+
+<csr-id-3837e56e5332727db4e66dc611811a29c69d48fe/>
+
+### Chore
+
+ - <csr-id-3837e56e5332727db4e66dc611811a29c69d48fe/> changelog for rdf-parsers 0.2.1 bump
+
+### Bug Fixes
+
+ - Bump `rdf-parsers` to 0.2.1.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release swls v0.5.1 ([`c173a79`](https://github.com/SemanticWebLanguageServer/swls/commit/c173a79ecaf7eb0a81c99ba3ba11fd526b162a53))
     - Changelog for rdf-parsers 0.2.1 bump ([`3837e56`](https://github.com/SemanticWebLanguageServer/swls/commit/3837e56e5332727db4e66dc611811a29c69d48fe))
 </details>
 
