@@ -1,7 +1,7 @@
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
-@prefix rdfc: <https://w3id.org/rdf-connect#>.
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
 
-rdfc:consistsOf rdfs:comment "–"^^xsd:integer;
-  rdfs:domain rdfc:Pipeline.
-
+<s> a foaf:Image,
+  foaf:Other,
+  foaf:YetAnotherVeryLongClassName,
+  foaf:AndOneMoreLongClassName;
+  foaf:name "x", "a very long name that is long".

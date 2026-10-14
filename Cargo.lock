@@ -1197,12 +1197,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0de51e6874e94e7bf76d726fc5d13ba782deca734ff60d5bb2fb2607c7406555"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "r-efi 6.0.0",
  "wasip2",
  "wasip3",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1572,7 +1570,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6095a1b3076fd217898181e2ad380500ce684ce3c51bcf1db8e612a89e9c191a"
 dependencies = [
  "getrandom 0.3.4",
- "getrandom 0.4.2",
  "oxiri",
  "oxrdf",
  "proptest",
@@ -3311,7 +3308,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swls"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bevy_ecs",
  "futures",

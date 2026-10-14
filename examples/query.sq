@@ -1,10 +1,13 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
-SELECT  *
+SELECT *
 {
-   ?class a foaf:Image;
+  ?class a foaf:Image;
     foaf:focus <#me>;
-    .
+    foaf:name [
+      a foaf:Person; foaf:friend [ a foaf:Person ]
+    ],
+    [],
+    "long name",
+    "and another very long name".
 }
-
-
