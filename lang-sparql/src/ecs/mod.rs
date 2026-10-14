@@ -33,12 +33,48 @@ pub fn setup_parse(world: &mut World) {
     });
 }
 
+pub fn setup_format(world: &mut World) {
+    world.schedule_scope(FormatLabel, |_, schedule| {
+        schedule.add_systems(format_sparql_system);
+    });
+}
+
+fn format_sparql_system(
+    mut query: Query<
+        (&RopeC, &Wrapped<rowan::GreenNode>, &mut FormatRequest),
+        (With<Sparql>, Without<Dirty>),
+    >,
+    config: Res<ServerConfig>,
+) {
+    use swls_core::lsp_types::{Position, Range, TextEdit};
+    if !config.config.local.format.sparql() {
+        tracing::debug!("SPARQL formatting disabled by config");
+        return;
+    }
+    for (source, node, mut request) in &mut query {
+        if request.0.is_some() {
+            tracing::debug!("Didn't format with the sparql format system, already formatted");
+            continue;
+        }
+        tracing::debug!("Formatting with sparql format system");
+
+        let root = rowan::SyntaxNode::new_root(node.0.clone());
+        let formatted = rdf_parsers::sparql::format::format(&root, 80);
+
+        request.0 = Some(vec![TextEdit::new(
+            Range::new(
+                Position::new(0, 0),
+                Position::new(source.0.len_lines() as u32 + 1, 0),
+            ),
+            formatted,
+        )]);
+    }
+}
+
 pub fn setup_completion(world: &mut World) {
     use swls_core::feature::completion::*;
     world.schedule_scope(Label, |_, schedule| {
-        schedule.add_systems((
-            variable_completion.after(generate_completions),
-        ));
+        schedule.add_systems((variable_completion.after(generate_completions),));
     });
 }
 
@@ -103,6 +139,7 @@ fn parse_sparql_system(
             commands
                 .entity(entity)
                 .insert((element, Errors(errors), CstTokens(cst_tokens)))
+                .insert(Wrapped(syntax.green().into_owned()))
                 .remove::<Dirty>();
         } else {
             commands
@@ -216,5 +253,55 @@ pub fn variable_completion(
                 req.push(completion);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod format_tests {
+    use swls_core::prelude::*;
+    use swls_test_utils::{create_file, setup_world, TestClient};
+    use test_log::test;
+
+    fn format_with(sparql_enabled: Option<bool>) -> Option<String> {
+        let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world);
+
+        let mut cfg = ServerConfig::default();
+        cfg.config.local.format.sparql = sparql_enabled;
+        world.insert_resource(cfg);
+
+        let entity = create_file(
+            &mut world,
+            "SELECT ?s WHERE { ?s <a> ?o . FILTER(?o>5) }",
+            "http://example.com/query.rq",
+            "sparql",
+            Open,
+        );
+        // ParseLabel populates the green node the formatter consumes.
+        world.run_schedule(ParseLabel);
+
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(FormatLabel);
+
+        world
+            .entity_mut(entity)
+            .take::<FormatRequest>()
+            .and_then(|r| r.0)
+            .map(|edits| edits[0].new_text.clone())
+    }
+
+    #[test]
+    fn sparql_formatting_off_by_default() {
+        assert!(
+            format_with(None).is_none(),
+            "SPARQL formatting should be disabled unless explicitly enabled"
+        );
+    }
+
+    #[test]
+    fn sparql_formatting_can_be_enabled() {
+        assert_eq!(
+            format_with(Some(true)).as_deref(),
+            Some("SELECT ?s\nWHERE {\n  ?s <a> ?o.\n  FILTER (?o > 5)\n}\n")
+        );
     }
 }

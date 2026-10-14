@@ -13,19 +13,19 @@ use crate::{
 
 pub fn format_turtle_system(
     mut query: Query<
-        (&RopeC, &Element, &Comments, &mut FormatRequest),
+        (&RopeC, &Wrapped<rowan::GreenNode>, &mut FormatRequest),
         (With<TurtleLang>, Without<Dirty>),
     >,
     config: Res<ServerConfig>,
 ) {
     debug!("Format turtle system");
 
-    if !config.config.format.turtle() {
+    if !config.config.local.format.turtle() {
         debug!("Turtle formatting disabled by config");
         return;
     }
 
-    for (source, turtle, comments, mut request) in &mut query {
+    for (source, node, mut request) in &mut query {
         if request.0.is_some() {
             debug!("Didn't format with the turtle format system, already formatted");
             continue;
@@ -43,16 +43,8 @@ pub fn format_turtle_system(
             })
             .unwrap_or_default();
 
-        let formatted = format_turtle(
-            &turtle.0,
-            swls_core::lsp_types::FormattingOptions {
-                tab_size: 2,
-                ..Default::default()
-            },
-            &comments.0,
-            &source.0,
-            style,
-        );
+        let root = rowan::SyntaxNode::new_root(node.0.clone());
+        let formatted = Some(format_turtle(&root, style));
 
         request.0 = formatted.map(|x| {
             vec![swls_core::lsp_types::TextEdit::new(
@@ -92,6 +84,6 @@ mod test {
 
         assert!(m_formatted.is_some());
         let formatted = &m_formatted.unwrap()[0].new_text;
-        assert_eq!(formatted, "@prefix foaf: <>.\n\n");
+        assert_eq!(formatted, "@prefix foaf: <>.\n");
     }
 }

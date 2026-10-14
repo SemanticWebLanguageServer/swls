@@ -163,10 +163,6 @@ pub struct Config {
     pub jsonld: Option<bool>,
     /// Enable sparql
     pub sparql: Option<bool>,
-    /// Per-language `textDocument/formatting` toggles. Formatting is disabled by
-    /// default for every language except Turtle.
-    #[serde(default)]
-    pub format: FormatConfig,
     /// Extra local configuration
     #[serde(flatten)]
     pub local: LocalConfig,
@@ -183,16 +179,40 @@ pub struct Config {
 #[serde(default)]
 pub struct FormatConfig {
     /// Enable Turtle formatting (default: `true`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub turtle: Option<bool>,
     /// Enable TriG formatting (default: `false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub trig: Option<bool>,
     /// Enable N3 formatting (default: `false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub n3: Option<bool>,
     /// Enable JSON-LD formatting (default: `false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub jsonld: Option<bool>,
+    /// Enable SPARQL formatting (default: `false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sparql: Option<bool>,
 }
 
 impl FormatConfig {
+    /// Combines this config with another, giving precedence to the other's
+    /// explicitly set toggles.
+    pub fn combine(&mut self, other: FormatConfig) {
+        let FormatConfig {
+            turtle,
+            trig,
+            n3,
+            jsonld,
+            sparql,
+        } = other;
+        self.turtle = turtle.or(self.turtle);
+        self.trig = trig.or(self.trig);
+        self.n3 = n3.or(self.n3);
+        self.jsonld = jsonld.or(self.jsonld);
+        self.sparql = sparql.or(self.sparql);
+    }
+
     /// Whether Turtle formatting is enabled (defaults to `true`).
     pub fn turtle(&self) -> bool {
         self.turtle.unwrap_or(true)
@@ -208,6 +228,10 @@ impl FormatConfig {
     /// Whether JSON-LD formatting is enabled (defaults to `false`).
     pub fn jsonld(&self) -> bool {
         self.jsonld.unwrap_or(false)
+    }
+    /// Whether SPARQL formatting is enabled (defaults to `false`).
+    pub fn sparql(&self) -> bool {
+        self.sparql.unwrap_or(false)
     }
 }
 
@@ -226,6 +250,9 @@ pub struct LocalConfig {
     pub completion: CompletionConfig,
     /// Preferred way to write Turtle/TriG prefix declarations when inserting them.
     pub prefix_format: Option<PrefixFormat>,
+    /// Per-language `textDocument/formatting` toggles. Formatting is disabled by
+    /// default for every language except Turtle.
+    pub format: FormatConfig,
     /// Namespaces for which IRIs used as properties (predicates) must be defined in a
     /// known ontology. Predicate IRIs that start with one of these namespaces but are
     /// not a known property (and not in [`allowed_properties`]) are flagged with a warning.
@@ -351,6 +378,7 @@ impl LocalConfig {
         if other.prefix_format.is_some() {
             self.prefix_format = other.prefix_format;
         }
+        self.format.combine(other.format);
         self.closed_namespaces.extend(other.closed_namespaces);
         self.allowed_properties.extend(other.allowed_properties);
     }
@@ -430,7 +458,6 @@ impl Default for Config {
             n3: None,
             jsonld: None,
             sparql: None,
-            format: FormatConfig::default(),
             local: LocalConfig::default(),
         }
     }
@@ -438,4 +465,45 @@ impl Default for Config {
 
 fn debug() -> String {
     String::from("debug")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_from_config_file() {
+        let local: LocalConfig =
+            serde_json::from_str(r#"{ "format": { "sparql": true } }"#).unwrap();
+        assert!(local.format.sparql());
+        assert!(local.format.turtle(), "unset toggles keep their defaults");
+        assert!(!local.format.trig());
+    }
+
+    #[test]
+    fn format_from_initialization_options() {
+        let config: Config =
+            serde_json::from_value(serde_json::json!({ "format": { "trig": true } })).unwrap();
+        assert!(config.local.format.trig());
+    }
+
+    #[test]
+    fn later_sources_override_set_toggles_only() {
+        let mut config: LocalConfig =
+            serde_json::from_str(r#"{ "format": { "sparql": true, "turtle": false } }"#).unwrap();
+        let workspace: LocalConfig =
+            serde_json::from_str(r#"{ "format": { "sparql": false } }"#).unwrap();
+        config.combine(workspace);
+        assert!(!config.format.sparql());
+        assert!(
+            !config.format.turtle(),
+            "toggles the workspace leaves unset are kept"
+        );
+    }
+
+    #[test]
+    fn saving_config_writes_no_unset_toggles() {
+        let json = serde_json::to_value(LocalConfig::default()).unwrap();
+        assert_eq!(json["format"], serde_json::json!({}));
+    }
 }
