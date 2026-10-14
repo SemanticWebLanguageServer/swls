@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.5.0 (2026-10-14)
 
+### New Features
+
+ - Formatting support for Turtle, N3, SPARQL and TriG, powered by the updated
+   `rdf-parsers`. Formatting is now enabled by default for all languages.
+ - `.ru` files are parsed as SPARQL Update.
+
+### Performance
+
+ - Greatly improved parsing performance through the updated `rdf-parsers`.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 99 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`3e999f2`](https://github.com/SemanticWebLanguageServer/swls/commit/3e999f28fe47eadd3d7eaa7067d2d68025365485))
+</details>
+
 ## 0.4.1 (2026-07-07)
 
 ### New Features
