@@ -237,7 +237,6 @@ mod tests {
         {
             let mut cfg = world.resource_mut::<ServerConfig>();
             cfg.config.n3 = Some(true);
-            cfg.config.local.format.n3 = Some(true);
         }
         let src = "@prefix ex: <http://ex/>. { ?x ex:parent ?y } => { ?x ex:child ?y }. ex:a ex:p ex:b; ex:q ex:c.";
         let entity = create_file(&mut world, src, "http://example.com/rules.n3", "n3", Open);
