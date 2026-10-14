@@ -205,20 +205,15 @@ mod tests {
     }
 
     #[test]
-    fn trig_formatting_off_by_default() {
-        assert!(
-            format_with(None).is_none(),
-            "TriG formatting should be disabled unless explicitly enabled"
-        );
+    fn trig_formatting_on_by_default() {
+        assert_eq!(format_with(None).as_deref(), Some("<a> <b> <c>;\n  <d> <e>.\n"));
     }
 
     #[test]
-    fn trig_formatting_can_be_enabled() {
-        let formatted = format_with(Some(true));
+    fn trig_formatting_can_be_disabled() {
         assert!(
-            formatted.is_some(),
-            "TriG formatting should run when enabled via config"
+            format_with(Some(false)).is_none(),
+            "TriG formatting should not run when disabled via config"
         );
-        assert!(formatted.unwrap().contains("<a> <b> <c>;"));
     }
 }
