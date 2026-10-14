@@ -116,9 +116,16 @@ fn parse_sparql_system(
             parser::{Lang, Rule, SyntaxKind},
         };
 
+        // `.ru` files hold SPARQL updates (INSERT DATA, DELETE ... WHERE, ...),
+        // which are not queries.
+        let unit = if label.0.path().ends_with(".ru") {
+            SyntaxKind::UpdateUnit
+        } else {
+            SyntaxKind::QueryUnit
+        };
         let prev = prev_infos.get(label.as_str());
         let (parse, new_prev) = rdf_parsers::parse_incremental(
-            Rule::new(SyntaxKind::QueryUnit),
+            Rule::new(unit),
             source.0.as_str(),
             prev,
             IncrementalBias::default(),
@@ -287,6 +294,40 @@ mod format_tests {
             .take::<FormatRequest>()
             .and_then(|r| r.0)
             .map(|edits| edits[0].new_text.clone())
+    }
+
+    fn format_update(src: &str) -> (bool, Option<String>) {
+        let (mut world, _rx) = setup_world(TestClient::new(), crate::setup_world);
+        let mut cfg = ServerConfig::default();
+        cfg.config.local.format.sparql = Some(true);
+        world.insert_resource(cfg);
+
+        let entity = create_file(&mut world, src, "http://example.com/update.ru", "sparql", Open);
+        world.run_schedule(ParseLabel);
+        let dirty = world.entity(entity).contains::<Dirty>();
+
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(FormatLabel);
+        let formatted = world
+            .entity_mut(entity)
+            .take::<FormatRequest>()
+            .and_then(|r| r.0)
+            .map(|edits| edits[0].new_text.clone());
+        (dirty, formatted)
+    }
+
+    #[test]
+    fn update_files_parse_and_format() {
+        let (dirty, formatted) = format_update(
+            "PREFIX ex: <http://ex/> INSERT DATA { ex:a ex:b ex:c } ; DELETE { ?s ex:p ?o } WHERE { ?s ex:p ?o . FILTER(?o>1) }",
+        );
+        assert!(!dirty, "a valid update should parse without errors");
+        assert_eq!(
+            formatted.as_deref(),
+            Some(
+                "PREFIX ex: <http://ex/>\n\nINSERT DATA {\n  ex:a ex:b ex:c\n};\n\nDELETE {\n  ?s ex:p ?o\n}\nWHERE {\n  ?s ex:p ?o.\n  FILTER (?o > 1)\n}\n"
+            )
+        );
     }
 
     #[test]
