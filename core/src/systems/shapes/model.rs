@@ -226,9 +226,7 @@ impl<'a> Focus<'a> {
             if t.subject == *subject && t.predicate.value == RDF_TYPE {
                 classes.insert(t.object.value.to_string());
                 if let Some(id) = hierarchy.get_id_ref(&t.object.value) {
-                    // `iter_subclass` walks from a class to the classes it is a
-                    // subclass of, i.e. its superclasses.
-                    classes.extend(hierarchy.iter_subclass(id).map(|c| c.to_string()));
+                    classes.extend(hierarchy.iter_ancestors(id).map(|c| c.to_string()));
                 }
             }
         }

@@ -38,21 +38,23 @@ impl DefinedClass {
         }
 
         if let Some(id) = hierarchy.get_id_ref(self.term.as_str()) {
-            let superclasses = group_per_prefix(hierarchy.iter_superclass(id), pref);
-            if !superclasses.is_empty() {
-                if !docs.is_empty() {
-                    docs += "\n\n"
-                }
-                docs += "**Superclass of:**";
-                docs += superclasses.as_str();
-            }
-            let subclasses = group_per_prefix(hierarchy.iter_subclass(id), pref);
+            // "Superclass of" lists the subclasses of this class.
+            let subclasses = group_per_prefix(hierarchy.iter_descendants(id), pref);
             if !subclasses.is_empty() {
                 if !docs.is_empty() {
                     docs += "\n\n"
                 }
-                docs += "**Subclass of:**";
+                docs += "**Superclass of:**";
                 docs += subclasses.as_str();
+            }
+            // "Subclass of" lists the superclasses of this class.
+            let superclasses = group_per_prefix(hierarchy.iter_ancestors(id), pref);
+            if !superclasses.is_empty() {
+                if !docs.is_empty() {
+                    docs += "\n\n"
+                }
+                docs += "**Subclass of:**";
+                docs += superclasses.as_str();
             }
         }
 

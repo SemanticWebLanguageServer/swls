@@ -35,10 +35,12 @@ pub fn complete_class(
         {
             let tts = types.get(&triple.triple.subject.value);
 
-            let superclasses: HashSet<_> = tts
+            // The subject's inferred types and their subclasses: more specific
+            // classes are suggested first.
+            let refinements: HashSet<_> = tts
                 .iter()
                 .flat_map(|x| x.iter())
-                .flat_map(|t| hierarchy.iter_superclass(*t))
+                .flat_map(|t| hierarchy.iter_descendants(*t))
                 .collect();
 
             for class in resource.classes.values() {
@@ -56,7 +58,7 @@ pub fn complete_class(
                     .label_description(class.full_title())
                     .documentation(class.full_docs(&hierarchy, prefixes));
 
-                    if superclasses.contains(class.term.as_str()) {
+                    if refinements.contains(class.term.as_str()) {
                         completion.kind = CompletionItemKind::INTERFACE;
                         request.push(completion.sort_text(format!("0{}", to_beat)));
                     } else {
@@ -133,19 +135,21 @@ pub fn complete_properties(
                 trace!("No types for {}", subject.value);
             }
 
-            let subclasses: HashSet<_> = tts
+            // The subject's types and their superclasses: a property applies
+            // when its domain is one of them.
+            let ancestors: HashSet<_> = tts
                 .iter()
                 .flat_map(|x| x.iter())
-                .flat_map(|t| hierarchy.iter_subclass(*t))
+                .flat_map(|t| hierarchy.iter_ancestors(*t))
                 .collect();
 
             for property in resource.properties.values() {
                 let correct_domain = property
                     .domains
                     .iter()
-                    .any(|domain| subclasses.contains(domain.as_str()));
+                    .any(|domain| ancestors.contains(domain.as_str()));
 
-                if !subclasses.is_empty()
+                if !ancestors.is_empty()
                     && config
                         .config
                         .local
