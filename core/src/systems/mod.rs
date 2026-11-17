@@ -9,6 +9,8 @@ mod typed;
 pub use typed::*;
 mod links;
 pub use links::*;
+mod imports;
+pub use imports::{import_url, open_imports};
 pub mod prefix;
 mod prefix_diagnostics;
 pub use prefix_diagnostics::{
@@ -31,7 +33,7 @@ pub use properties::{
 };
 mod lov;
 pub use lov::{
-    check_added_ontology_extract, fetch_lov_properties, init_ontology_extractor, open_imports,
+    check_added_ontology_extract, fetch_lov_properties, init_ontology_extractor, spawn_document,
     configured_url, namespace_sources, populate_known_ontologies, ConfiguredOntology, FromPrefix,
     NamespaceSource, OntologyExtractor, PrefixEntry,
 };
@@ -61,6 +63,13 @@ pub fn spawn_or_insert(
             });
             entity
         };
+
+        // Several systems add links (prefixes, owl:imports). If the component
+        // were missing, each would insert its own through deferred commands in
+        // the same pass, and only the last one would survive.
+        if !world.entity(out).contains::<DocumentLinks>() {
+            world.entity_mut(out).insert(DocumentLinks(Vec::new()));
+        }
 
         world.flush();
         world.run_schedule(ParseLabel);

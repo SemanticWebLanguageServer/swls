@@ -64,45 +64,6 @@ async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> 
     }
 }
 
-pub fn open_imports<C: Client + Resource>(
-    query: Query<(&Triples, &RopeC), Changed<Triples>>,
-    mut opened: Local<HashSet<String>>,
-    sender: Res<CommandSender>,
-    fs: Res<Fs>,
-    client: Res<C>,
-) {
-    for (triples, _) in &query {
-        for object in triples
-            .quads_matching(Any, [owl::imports], Any, Any)
-            .flatten()
-            .flat_map(|s| s.o().iri())
-            .flat_map(|s| Url::parse(s.as_str()))
-        {
-            if opened.contains(object.as_str()) {
-                continue;
-            }
-            opened.insert(object.as_str().to_string());
-
-            let fs = fs.clone();
-            let sender = sender.clone();
-            let fut = async move {
-                if let Some(content) = fs.0.read_file(&object).await {
-                    spawn_document(object, content, &sender.0, |_, _| {});
-
-                    let mut command_queue = CommandQueue::default();
-                    command_queue.push(move |world: &mut World| {
-                        world.run_schedule(SaveLabel);
-                    });
-                    let _ = sender.unbounded_send(command_queue);
-                } else {
-                    tracing::warn!("No content found for {}", object);
-                }
-            };
-            client.spawn(fut);
-        }
-    }
-}
-
 /// Load the ontology documents for every prefix used in an open document.
 ///
 /// Which documents are loaded, and under which label, is decided by
@@ -169,9 +130,15 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
 type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
 
+/// Load a background document with `content` at `url` and parse it.
+///
+/// `language` is the language id. Pass `None` to let the file extension of
+/// `url` decide: a document matches every language whose id *or* extension
+/// matches, so forcing `turtle` on a `.jsonld` URL would give it both.
 pub fn spawn_document(
     url: Url,
     content: String,
+    language: Option<String>,
     sender: &Sender,
     extra: impl FnOnce(Entity, &mut World) -> () + Send + Sync + 'static,
 ) {
@@ -179,7 +146,7 @@ pub fn spawn_document(
     let item = TextDocumentItem {
         version: 1,
         uri: url.clone(),
-        language_id: String::from("turtle"),
+        language_id: language.clone().unwrap_or_default(),
         text: String::new(),
     };
 
@@ -192,7 +159,7 @@ pub fn spawn_document(
             Wrapped(item),
             Types(HashMap::new()),
         ),
-        Some("turtle".into()),
+        language,
         (),
     );
 
@@ -279,7 +246,13 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     })
     .await;
     if let Some(body) = body {
-        spawn_document(label, body, &sender, extra_from_lov(FromPrefix(prefix)));
+        spawn_document(
+            label,
+            body,
+            Some("turtle".into()),
+            &sender,
+            extra_from_lov(FromPrefix(prefix)),
+        );
     }
 }
 
@@ -326,5 +299,11 @@ async fn local_lov<C: Client + Resource>(
         url: namespace,
     });
 
-    spawn_document(label, content, &sender, extra_from_lov(from));
+    spawn_document(
+        label,
+        content,
+        Some("turtle".into()),
+        &sender,
+        extra_from_lov(from),
+    );
 }

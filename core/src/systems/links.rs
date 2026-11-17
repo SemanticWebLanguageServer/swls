@@ -4,7 +4,7 @@ use tracing::instrument;
 use crate::{
     lsp_types::Url,
     prelude::*,
-    systems::{namespace_sources, ConfiguredOntology},
+    systems::{import_url, namespace_sources, ConfiguredOntology},
     util::ns::owl,
 };
 
@@ -49,10 +49,13 @@ pub fn derive_prefix_links(
     }
 }
 
-#[instrument(skip(query, commands))]
+/// Link every document to the documents it `owl:imports`, as loaded by
+/// [`open_imports`](crate::systems::open_imports) (see [`import_url`]).
+#[instrument(skip(query, commands, fs))]
 pub fn derive_owl_imports_links(
     mut query: Query<(Entity, &Label, &Triples, Option<&mut DocumentLinks>), Changed<Triples>>,
     mut commands: Commands,
+    fs: Res<Fs>,
 ) {
     const SOURCE: &'static str = "owl:imports";
     for (e, label, triples, mut links) in &mut query {
@@ -65,6 +68,7 @@ pub fn derive_owl_imports_links(
             .iter()
             .filter(|t| t.predicate.as_str() == owl::imports.iriref().as_str())
             .flat_map(|t| Url::parse(t.object.as_str()))
+            .flat_map(|iri| import_url(&fs, &iri))
             .map(|obj| (obj, SOURCE))
             .collect();
 
