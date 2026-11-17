@@ -1,3 +1,4 @@
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
+# Only stable options, so `cargo fmt` gives the same result for every
+# contributor and in CI. (`imports_granularity` and `group_imports` need a
+# nightly rustfmt.)
 use_field_init_shorthand = true
