@@ -1,28 +1,42 @@
 use bevy_ecs::prelude::*;
 use tracing::instrument;
 
-use crate::{lsp_types::Url, prelude::*, util::ns::owl};
+use crate::{
+    lsp_types::Url,
+    prelude::*,
+    systems::{namespace_sources, ConfiguredOntology},
+    util::ns::owl,
+};
 
+/// Link every document to the ontology documents of the prefixes it declares.
+///
+/// The targets come from [`namespace_sources`], the same function the fetch
+/// system uses, so a link always names a document the server actually loads,
+/// including one link per configured ontology when several share a namespace.
 pub fn derive_prefix_links(
-    mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,
+    mut query: Query<(Entity, Ref<Prefixes>, Option<&mut DocumentLinks>)>,
+    locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
+    new_configured: Query<(), Added<ConfiguredOntology>>,
     mut commands: Commands,
-    // helper: Res<LovHelper>,
     fs: Res<Fs>,
 ) {
     const SOURCE: &'static str = "prefix import";
+    let refresh_all = !new_configured.is_empty();
     for (e, prefixes, mut links) in &mut query {
+        if !refresh_all && !prefixes.is_changed() {
+            continue;
+        }
         let mut new_links = Vec::new();
         for u in prefixes.0.iter() {
-            let url: Url =
-                fs.0.lov_url(u.url.as_str(), &u.prefix)
-                    .unwrap_or(u.url.clone());
-
-            new_links.push((url.clone(), SOURCE));
+            let sources = namespace_sources(&fs, u.url.as_str(), &u.prefix, &locals);
+            if sources.is_empty() {
+                new_links.push((u.url.clone(), SOURCE));
+            }
+            new_links.extend(sources.into_iter().map(|s| (s.url, SOURCE)));
         }
         if let Some(links) = links.as_mut() {
             links.retain(|e| e.1 != SOURCE);
         }
-        // let new_links: Vec<_> = turtle.0.iter().map(|u| (u.url.clone(), SOURCE)).collect();
         match (new_links.is_empty(), links) {
             (false, None) => {
                 commands.entity(e).insert(DocumentLinks(new_links));

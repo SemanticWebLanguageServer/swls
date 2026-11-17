@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use bevy_ecs::{error::warn, prelude::*, world::CommandQueue};
+use bevy_ecs::{prelude::*, world::CommandQueue};
 use serde::Deserialize;
 use sophia_api::{
     prelude::{Any, Dataset},
@@ -12,7 +12,7 @@ use sophia_api::{
 };
 use tracing::{debug, error, span};
 
-use super::setup::FromPrefix;
+use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix};
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
@@ -106,61 +106,63 @@ pub fn open_imports<C: Client + Resource>(
     }
 }
 
-/// First of all, fetch the lov dataset information at url <https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}>
-/// Next, extract that json object into an object and find the latest dataset
+/// Load the ontology documents for every prefix used in an open document.
+///
+/// Which documents are loaded, and under which label, is decided by
+/// [`namespace_sources`]: configured ontologies each get their own document,
+/// otherwise the built-in or remote LOV ontology is loaded at `<cache>/<prefix>.ttl`.
+///
+/// Runs for open documents whose prefixes changed, and for all open documents
+/// when configured ontologies arrive (they are loaded asynchronously at startup,
+/// possibly after the first document was opened).
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
-    query: Query<&Prefixes, (Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,)>,
-    ontologies: Query<(Entity, &swls_lov::LocalPrefix)>,
-    mut prefixes: Local<HashSet<String>>,
+    changed: Query<&Prefixes, (Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,)>,
+    all_open: Query<&Prefixes, With<Open>>,
+    new_configured: Query<(), Added<ConfiguredOntology>>,
+    locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
+    mut loaded: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
 ) {
-    for prefs in &query {
+    let prefixes: Vec<&Prefixes> = if new_configured.is_empty() {
+        changed.iter().collect()
+    } else {
+        all_open.iter().collect()
+    };
+
+    for prefs in prefixes {
         for prefix in prefs.0.iter() {
-            if !prefixes.contains(prefix.url.as_str()) {
-                prefixes.insert(prefix.url.to_string());
-                let mut found = false;
-                for (_e, local) in ontologies
-                    .iter()
-                    .filter(|(_, x)| x.namespace == prefix.url.as_str())
-                {
-                    debug!(
-                        "Local lov for Prefix {} {} is entry {} {} {} {}",
-                        prefix.prefix,
-                        prefix.url.as_str(),
-                        local.name,
-                        local.namespace,
-                        local.location,
-                        local.content.is_empty()
-                    );
-
-                    let Some(label) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) else {
-                        continue;
-                    };
-
-                    found = true;
-                    let c = client.as_ref().clone();
-                    let sender = sender.0.clone();
-                    client.spawn(local_lov::<C>(local.clone(), label, sender, fs.clone(), c));
+            for source in namespace_sources(&fs, prefix.url.as_str(), &prefix.prefix, &locals) {
+                if !loaded.insert(source.url.to_string()) {
+                    continue;
                 }
-
-                if !found {
-                    if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
-                        tracing::debug!(
+                let sender = sender.0.clone();
+                let c = client.as_ref().clone();
+                match source.local {
+                    Some(local) => {
+                        debug!(
+                            "Local ontology for prefix {} {} at {}",
+                            prefix.prefix,
+                            prefix.url.as_str(),
+                            source.url
+                        );
+                        client.spawn(local_lov::<C>(
+                            local.clone(),
+                            source.url,
+                            source.is_cache,
+                            sender,
+                            fs.clone(),
+                            c,
+                        ));
+                    }
+                    None => {
+                        debug!(
                             "Remote lov for prefix {} {}",
                             prefix.prefix,
                             prefix.url.as_str()
                         );
-                        let sender = sender.0.clone();
-                        let c = client.as_ref().clone();
-                        client.spawn(fetch_lov(
-                            prefix.clone(),
-                            url.clone(),
-                            c,
-                            sender,
-                            fs.clone(),
-                        ));
+                        client.spawn(fetch_lov(prefix.clone(), source.url, c, sender, fs.clone()));
                     }
                 }
             }
@@ -184,7 +186,7 @@ pub fn spawn_document(
         text: String::new(),
     };
 
-    let spawn = spawn_or_insert(
+    let spawn = spawn_background(
         url.clone(),
         (
             RopeC(LineIndex::new(&content)),
@@ -210,19 +212,24 @@ pub fn spawn_document(
     let _ = sender.unbounded_send(command_queue);
 }
 
+/// Tag the spawned document with the prefix it was loaded for and, when `url` is
+/// a cache location, write the content there so the editor can open it.
 fn extra_from_lov<C: Client + Resource>(
     from: FromPrefix,
     content: String,
     url: Url,
+    is_cache: bool,
     fs: Fs,
 ) -> impl FnOnce(Entity, &mut World) + Send + Sync + 'static {
     move |e, world| {
         world.entity_mut(e).insert(from);
 
-        let client = world.resource::<C>();
-        client.spawn(async move {
-            fs.0.write_file(&url, &content).await;
-        });
+        if is_cache {
+            let client = world.resource::<C>();
+            client.spawn(async move {
+                fs.0.write_file(&url, &content).await;
+            });
+        }
     }
 }
 
@@ -281,7 +288,8 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     tracing::debug!("Fetching LOV for prefix {}", prefix.prefix);
     if prefix.prefix.to_ascii_lowercase() == prefix.prefix {
         if let Some(body) = fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c).await {
-            let extra = extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), fs);
+            let extra =
+                extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), true, fs);
             spawn_document(label, body, &sender, extra);
         }
     }
@@ -290,6 +298,7 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
 async fn local_lov<C: Client + Resource>(
     local: swls_lov::LocalPrefix,
     label: Url,
+    is_cache: bool,
     sender: Sender,
     fs: Fs,
     c: C,
@@ -311,11 +320,15 @@ async fn local_lov<C: Client + Resource>(
         local.content
     };
 
+    let Ok(namespace) = Url::parse(&local.namespace) else {
+        tracing::warn!("Invalid namespace {} for {}", local.namespace, local.name);
+        return;
+    };
     let from = FromPrefix(Prefix {
         prefix: local.name.to_string(),
-        url: Url::parse(&local.namespace).unwrap(),
+        url: namespace,
     });
 
-    let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), fs);
+    let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), is_cache, fs);
     spawn_document(label, content.to_string(), &sender, extra);
 }

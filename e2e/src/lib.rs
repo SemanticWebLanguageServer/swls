@@ -172,6 +172,20 @@ impl LspHarness {
 // ─── LSP feature methods ──────────────────────────────────────────────────────
 
 impl LspHarness {
+    /// Apply a config change and run the config-driven loaders (`ontologies`, `shapes`)
+    /// as the server does at startup, then drain the resulting fetches.
+    pub fn load_config(&mut self, f: impl FnOnce(&mut LocalConfig)) {
+        use bevy_ecs::system::RunSystemOnce;
+        self.set_config(f);
+        let _ = self.world.run_system_once(
+            swls_lang_turtle::config::extract_known_prefixes_from_config::<TestClient>,
+        );
+        let _ = self.world.run_system_once(
+            swls_lang_turtle::config::extract_known_shapes_from_config::<TestClient>,
+        );
+        self.drain_tasks();
+    }
+
     /// Request completion items at `(line, character)`.
     ///
     /// Positions are 0-indexed as in the LSP spec.  The character value is the index of the
@@ -267,6 +281,15 @@ impl LspHarness {
 
     /// Check whether the document currently has the `Dirty` marker (i.e. has parse errors).
     pub fn is_dirty(&self, handle: &FileHandle) -> bool {        self.world.entity(handle.entity).contains::<Dirty>()
+    }
+
+    /// Current source text of a document as the server sees it.
+    pub fn source(&self, handle: &FileHandle) -> String {
+        self.world
+            .entity(handle.entity)
+            .get::<Source>()
+            .map(|s| s.0.clone())
+            .unwrap_or_default()
     }
 
     /// Read the `Triples` component of a file, returning the number of parsed RDF triples.
