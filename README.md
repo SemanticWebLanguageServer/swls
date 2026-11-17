@@ -27,7 +27,7 @@ Details and caveats for each editor are in [Installation](#installation) below.
 | Category | What you get |
 |---|---|
 | **Diagnostics** | Syntax errors · undefined-prefix errors · unused-prefix warnings · unknown-property-in-closed-namespace warnings · SHACL shape violations |
-| **Completion** | Keywords (`@prefix`, `@context`, ...) · prefix names (from bundled LOV/prefix.cc data) · classes · domain-aware properties · cross-document subjects (Turtle) · Components.js parameters (JSON-LD) |
+| **Completion** | Keywords (`@prefix`, `@context`, ...) · prefix names (from bundled LOV/prefix.cc data) · classes · domain-aware properties · cross-document subjects (Turtle) · SHACL shape templates that fill in the required (or all) properties of a resource · Components.js parameters (JSON-LD) |
 | **Hover** | Inferred RDF type · class & property documentation from the ontology · explanation when a property is only accepted via your allow-list |
 | **Navigation** | Go to definition (RDF terms and, for JSON-LD, Components.js modules/parameters) · go to type definition · find references · rename |
 | **Code actions** | Add missing prefix declaration · allow-list an unknown property · organize/sort `@prefix` imports (Turtle) · extract/inline a blank node |

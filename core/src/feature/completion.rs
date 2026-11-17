@@ -32,6 +32,7 @@ pub fn setup_schedule(world: &mut World) {
         keyword_complete.after(generate_completions),
         complete_class.after(generate_completions),
         complete_properties.after(generate_completions),
+        crate::systems::complete_shape_templates.after(generate_completions),
         rdf_lov_undefined_prefix_completion.after(generate_completions),
     ));
     world.add_schedule(completion);

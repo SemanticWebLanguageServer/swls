@@ -223,6 +223,13 @@ pub trait LangHelper: std::fmt::Debug {
     fn supports_shape_validation(&self) -> bool {
         true
     }
+    /// Return `true` if SHACL shape templates can be offered as completions.
+    ///
+    /// Templates are written in Turtle syntax, so this defaults to languages
+    /// that use Turtle-family syntax and support shape validation.
+    fn shape_templates(&self) -> bool {
+        self.blank_node_code_actions() && self.supports_shape_validation()
+    }
 
     fn inlay_types_hint(
         &self,
