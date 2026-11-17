@@ -185,7 +185,8 @@ mod prefix_datatype_tests {
 
     #[test]
     fn datatype_prefix_counts_as_used() {
-        let src = "@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.\n<s> <p> \"5\"^^xsd:integer .\n";
+        let src =
+            "@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.\n<s> <p> \"5\"^^xsd:integer .\n";
         let msgs = run(src, &["xsd"], true);
         assert!(
             !msgs.iter().any(|m| m.contains("never used")),

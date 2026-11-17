@@ -17,25 +17,22 @@ pub use prefix_diagnostics::{
     add_missing_prefix_code_action, prefix_diagnostic_helper, prefix_diagnostics,
 };
 mod prefix_hover;
-pub use prefix_hover::{
-    get_current_prefix, goto_prefix, hover_prefix, PrefixComponent,
-};
+pub use prefix_hover::{get_current_prefix, goto_prefix, hover_prefix, PrefixComponent};
 mod namespace_properties;
+use crate::lsp_types::CompletionItemKind;
 pub use namespace_properties::{
     unknown_property_code_action, validate_namespace_properties, ALLOW_PROPERTY_COMMAND,
 };
-use crate::lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_ontologies, hover_class, hover_excluded_property,
-    hover_property,
-    DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
+    hover_property, DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
 };
 mod lov;
 pub use lov::{
-    check_added_ontology_extract, fetch_lov_properties, init_ontology_extractor, spawn_document,
-    configured_url, namespace_sources, populate_known_ontologies, ConfiguredOntology, FromPrefix,
-    NamespaceSource, PreferredPrefixes, OntologyExtractor, PrefixEntry,
+    check_added_ontology_extract, configured_url, fetch_lov_properties, init_ontology_extractor,
+    namespace_sources, populate_known_ontologies, spawn_document, ConfiguredOntology, FromPrefix,
+    NamespaceSource, OntologyExtractor, PreferredPrefixes, PrefixEntry,
 };
 use tracing::instrument;
 
@@ -97,7 +94,10 @@ pub fn spawn_background(
             .find(|x| x.1 .0 == url)
             .map(|x| x.0);
         if let Some(entity) = open {
-            tracing::debug!("{} is open in the editor, keeping the editor's content", url);
+            tracing::debug!(
+                "{} is open in the editor, keeping the editor's content",
+                url
+            );
             world.entity_mut(entity).insert((extra, Background));
             return entity;
         }

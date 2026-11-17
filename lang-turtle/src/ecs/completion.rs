@@ -13,12 +13,7 @@ use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 
 pub fn subject_completion(
     mut query: Query<
-        (
-            &TokenComponent,
-            &Element,
-            &Prefixes,
-            &mut CompletionRequest,
-        ),
+        (&TokenComponent, &Element, &Prefixes, &mut CompletionRequest),
         With<TurtleLang>,
     >,
     triples: Query<(&Triples, &Label), With<Open>>,

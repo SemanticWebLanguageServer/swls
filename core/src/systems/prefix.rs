@@ -1,8 +1,8 @@
 use std::{collections::HashSet, ops::Deref};
 
+use crate::lsp_types::Range;
 use bevy_ecs::prelude::*;
 use swls_lov::LocalPrefix;
-use crate::lsp_types::Range;
 use tracing::instrument;
 
 use crate::{

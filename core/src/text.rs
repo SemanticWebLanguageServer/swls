@@ -95,7 +95,11 @@ impl LineIndex {
     /// Byte range `[start, end)` of `line`, including its trailing newline (if any).
     pub fn line_byte_range(&self, line: usize) -> Option<Range<usize>> {
         let start = self.line_start(line)?;
-        let end = self.line_starts.get(line + 1).copied().unwrap_or(self.text.len());
+        let end = self
+            .line_starts
+            .get(line + 1)
+            .copied()
+            .unwrap_or(self.text.len());
         Some(start..end)
     }
 
@@ -144,7 +148,11 @@ impl LineIndex {
     /// A `character` past the end of its line is clamped to the line's end (which
     /// keeps the lenient behaviour editors rely on when the cursor sits after the
     /// last character). Returns `None` only if the line itself is out of range.
-    pub fn position_to_byte(&self, position: Position, encoding: PositionEncoding) -> Option<usize> {
+    pub fn position_to_byte(
+        &self,
+        position: Position,
+        encoding: PositionEncoding,
+    ) -> Option<usize> {
         let line = position.line as usize;
         let line_range = self.line_byte_range(line)?;
         let line_text = self.text.get(line_range.clone())?;
@@ -221,7 +229,10 @@ mod tests {
         for text in ["", "abc", "ab\ncde", "xéy\nfoo", "😀z\n€uro", "a\r\nb"] {
             let idx = LineIndex::new(text);
             // Every char boundary should round-trip byte → position → byte.
-            for (byte, _) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+            for (byte, _) in text
+                .char_indices()
+                .chain(std::iter::once((text.len(), ' ')))
+            {
                 let p = idx.byte_to_position(byte, U16).unwrap();
                 assert_eq!(
                     idx.position_to_byte(p, U16),

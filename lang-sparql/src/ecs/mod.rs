@@ -11,11 +11,7 @@ use sophia_api::{
     quad::Quad as _,
     term::{Term as _, TermKind},
 };
-use swls_core::{
-    components::*,
-    lsp_types::CompletionItemKind,
-    prelude::*,
-};
+use swls_core::{components::*, lsp_types::CompletionItemKind, prelude::*};
 use swls_lang_rdf_base::traits::{NamedNodeExt, TurtleExt};
 
 use crate::Sparql;
@@ -302,7 +298,13 @@ mod format_tests {
         cfg.config.local.format.sparql = None;
         world.insert_resource(cfg);
 
-        let entity = create_file(&mut world, src, "http://example.com/update.ru", "sparql", Open);
+        let entity = create_file(
+            &mut world,
+            src,
+            "http://example.com/update.ru",
+            "sparql",
+            Open,
+        );
         world.run_schedule(ParseLabel);
         let dirty = world.entity(entity).contains::<Dirty>();
 

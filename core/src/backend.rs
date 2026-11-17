@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use crate::text::LineIndex;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
@@ -12,7 +13,6 @@ use futures::lock::Mutex;
 use goto_type::GotoTypeRequest;
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
-use crate::text::LineIndex;
 use tracing::{debug, error, info, instrument, warn};
 
 use crate::{
@@ -201,20 +201,21 @@ impl<C: Client> Backend<C> {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
-                inlay_hint_provider: is_enabled(Disabled::InlayHint)
-                    .then_some(OneOf::Left(true)),
+                inlay_hint_provider: is_enabled(Disabled::InlayHint).then_some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
                 code_action_provider: is_enabled(Disabled::CodeAction)
                     .then_some(CodeActionProviderCapability::Simple(true)),
-                completion_provider: is_enabled(Disabled::Completion).then_some(CompletionOptions {
-                    resolve_provider: Some(false),
-                    trigger_characters: Some(vec![String::from(":")]),
-                    work_done_progress_options: Default::default(),
-                    all_commit_characters: None,
-                    completion_item: None,
-                }),
+                completion_provider: is_enabled(Disabled::Completion).then_some(
+                    CompletionOptions {
+                        resolve_provider: Some(false),
+                        trigger_characters: Some(vec![String::from(":")]),
+                        work_done_progress_options: Default::default(),
+                        all_commit_characters: None,
+                        completion_item: None,
+                    },
+                ),
                 // implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 type_definition_provider: is_enabled(Disabled::GotoTypeDefinition)
                     .then_some(TypeDefinitionProviderCapability::Simple(true)),
@@ -274,7 +275,10 @@ impl<C: Client> Backend<C> {
         .await;
     }
 
-    pub async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) -> () {
+    pub async fn did_change_workspace_folders(
+        &self,
+        params: DidChangeWorkspaceFoldersParams,
+    ) -> () {
         self.run(move |world| {
             let mut config = world.resource_mut::<ServerConfig>();
             let WorkspaceFoldersChangeEvent { added, removed } = params.event;
@@ -487,7 +491,10 @@ impl<C: Client> Backend<C> {
     }
 
     #[instrument(skip(self))]
-    pub async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+    pub async fn formatting(
+        &self,
+        params: DocumentFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
         if self.is_disabled(Disabled::Format).await {
             return Ok(None);
         }
@@ -693,7 +700,10 @@ impl<C: Client> Backend<C> {
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
-    pub async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+    pub async fn code_action(
+        &self,
+        params: CodeActionParams,
+    ) -> Result<Option<CodeActionResponse>> {
         if self.is_disabled(Disabled::CodeAction).await {
             return Ok(None);
         }

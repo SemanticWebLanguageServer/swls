@@ -81,9 +81,9 @@
 //!
 
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+pub use lsp_types;
 use prelude::SemanticTokensDict;
 use systems::{init_ontology_extractor, populate_known_ontologies, OntologyExtractor};
-pub use lsp_types;
 
 use crate::prelude::*;
 

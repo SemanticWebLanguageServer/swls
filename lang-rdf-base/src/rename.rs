@@ -132,7 +132,8 @@ fn find_renameable_with(
     let mut best: Option<(StdRange<usize>, RenameKey, String)> = None;
     walk_terms(turtle, |term| {
         let span = term.span();
-        let contains = span.start <= offset && (offset < span.end || (inclusive && offset == span.end));
+        let contains =
+            span.start <= offset && (offset < span.end || (inclusive && offset == span.end));
         if !contains {
             return;
         }

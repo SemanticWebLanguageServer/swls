@@ -12,10 +12,8 @@ use std::ops::Range;
 
 use rdf_parsers::jsonld::convert::JsonLdVal;
 
-pub const PREFIX_OO: &str =
-    "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#";
-pub const PREFIX_OM: &str =
-    "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#";
+pub const PREFIX_OO: &str = "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#";
+pub const PREFIX_OM: &str = "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#";
 pub const PREFIX_RDF: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 pub const PREFIX_RDFS: &str = "http://www.w3.org/2000/01/rdf-schema#";
 pub const PREFIX_XSD: &str = "http://www.w3.org/2001/XMLSchema#";

@@ -79,10 +79,7 @@ pub enum Disabled {
     HoverShapeProperty,
     /// Hover explanation shown for a property that is only accepted because it
     /// is in the user's `allowed_properties` allow-list.
-    #[serde(
-        alias = "HOVER_EXCLUDED_PROPERTY",
-        alias = "hover_excluded_property"
-    )]
+    #[serde(alias = "HOVER_EXCLUDED_PROPERTY", alias = "hover_excluded_property")]
     HoverExcludedProperty,
 
     /// Master switch: disables `textDocument/definition` entirely (and stops

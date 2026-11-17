@@ -53,7 +53,8 @@ impl LangHelper for JsonLdHelper {
 
     /// A full IRI is a plain JSON string value.
     fn write_iri(&self, prefixes: &Prefixes, iri: &str) -> String {
-        self.shorten(prefixes, iri).unwrap_or_else(|| iri.to_string())
+        self.shorten(prefixes, iri)
+            .unwrap_or_else(|| iri.to_string())
     }
 
     fn keyword(&self) -> &[&'static str] {
@@ -340,7 +341,11 @@ fn goto_cjs(
 ) {
     use swls_core::lsp_types::{Location, Range};
 
-    if config.config.local.is_disabled(Disabled::GotoDefinitionComponentsJs) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::GotoDefinitionComponentsJs)
+    {
         return;
     }
 

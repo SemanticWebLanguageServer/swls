@@ -587,7 +587,10 @@ mod id_highlight {
         world.entity_mut(entity).insert(HighlightRequest(vec![]));
         world.run_schedule(SemanticLabel);
 
-        let ttc = world.entity(entity).get::<TokenTypesComponent>().expect("ttc");
+        let ttc = world
+            .entity(entity)
+            .get::<TokenTypesComponent>()
+            .expect("ttc");
         let mut ts: Vec<Option<SemanticTokenType>> = vec![None; src.len()];
         for s in &ttc.0 {
             for j in s.span().clone() {
@@ -654,7 +657,10 @@ mod id_highlight {
         world.entity_mut(entity).insert(HighlightRequest(vec![]));
         world.run_schedule(SemanticLabel);
 
-        let ttc = world.entity(entity).get::<TokenTypesComponent>().expect("ttc");
+        let ttc = world
+            .entity(entity)
+            .get::<TokenTypesComponent>()
+            .expect("ttc");
         let mut ts: Vec<Option<SemanticTokenType>> = vec![None; src.len()];
         for s in &ttc.0 {
             for j in s.span().clone() {
@@ -665,7 +671,9 @@ mod id_highlight {
         }
         // Assert every byte of `needle`'s single occurrence has type `expected`.
         let all = |needle: &str, expected: &str| {
-            let q = src.find(needle).unwrap_or_else(|| panic!("missing {needle:?}"));
+            let q = src
+                .find(needle)
+                .unwrap_or_else(|| panic!("missing {needle:?}"));
             for b in q..q + needle.len() {
                 assert_eq!(
                     ts[b].as_ref().map(|t| t.as_str()),

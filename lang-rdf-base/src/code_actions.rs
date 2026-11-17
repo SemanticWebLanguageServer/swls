@@ -96,7 +96,11 @@ pub fn extract_blank_node(
     )>,
     config: Res<ServerConfig>,
 ) {
-    if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::CodeActionBlankNodeRefactor)
+    {
         return;
     }
     for (element, source, rope, label, position, lang, mut req) in &mut query {
@@ -183,11 +187,7 @@ pub fn extract_blank_node(
 /// returning its label and span.  Searches subjects, predicates and objects
 /// recursively (into nested `[ … ]` and collections).
 fn find_named_at(turtle: &Turtle, offset: usize) -> Option<(String, StdRange<usize>)> {
-    fn walk(
-        term: &Spanned<Term>,
-        offset: usize,
-        best: &mut Option<(String, StdRange<usize>)>,
-    ) {
+    fn walk(term: &Spanned<Term>, offset: usize, best: &mut Option<(String, StdRange<usize>)>) {
         let span = term.span();
         if offset < span.start || offset > span.end {
             return;
@@ -278,7 +278,11 @@ pub fn inline_blank_node(
     )>,
     config: Res<ServerConfig>,
 ) {
-    if config.config.local.is_disabled(Disabled::CodeActionBlankNodeRefactor) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::CodeActionBlankNodeRefactor)
+    {
         return;
     }
     for (element, source, rope, label, position, lang, mut req) in &mut query {
