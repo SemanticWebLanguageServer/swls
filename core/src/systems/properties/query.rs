@@ -33,18 +33,19 @@ pub fn find_classes(
                             .or_insert_with(|| DefinedClass {
                                 term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
                                 locations: std::collections::HashSet::new(),
-                                titles: std::collections::HashSet::new(),
-                                descriptions: std::collections::HashSet::new(),
+                                titles: Default::default(),
+                                descriptions: Default::default(),
                             });
 
                         if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
-                            v.titles.insert(title.value().to_string());
+                            v.titles.insert(title.value(), title.language());
                         }
 
                         if let Some(description) =
                             description.and_then(|x| Literal::try_from(x.clone()).ok())
                         {
-                            v.descriptions.insert(description.value().to_string());
+                            v.descriptions
+                                .insert(description.value(), description.language());
                         }
                     }
                     _ => {}
@@ -91,20 +92,21 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
                             .or_insert_with(|| DefinedProperty {
                                 term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
                                 locations: std::collections::HashSet::new(),
-                                titles: std::collections::HashSet::new(),
-                                descriptions: std::collections::HashSet::new(),
+                                titles: Default::default(),
+                                descriptions: Default::default(),
                                 ranges: std::collections::HashSet::new(),
                                 domains: std::collections::HashSet::new(),
                             });
 
                         if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
-                            v.titles.insert(title.value().to_string());
+                            v.titles.insert(title.value(), title.language());
                         }
 
                         if let Some(description) =
                             description.and_then(|x| Literal::try_from(x.clone()).ok())
                         {
-                            v.descriptions.insert(description.value().to_string());
+                            v.descriptions
+                                .insert(description.value(), description.language());
                         }
                         if let Some(domain) = domain {
                             v.domains.insert(domain);

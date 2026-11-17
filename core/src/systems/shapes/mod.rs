@@ -12,11 +12,21 @@ use shacl_validation::{
 use sophia_api::quad::Quad as _;
 use tracing::{info_span, instrument};
 
-use crate::{lsp_types::TextDocumentItem, prelude::*, util};
+use crate::{
+    lsp_types::TextDocumentItem,
+    prelude::*,
+    util::{
+        self,
+        lang_text::{normalize_ws, LangTexts},
+    },
+};
 
 mod data;
 use data::*;
+pub(crate) mod model;
+mod describe;
 mod template;
+pub use describe::{hover_shape_property, shape_property_completions};
 pub use template::complete_shape_templates;
 
 fn shacl_schema_from_data<RDF: FocusRDF + std::fmt::Debug>(
@@ -189,26 +199,19 @@ pub fn validate_shapes(
                     if let Some(source) = res.source().cloned() {
                         let source = MyTerm::from(source);
 
-                        if let Some(message) = shape_triples.object(
-                            [&source],
-                            [
-                                &MyTerm::named_node(
-                                    "http://www.w3.org/2000/01/rdf-schema#comment",
-                                    0..0,
-                                ),
-                                &MyTerm::named_node("http://www.w3.org/ns/shacl#message", 0..0),
-                            ],
-                        ) {
-                            write!(
-                                &mut writer,
-                                "\n{}\n",
-                                message
-                                    .value
-                                    .split_whitespace()
-                                    .collect::<Vec<_>>()
-                                    .join(" ")
-                            )
-                            .unwrap();
+                        // The shape's own explanation, in the preferred language:
+                        // `sh:message`, or else `rdfs:comment`.
+                        let texts = |p: &str| -> LangTexts {
+                            shape_triples
+                                .objects([&source], [&MyTerm::named_node(p, 0..0)])
+                                .collect()
+                        };
+                        let mut message = texts("http://www.w3.org/ns/shacl#message");
+                        if message.is_empty() {
+                            message = texts("http://www.w3.org/2000/01/rdf-schema#comment");
+                        }
+                        if let Some(message) = message.first() {
+                            write!(&mut writer, "\n{}\n", normalize_ws(message)).unwrap();
                         }
                     }
 

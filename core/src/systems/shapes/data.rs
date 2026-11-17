@@ -106,14 +106,16 @@ impl<'b> TryInto<oxrdf::Term> for MyTerm<'static> {
                 T::NamedNode(M::NamedNode::new(self.as_str()).map_err(|_| ())?)
             }
             Some(sophia_api::prelude::TermKind::Literal) => {
-                if let Some(dt) = sophia_api::prelude::Term::datatype(&self) {
-                    let dt = M::NamedNode::new(dt.as_str()).map_err(|_| ())?;
-                    T::Literal(M::Literal::new_typed_literal(self.value.as_ref(), dt))
-                } else if let Some(lang) = self.language_tag() {
+                // Language first: a language-tagged literal also reports the
+                // datatype `rdf:langString`.
+                if let Some(lang) = sophia_api::prelude::Term::language_tag(&self) {
                     T::Literal(
                         M::Literal::new_language_tagged_literal(self.value.as_ref(), lang.as_str())
                             .map_err(|_| ())?,
                     )
+                } else if let Some(dt) = sophia_api::prelude::Term::datatype(&self) {
+                    let dt = M::NamedNode::new(dt.as_str()).map_err(|_| ())?;
+                    T::Literal(M::Literal::new_typed_literal(self.value.as_ref(), dt))
                 } else {
                     T::Literal(M::Literal::new_simple_literal(self.value.as_ref()))
                 }

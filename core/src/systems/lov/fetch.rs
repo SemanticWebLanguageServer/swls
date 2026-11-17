@@ -2,18 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use serde::Deserialize;
-use sophia_api::{
-    prelude::{Any, Dataset},
-    quad::Quad,
-    term::Term as _,
-};
 use tracing::{debug, error, span};
 
 use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix, PreferredPrefixes};
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
-    util::{cache, fs::Fs, ns::owl},
+    util::{cache, fs::Fs},
 };
 
 #[derive(Deserialize, Debug)]

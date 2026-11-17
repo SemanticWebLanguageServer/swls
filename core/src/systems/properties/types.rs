@@ -3,20 +3,23 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::{prelude::*, util::triple::MyTerm};
+use crate::{
+    prelude::*,
+    util::{lang_text::LangTexts, triple::MyTerm},
+};
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct DefinedClass {
     pub term: MyTerm<'static>,
     pub locations: HashSet<MyTerm<'static>>,
-    pub titles: HashSet<String>,
-    pub descriptions: HashSet<String>,
+    pub titles: LangTexts,
+    pub descriptions: LangTexts,
 }
 impl DefinedClass {
     pub fn full_title(&self) -> String {
         let mut title = String::new();
 
-        for t in &self.titles {
+        for t in self.titles.preferred() {
             if !title.is_empty() {
                 title += ", "
             }
@@ -27,7 +30,7 @@ impl DefinedClass {
 
     pub fn full_docs(&self, hierarchy: &TypeHierarchy, pref: &Prefixes) -> String {
         let mut docs = String::new();
-        for d in &self.descriptions {
+        for d in self.descriptions.preferred() {
             if !docs.is_empty() {
                 docs += "\n\n"
             }
@@ -106,8 +109,8 @@ pub type DefinedClasses = HashMap<oxigraph::model::NamedNode, DefinedClass>;
 pub struct DefinedProperty {
     pub term: MyTerm<'static>,
     pub locations: HashSet<MyTerm<'static>>,
-    pub titles: HashSet<String>,
-    pub descriptions: HashSet<String>,
+    pub titles: LangTexts,
+    pub descriptions: LangTexts,
     pub domains: HashSet<MyTerm<'static>>,
     pub ranges: HashSet<MyTerm<'static>>,
 }
@@ -116,7 +119,7 @@ impl DefinedProperty {
     pub fn full_title(&self) -> String {
         let mut title = String::new();
 
-        for t in &self.titles {
+        for t in self.titles.preferred() {
             if !title.is_empty() {
                 title += ", "
             }
@@ -127,7 +130,7 @@ impl DefinedProperty {
 
     pub fn full_docs(&self, prefixes: &Prefixes) -> String {
         let mut docs = String::new();
-        for d in &self.descriptions {
+        for d in self.descriptions.preferred() {
             if !docs.is_empty() {
                 docs += "\n"
             }

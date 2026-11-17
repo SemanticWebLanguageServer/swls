@@ -73,6 +73,10 @@ pub enum Disabled {
     /// Hover showing ontology documentation for a property/predicate IRI.
     #[serde(alias = "HOVER_PROPERTY", alias = "hover_property")]
     HoverProperty,
+    /// Hover showing the SHACL property shapes (name, description, label,
+    /// comment and constraints) that apply to a predicate of the subject.
+    #[serde(alias = "HOVER_SHAPE_PROPERTY", alias = "hover_shape_property")]
+    HoverShapeProperty,
     /// Hover explanation shown for a property that is only accepted because it
     /// is in the user's `allowed_properties` allow-list.
     #[serde(

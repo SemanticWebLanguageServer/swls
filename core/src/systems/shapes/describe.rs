@@ -1,0 +1,479 @@
+//! Documentation from SHACL property shapes, for the predicates of a subject.
+//!
+//! When a property shape applies to the subject (see [`super::model`]) and
+//! constrains a predicate, hover and completion for that predicate show:
+//!
+//! - `sh:name` and `sh:description`,
+//! - `rdfs:label` and `rdfs:comment` of the property shape,
+//! - a summary of its constraints (cardinality, node kind, datatype, class,
+//!   allowed values, nested shapes, patterns, ranges, severity).
+//!
+//! Texts are shown in the preferred language (see [`crate::util::lang_text`]).
+
+use std::collections::HashMap;
+
+use bevy_ecs::prelude::*;
+use sophia_api::term::{Term as _, TermKind};
+
+use super::{model::*, template};
+use crate::{
+    feature::{
+        completion::{CompletionRequest, SimpleCompletion},
+        hover::HoverRequest,
+    },
+    lsp_types::{CompletionItemKind, TextEdit},
+    prelude::*,
+    systems::shapes::ShaclShapes,
+    util::lang_text::normalize_ws,
+};
+
+/// Shortens IRIs for display: with the document's prefixes, else with those
+/// the shape documents declare (so `xsd:string` reads well even when the
+/// document does not declare `xsd:`).
+pub(crate) struct Names<'a> {
+    pub(crate) document: &'a Prefixes,
+    pub(crate) shapes: Vec<&'a Prefixes>,
+}
+
+impl Names<'_> {
+    /// `iri` as a prefixed name when one of the prefixes gives a plain local
+    /// name, else in full (`rml:shapes/X` would not be a valid prefixed name).
+    fn iri(&self, iri: &str) -> String {
+        std::iter::once(self.document)
+            .chain(self.shapes.iter().copied())
+            .filter_map(|p| p.shorten(iri))
+            .find(|short| {
+                short
+                    .split_once(':')
+                    .is_some_and(|(_, local)| plain_local(local))
+            })
+            .unwrap_or_else(|| format!("<{}>", iri))
+    }
+}
+
+fn plain_local(local: &str) -> bool {
+    local
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
+        && !local.ends_with('.')
+}
+
+fn term(names: &Names<'_>, node: Node<'_>) -> String {
+    match node.term.kind() {
+        TermKind::Iri => names.iri(&node.term.value),
+        TermKind::Literal => format!("\"{}\"", node.term.value),
+        _ => String::from("[ … ]"),
+    }
+}
+
+fn code(s: &str) -> String {
+    format!("`{}`", s.replace('`', "'"))
+}
+
+/// Name of a shape for display: its IRI, or a description of an anonymous one.
+fn shape_name(names: &Names<'_>, node: Node<'_>) -> String {
+    match node.term.kind() {
+        TermKind::Iri => code(&names.iri(&node.term.value)),
+        _ => String::from("an anonymous shape"),
+    }
+}
+
+fn number(graph: &ShapeGraph<'_>, node: Node<'_>, local: &str) -> Option<String> {
+    let v = graph.object(node, &sh(local))?;
+    Some(v.term.value.trim().to_string())
+}
+
+/// One-line summary of the constraints of property shape `prop`.
+pub(crate) fn constraints(
+    graph: &ShapeGraph<'_>,
+    prop: Node<'_>,
+    names: &Names<'_>,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    let list = |local: &str| -> Vec<String> {
+        graph
+            .objects(prop, &sh(local))
+            .into_iter()
+            .flat_map(|l| graph.list(l))
+            .map(|t| code(&term(names, t)))
+            .collect()
+    };
+    let values = |local: &str| -> Vec<String> {
+        graph
+            .objects(prop, &sh(local))
+            .into_iter()
+            .map(|t| code(&term(names, t)))
+            .collect()
+    };
+
+    let min: f64 = graph.number(prop, &sh("minCount")).unwrap_or(0.0);
+    match min as u64 {
+        0 => {}
+        1 => out.push(String::from("required")),
+        n => out.push(format!("at least {n}")),
+    }
+    if let Some(max) = graph.number(prop, &sh("maxCount")) {
+        out.push(format!("at most {}", max as u64));
+    }
+
+    for kind in graph.objects(prop, &sh("nodeKind")) {
+        let kind = kind.term.value.strip_prefix(SH).unwrap_or(&kind.term.value);
+        out.push(String::from(match kind {
+            "IRI" => "IRI",
+            "BlankNode" => "blank node",
+            "Literal" => "literal",
+            "BlankNodeOrIRI" => "IRI or blank node",
+            "BlankNodeOrLiteral" => "blank node or literal",
+            "IRIOrLiteral" => "IRI or literal",
+            other => other,
+        }));
+    }
+    for dt in values("datatype") {
+        out.push(format!("datatype {dt}"));
+    }
+    for class in values("class") {
+        out.push(format!("instance of {class}"));
+    }
+    let allowed = list("in");
+    if !allowed.is_empty() {
+        out.push(format!("one of {}", allowed.join(", ")));
+    }
+    for v in values("hasValue") {
+        out.push(format!("value {v}"));
+    }
+    for node in graph.objects(prop, &sh("node")) {
+        out.push(format!("conforms to {}", shape_name(names, node)));
+    }
+    for (local, word) in [("or", "one of"), ("xone", "exactly one of")] {
+        for l in graph.objects(prop, &sh(local)) {
+            let branches: Vec<String> = graph
+                .list(l)
+                .into_iter()
+                .flat_map(|b| {
+                    if b.term.kind() == TermKind::Iri {
+                        return Some(shape_name(names, b));
+                    }
+                    graph
+                        .object(b, &sh("node"))
+                        .map(|n| shape_name(names, n))
+                        .or_else(|| graph.object(b, &sh("class")).map(|c| code(&term(names, c))))
+                        .or_else(|| {
+                            graph
+                                .object(b, &sh("datatype"))
+                                .map(|d| code(&term(names, d)))
+                        })
+                })
+                .collect();
+            if !branches.is_empty() {
+                out.push(format!("conforms to {} {}", word, branches.join(", ")));
+            }
+        }
+    }
+    if let Some(pattern) = graph.object(prop, &sh("pattern")) {
+        let p = &pattern.term.value;
+        let shown: String = p.chars().take(40).collect();
+        let ellipsis = if p.chars().count() > 40 { "…" } else { "" };
+        out.push(format!("matches {}{}", code(&shown), ellipsis));
+    }
+    for (local, sign) in [
+        ("minLength", "length ≥"),
+        ("maxLength", "length ≤"),
+        ("minInclusive", "≥"),
+        ("maxInclusive", "≤"),
+        ("minExclusive", ">"),
+        ("maxExclusive", "<"),
+    ] {
+        if let Some(v) = number(graph, prop, local) {
+            out.push(format!("{sign} {v}"));
+        }
+    }
+    let languages = list("languageIn");
+    if !languages.is_empty() {
+        out.push(format!("language one of {}", languages.join(", ")));
+    }
+    if graph.has(prop, &sh("uniqueLang"), "true") {
+        out.push(String::from("one value per language"));
+    }
+    if let Some(sev) = graph.object(prop, &sh("severity")) {
+        if sev.term.value != sh("Violation") {
+            let sev = sev.term.value.strip_prefix(SH).unwrap_or(&sev.term.value);
+            out.push(format!("severity {}", sev.to_lowercase()));
+        }
+    }
+    out
+}
+
+/// Markdown documenting property shape `applied` for a hover or completion.
+pub(crate) fn describe(
+    graph: &ShapeGraph<'_>,
+    applied: AppliedPropertyShape<'_>,
+    names: &Names<'_>,
+) -> String {
+    let prop = applied.node;
+    let texts = |p: &str| -> Vec<String> {
+        graph
+            .texts(prop, p)
+            .preferred()
+            .into_iter()
+            .map(|t| normalize_ws(t).into_owned())
+            .collect()
+    };
+    let shacl_names = texts(&sh("name"));
+    let descriptions = texts(&sh("description"));
+    // Shown as well, unless they repeat the SHACL text word for word.
+    let labels: Vec<_> = texts(RDFS_LABEL)
+        .into_iter()
+        .filter(|l| !shacl_names.contains(l))
+        .collect();
+    let comments: Vec<_> = texts(RDFS_COMMENT)
+        .into_iter()
+        .filter(|c| !descriptions.contains(c))
+        .collect();
+
+    let mut md = format!("**Shape** {}", shape_name(names, applied.owner));
+    if prop.term.kind() == TermKind::Iri {
+        md.push_str(&format!(" · property shape {}", shape_name(names, prop)));
+    }
+
+    let mut section = |title: &str, items: &[String]| {
+        if !items.is_empty() {
+            md.push_str(&format!("\n\n**{}:** {}", title, items.join(" / ")));
+        }
+    };
+    section("Name", &shacl_names);
+    section("Description", &descriptions);
+    section("Label", &labels);
+    section("Comment", &comments);
+
+    if let Some(paths) = property_paths(graph, prop).filter(|p| p.len() > 1) {
+        let paths: Vec<_> = paths.iter().map(|p| code(&names.iri(p))).collect();
+        md.push_str(&format!("\n\n**Any one of:** {}", paths.join(", ")));
+    }
+    let summary = constraints(graph, prop, names);
+    if !summary.is_empty() {
+        md.push_str(&format!("\n\n**Constraints:** {}", summary.join(" · ")));
+    }
+    md
+}
+
+/// Documentation of every property shape that applies to `focus`, per predicate.
+fn docs_per_predicate(
+    graph: &ShapeGraph<'_>,
+    focus: &Focus<'_>,
+    names: &Names<'_>,
+) -> Vec<(String, Vec<String>, bool)> {
+    let mut out: Vec<(String, Vec<String>, bool)> = Vec::new();
+    for applied in applied_property_shapes(graph, focus) {
+        let Some(paths) = property_paths(graph, applied.node) else {
+            continue;
+        };
+        // An alternative path does not make any single predicate required.
+        let required =
+            paths.len() == 1 && graph.number(applied.node, &sh("minCount")).unwrap_or(0.0) >= 1.0;
+        let doc = describe(graph, applied, names);
+        for path in paths {
+            match out.iter_mut().find(|(p, _, _)| *p == path) {
+                Some((_, docs, req)) => {
+                    docs.push(doc.clone());
+                    *req |= required;
+                }
+                None => out.push((path, vec![doc.clone()], required)),
+            }
+        }
+    }
+    out
+}
+
+type ShapeDocs<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static Label,
+        &'static Triples,
+        Option<&'static Global>,
+        Option<&'static Prefixes>,
+    ),
+    With<ShaclShapes>,
+>;
+
+/// Triples and prefixes of the shape documents visible to a document.
+fn visible_shapes<'a>(
+    shapes: &'a ShapeDocs,
+    label: &Label,
+    links: &DocumentLinks,
+) -> (Vec<&'a [MyQuad<'static>]>, Vec<&'a Prefixes>) {
+    shapes
+        .iter()
+        .filter(|(l, _, global, _)| {
+            global.is_some() || l.0 == label.0 || links.iter().any(|link| link.0 == l.0)
+        })
+        .map(|(_, t, _, p)| (t.0.as_slice(), p))
+        .fold((Vec::new(), Vec::new()), |(mut ts, mut ps), (t, p)| {
+            ts.push(t);
+            ps.extend(p);
+            (ts, ps)
+        })
+}
+
+/// Hover system: document a predicate with the property shapes that apply to
+/// it for this subject.
+pub fn hover_shape_property(
+    mut query: Query<(
+        &TripleComponent,
+        &Triples,
+        &Prefixes,
+        &Label,
+        &DocumentLinks,
+        &mut HoverRequest,
+    )>,
+    shapes: ShapeDocs,
+    hierarchy: Res<TypeHierarchy>,
+    config: Res<ServerConfig>,
+) {
+    let local = &config.config.local;
+    if local.is_disabled(Disabled::HoverShapeProperty) || local.is_disabled(Disabled::Shapes) {
+        return;
+    }
+    for (triple, triples, prefixes, label, links, mut request) in &mut query {
+        if triple.target != TripleTarget::Predicate {
+            continue;
+        }
+        let predicate = &triple.triple.predicate;
+        if predicate.kind() != TermKind::Iri {
+            continue;
+        }
+        let (docs, shape_prefixes) = visible_shapes(&shapes, label, links);
+        if docs.is_empty() {
+            continue;
+        }
+        let graph = ShapeGraph::new(docs);
+        let names = Names {
+            document: prefixes,
+            shapes: shape_prefixes,
+        };
+        let focus = Focus::new(&triple.triple.subject, &triples.0, &hierarchy);
+        for applied in applied_property_shapes(&graph, &focus) {
+            let applies = property_paths(&graph, applied.node)
+                .is_some_and(|paths| paths.iter().any(|p| *p == predicate.value));
+            if applies {
+                request.0.push(describe(&graph, applied, &names));
+            }
+        }
+    }
+}
+
+/// Completion system: add shape documentation to property completions, and
+/// offer predicates that only the shapes declare.
+///
+/// Runs after [`complete_properties`](crate::systems::complete_properties).
+pub fn shape_property_completions(
+    mut query: Query<(
+        &TokenComponent,
+        &TripleComponent,
+        &PositionComponent,
+        &Prefixes,
+        &Triples,
+        &Label,
+        &DocumentLinks,
+        &RopeC,
+        &DynLang,
+        &mut CompletionRequest,
+    )>,
+    shapes: ShapeDocs,
+    hierarchy: Res<TypeHierarchy>,
+    config: Res<ServerConfig>,
+) {
+    let local = &config.config.local;
+    if local.is_disabled(Disabled::CompletionProperty) || local.is_disabled(Disabled::Shapes) {
+        return;
+    }
+    for (token, triple, pos, prefixes, triples, label, links, rope, lang, mut request) in &mut query
+    {
+        if !template::at_predicate(triple, token) {
+            continue;
+        }
+        let (docs, shape_prefixes) = visible_shapes(&shapes, label, links);
+        if docs.is_empty() {
+            continue;
+        }
+        let graph = ShapeGraph::new(docs);
+        let names = Names {
+            document: prefixes,
+            shapes: shape_prefixes,
+        };
+        let focus = Focus::new(&triple.triple.subject, &triples.0, &hierarchy);
+        let per_predicate = docs_per_predicate(&graph, &focus, &names);
+        if per_predicate.is_empty() {
+            continue;
+        }
+
+        let shortened: HashMap<String, usize> = per_predicate
+            .iter()
+            .enumerate()
+            .flat_map(|(i, (path, _, _))| [(path.clone(), i), (names.iri(path), i)])
+            .chain(
+                per_predicate
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(i, (path, _, _))| prefixes.shorten(path).map(|s| (s, i))),
+            )
+            .collect();
+
+        let mut documented = vec![false; per_predicate.len()];
+        for item in request.0.iter_mut() {
+            if item.kind != CompletionItemKind::FIELD
+                && item.kind != CompletionItemKind::ENUM_MEMBER
+            {
+                continue;
+            }
+            let Some(&i) = shortened.get(&item.label) else {
+                continue;
+            };
+            documented[i] = true;
+            let shape_docs = per_predicate[i].1.join("\n\n---\n\n");
+            item._documentation = Some(match item._documentation.take() {
+                Some(d) if !d.is_empty() => format!("{d}\n\n---\n\n{shape_docs}"),
+                _ => shape_docs,
+            });
+        }
+
+        // Predicates only the shapes know about.
+        let typed = lang.unquote(&token.text);
+        let (range, leading_space) = template::predicate_range(token, pos.0, rope);
+        for (i, (path, docs, required)) in per_predicate.iter().enumerate() {
+            if documented[i] || focus_has(&triple.triple.subject, &triples.0, path) {
+                continue;
+            }
+            let short = prefixes
+                .shorten(path)
+                .unwrap_or_else(|| format!("<{}>", path));
+            if range == token.range && !short.starts_with(typed) {
+                continue;
+            }
+            let mut item = SimpleCompletion::new(
+                CompletionItemKind::FIELD,
+                short.clone(),
+                TextEdit {
+                    range,
+                    new_text: format!(
+                        "{}{}",
+                        if leading_space { " " } else { "" },
+                        lang.quote(&short)
+                    ),
+                },
+            )
+            .documentation(docs.join("\n\n---\n\n"))
+            .sort_text(format!("0{}", short));
+            if *required {
+                item = item.label_description("required by shape");
+            }
+            request.0.push(item);
+        }
+    }
+}
+
+fn focus_has(subject: &MyTerm<'_>, triples: &[MyQuad<'static>], predicate: &str) -> bool {
+    triples
+        .iter()
+        .any(|t| t.subject == *subject && t.predicate.value == predicate)
+}

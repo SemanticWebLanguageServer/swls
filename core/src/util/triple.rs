@@ -294,10 +294,10 @@ impl<'a, 'b> TryFrom<&'b MyTerm<'a>> for oxigraph::model::Term {
         let output = match &value.ty {
             Some(TermKind::Iri) => T::NamedNode(M::NamedNode::new(value.as_str()).map_err(|_| ())?),
             Some(TermKind::Literal) => {
-                if let Some(dt) = value.datatype() {
-                    let dt = M::NamedNode::new(dt.as_str()).map_err(|_| ())?;
-                    T::Literal(M::Literal::new_typed_literal(value.value.as_ref(), dt))
-                } else if let Some(lang) = value.language_tag() {
+                // Check the language first: a language-tagged literal also
+                // reports the datatype `rdf:langString`, and storing it as a
+                // typed literal would drop its language.
+                if let Some(lang) = value.language_tag() {
                     T::Literal(
                         M::Literal::new_language_tagged_literal(
                             value.value.as_ref(),
@@ -305,6 +305,9 @@ impl<'a, 'b> TryFrom<&'b MyTerm<'a>> for oxigraph::model::Term {
                         )
                         .map_err(|_| ())?,
                     )
+                } else if let Some(dt) = value.datatype() {
+                    let dt = M::NamedNode::new(dt.as_str()).map_err(|_| ())?;
+                    T::Literal(M::Literal::new_typed_literal(value.value.as_ref(), dt))
                 } else {
                     T::Literal(M::Literal::new_simple_literal(value.value.as_ref()))
                 }
@@ -505,11 +508,24 @@ impl<'a> Term for MyTerm<'a> {
     }
 
     fn datatype(&self) -> Option<sophia_api::term::IriRef<sophia_api::MownStr<'_>>> {
-        None
+        if !self.is_literal() {
+            return None;
+        }
+        let dt: &str = match &self.context {
+            TermContext::DataType(dt) => dt,
+            TermContext::LangTag(_) => "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+            TermContext::None => "http://www.w3.org/2001/XMLSchema#string",
+        };
+        Some(IriRef::new_unchecked(MownStr::from_ref(dt)))
     }
 
     fn language_tag(&self) -> Option<sophia_api::term::LanguageTag<sophia_api::MownStr<'_>>> {
-        None
+        match &self.context {
+            TermContext::LangTag(tag) if self.is_literal() => Some(
+                sophia_api::term::LanguageTag::new_unchecked(MownStr::from_ref(tag)),
+            ),
+            _ => None,
+        }
     }
 
     fn variable(&self) -> Option<sophia_api::term::VarName<sophia_api::MownStr<'_>>> {
