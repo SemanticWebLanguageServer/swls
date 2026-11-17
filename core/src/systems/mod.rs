@@ -35,7 +35,7 @@ mod lov;
 pub use lov::{
     check_added_ontology_extract, fetch_lov_properties, init_ontology_extractor, spawn_document,
     configured_url, namespace_sources, populate_known_ontologies, ConfiguredOntology, FromPrefix,
-    NamespaceSource, OntologyExtractor, PrefixEntry,
+    NamespaceSource, PreferredPrefixes, OntologyExtractor, PrefixEntry,
 };
 use tracing::instrument;
 

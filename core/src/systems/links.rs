@@ -4,7 +4,7 @@ use tracing::instrument;
 use crate::{
     lsp_types::Url,
     prelude::*,
-    systems::{import_url, namespace_sources, ConfiguredOntology},
+    systems::{import_url, namespace_sources, ConfiguredOntology, PreferredPrefixes},
     util::ns::owl,
 };
 
@@ -17,6 +17,7 @@ pub fn derive_prefix_links(
     mut query: Query<(Entity, Ref<Prefixes>, Option<&mut DocumentLinks>)>,
     locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
     new_configured: Query<(), Added<ConfiguredOntology>>,
+    preferred: Res<PreferredPrefixes>,
     mut commands: Commands,
     fs: Res<Fs>,
 ) {
@@ -28,7 +29,7 @@ pub fn derive_prefix_links(
         }
         let mut new_links = Vec::new();
         for u in prefixes.0.iter() {
-            let sources = namespace_sources(&fs, u.url.as_str(), &u.prefix, &locals);
+            let sources = namespace_sources(&fs, u.url.as_str(), &u.prefix, &preferred, &locals);
             if sources.is_empty() {
                 new_links.push((u.url.clone(), SOURCE));
             }

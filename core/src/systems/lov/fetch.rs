@@ -9,7 +9,7 @@ use sophia_api::{
 };
 use tracing::{debug, error, span};
 
-use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix};
+use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix, PreferredPrefixes};
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
@@ -79,6 +79,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     all_open: Query<&Prefixes, With<Open>>,
     new_configured: Query<(), Added<ConfiguredOntology>>,
     locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
+    preferred: Res<PreferredPrefixes>,
     mut loaded: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
@@ -91,7 +92,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
     for prefs in prefixes {
         for prefix in prefs.0.iter() {
-            for source in namespace_sources(&fs, prefix.url.as_str(), &prefix.prefix, &locals) {
+            for source in namespace_sources(
+                &fs,
+                prefix.url.as_str(),
+                &prefix.prefix,
+                &preferred,
+                &locals,
+            ) {
                 if !loaded.insert(source.url.to_string()) {
                     continue;
                 }
@@ -120,7 +127,12 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                             prefix.prefix,
                             prefix.url.as_str()
                         );
-                        client.spawn(fetch_lov(prefix.clone(), source.url, c, sender, fs.clone()));
+                        // Fetch by the vocabulary's preferred name, not the typed one.
+                        let canonical = Prefix {
+                            prefix: source.prefix.clone(),
+                            url: prefix.url.clone(),
+                        };
+                        client.spawn(fetch_lov(canonical, source.url, c, sender, fs.clone()));
                     }
                 }
             }
@@ -241,8 +253,20 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     if prefix.prefix.to_ascii_lowercase() != prefix.prefix {
         return;
     }
-    let body = cache::cached(&fs, &label, || {
-        fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c)
+    let namespace = prefix.url.as_str();
+    let body = cache::cached(&fs, &label, || async {
+        let body = fetch_lov_body(&prefix.prefix, namespace, c).await?;
+        // LOV is queried by name, so make sure the vocabulary we got actually
+        // describes this namespace before caching and loading it.
+        if !mentions_namespace(&body, namespace) {
+            tracing::warn!(
+                "LOV vocabulary {} does not describe {}, ignoring it",
+                prefix.prefix,
+                namespace
+            );
+            return None;
+        }
+        Some(body)
     })
     .await;
     if let Some(body) = body {
@@ -306,4 +330,33 @@ async fn local_lov<C: Client + Resource>(
         &sender,
         extra_from_lov(from),
     );
+}
+
+/// Whether `body` mentions `namespace`, also accepting the other of `http` and
+/// `https` (many vocabularies are declared with one and used with the other).
+fn mentions_namespace(body: &str, namespace: &str) -> bool {
+    if body.contains(namespace) {
+        return true;
+    }
+    let swapped = if let Some(rest) = namespace.strip_prefix("https://") {
+        format!("http://{rest}")
+    } else if let Some(rest) = namespace.strip_prefix("http://") {
+        format!("https://{rest}")
+    } else {
+        return false;
+    };
+    body.contains(&swapped)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mentions_namespace;
+
+    #[test]
+    fn namespace_check_accepts_either_scheme() {
+        let body = "@prefix schema: <http://schema.org/> .";
+        assert!(mentions_namespace(body, "http://schema.org/"));
+        assert!(mentions_namespace(body, "https://schema.org/"));
+        assert!(!mentions_namespace(body, "http://xmlns.com/foaf/0.1/"));
+    }
 }

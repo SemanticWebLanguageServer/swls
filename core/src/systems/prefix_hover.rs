@@ -20,7 +20,7 @@ use crate::{
     feature::goto_definition::GotoDefinitionRequest,
     lsp_types::{Location, Range, Url},
     prelude::*,
-    systems::{namespace_sources, ConfiguredOntology},
+    systems::{namespace_sources, ConfiguredOntology, PreferredPrefixes},
     util::offset_to_position,
 };
 
@@ -159,6 +159,7 @@ pub fn hover_prefix(
 pub fn goto_prefix(
     mut query: Query<(&PrefixComponent, &mut GotoDefinitionRequest)>,
     locals: Query<(&LocalPrefix, Option<&ConfiguredOntology>)>,
+    preferred: Res<PreferredPrefixes>,
     fs: Res<Fs>,
 ) {
     for (prefix, mut req) in &mut query {
@@ -169,7 +170,7 @@ pub fn goto_prefix(
         // lands on the file(s) the server loads for this prefix: one location per
         // configured ontology when several describe the namespace.
         let mut targets: Vec<Url> =
-            namespace_sources(&fs, &prefix.namespace, &prefix.name, &locals)
+            namespace_sources(&fs, &prefix.namespace, &prefix.name, &preferred, &locals)
                 .into_iter()
                 .map(|s| s.url)
                 .collect();
