@@ -400,7 +400,7 @@ pub fn jsonld_property_completion(
                 let compact = iri_to_term
                     .get(param.iri.as_str())
                     .map(|&t| t.to_string())
-                    .or_else(|| prefixes.shorten(&param.iri));
+                    .or_else(|| prefixes.shorten_compact(&param.iri));
 
                 let Some(compact) = compact else {
                     continue;

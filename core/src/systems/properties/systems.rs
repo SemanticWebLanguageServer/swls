@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::collections::HashSet;
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
@@ -19,6 +19,7 @@ pub fn complete_class(
         &Prefixes,
         &Types,
         &mut CompletionRequest,
+        &DynLang,
     )>,
     hierarchy: Res<TypeHierarchy>,
     resource: Res<Ontologies>,
@@ -27,7 +28,7 @@ pub fn complete_class(
     if config.config.local.is_disabled(Disabled::CompletionClass) {
         return;
     }
-    for (token, triple, prefixes, types, mut request) in &mut query {
+    for (token, triple, prefixes, types, mut request, lang) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
         {
@@ -40,10 +41,7 @@ pub fn complete_class(
                 .collect();
 
             for class in resource.classes.values() {
-                let to_beat = prefixes
-                    .shorten(&class.term.value)
-                    .map(|x| Cow::Owned(x))
-                    .unwrap_or(class.term.value.clone());
+                let to_beat = lang.write_iri(prefixes, &class.term.value);
 
                 if to_beat.starts_with(&token.text) {
                     let mut completion = SimpleCompletion::new(
@@ -155,10 +153,7 @@ pub fn complete_properties(
                     continue;
                 }
 
-                let to_beat = prefixes
-                    .shorten(&property.term.value)
-                    .map(|x| Cow::Owned(x))
-                    .unwrap_or(property.term.value.clone());
+                let to_beat = lang.write_iri(prefixes, &property.term.value);
 
                 if to_beat.starts_with(&bare_text) {
                     let mut completion = SimpleCompletion::new(

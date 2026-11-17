@@ -46,6 +46,16 @@ pub struct JsonLdLang;
 pub struct JsonLdHelper;
 
 impl LangHelper for JsonLdHelper {
+    /// JSON-LD compact IRIs accept any suffix (`css:dist/Server#port`).
+    fn shorten(&self, prefixes: &Prefixes, iri: &str) -> Option<String> {
+        prefixes.shorten_compact(iri)
+    }
+
+    /// A full IRI is a plain JSON string value.
+    fn write_iri(&self, prefixes: &Prefixes, iri: &str) -> String {
+        self.shorten(prefixes, iri).unwrap_or_else(|| iri.to_string())
+    }
+
     fn keyword(&self) -> &[&'static str] {
         &[
             "@context",

@@ -33,12 +33,156 @@ impl Deref for Prefixes {
 }
 
 impl Prefixes {
+    /// `value` as a prefixed name (`ex:name`) that is valid in Turtle, TriG,
+    /// N3 and SPARQL, or `None` when no declared prefix gives one.
+    ///
+    /// The local part must be a plain `PN_LOCAL` (see [`is_local_name`]):
+    /// `http://w3id.org/rml/shapes/X` is not shortened to `rml:shapes/X`.
+    /// When several prefixes match, the longest namespace wins, so a
+    /// declared `rmlsh: <http://w3id.org/rml/shapes/>` gives `rmlsh:X`.
     pub fn shorten(&self, value: &str) -> Option<String> {
-        let try_shorten = |prefix: &Prefix| {
-            let short = value.strip_prefix(prefix.url.as_str())?;
-            Some(format!("{}:{}", prefix.prefix, short))
+        self.shorten_with(value, is_local_name)
+    }
+
+    /// `value` as a JSON-LD compact IRI (`prefix:suffix`), where the suffix
+    /// may be anything, e.g. `css:dist/Server#port`. The longest matching
+    /// namespace wins.
+    pub fn shorten_compact(&self, value: &str) -> Option<String> {
+        self.shorten_with(value, |_| true)
+    }
+
+    fn shorten_with(&self, value: &str, valid: impl Fn(&str) -> bool) -> Option<String> {
+        self.0
+            .iter()
+            .filter_map(|prefix| {
+                let local = value.strip_prefix(prefix.url.as_str())?;
+                valid(local).then_some((prefix.url.as_str().len(), prefix, local))
+            })
+            .max_by_key(|(len, _, _)| *len)
+            .map(|(_, prefix, local)| format!("{}:{}", prefix.prefix, local))
+    }
+}
+
+fn is_pn_chars_base(c: char) -> bool {
+    c.is_ascii_alphabetic() || (!c.is_ascii() && c.is_alphabetic())
+}
+
+fn is_pn_chars_u(c: char) -> bool {
+    is_pn_chars_base(c) || c == '_'
+}
+
+fn is_pn_chars(c: char) -> bool {
+    is_pn_chars_u(c)
+        || c == '-'
+        || c.is_ascii_digit()
+        || c == '\u{B7}'
+        || ('\u{300}'..='\u{36F}').contains(&c)
+        || ('\u{203F}'..='\u{2040}').contains(&c)
+}
+
+/// Whether `local` can be written, unescaped, as the local part of a prefixed
+/// name (`PN_LOCAL` in Turtle, TriG, N3 and SPARQL). The empty local name
+/// (`ex:`) is valid; `%XX` escapes are accepted, backslash escapes are not
+/// produced.
+pub fn is_local_name(local: &str) -> bool {
+    let chars: Vec<char> = local.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        let first = i == 0;
+        if c == '%' {
+            let hex = |j: usize| chars.get(j).is_some_and(|c| c.is_ascii_hexdigit());
+            if !(hex(i + 1) && hex(i + 2)) {
+                return false;
+            }
+            i += 3;
+            continue;
+        }
+        let ok = if first {
+            is_pn_chars_u(c) || c == ':' || c.is_ascii_digit()
+        } else {
+            is_pn_chars(c) || c == '.' || c == ':'
         };
-        self.0.iter().flat_map(try_shorten).next()
+        if !ok {
+            return false;
+        }
+        i += 1;
+    }
+    !local.ends_with('.')
+}
+
+#[cfg(test)]
+mod shorten_tests {
+    use super::*;
+
+    fn prefixes(decls: &[(&str, &str)]) -> Prefixes {
+        Prefixes(
+            decls
+                .iter()
+                .map(|(p, u)| Prefix {
+                    prefix: p.to_string(),
+                    url: crate::lsp_types::Url::parse(u).unwrap(),
+                })
+                .collect(),
+            crate::lsp_types::Url::parse("file:///doc.ttl").unwrap(),
+        )
+    }
+
+    #[test]
+    fn local_names() {
+        for ok in [
+            "",
+            "name",
+            "Name_1",
+            "a.b",
+            "1abc",
+            "a:b",
+            "caf\u{e9}",
+            "a%20b",
+            "a-b",
+        ] {
+            assert!(is_local_name(ok), "{ok:?} should be valid");
+        }
+        for bad in [
+            "a/b", "a#b", "a.", "-a", ".a", "a b", "a?b", "a%2", "a~b", "a,b",
+        ] {
+            assert!(!is_local_name(bad), "{bad:?} should be invalid");
+        }
+    }
+
+    #[test]
+    fn shorten_only_to_valid_prefixed_names() {
+        let p = prefixes(&[("rml", "http://w3id.org/rml/")]);
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/TriplesMap").as_deref(),
+            Some("rml:TriplesMap")
+        );
+        assert_eq!(p.shorten("http://w3id.org/rml/shapes/X"), None);
+        assert_eq!(
+            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rml:shapes/X")
+        );
+        assert_eq!(p.shorten("http://other.test/x"), None);
+    }
+
+    #[test]
+    fn longest_namespace_wins() {
+        let p = prefixes(&[
+            ("rml", "http://w3id.org/rml/"),
+            ("rmlsh", "http://w3id.org/rml/shapes/"),
+        ]);
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rmlsh:X")
+        );
+        assert_eq!(
+            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rmlsh:X")
+        );
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/source").as_deref(),
+            Some("rml:source")
+        );
     }
 }
 

@@ -11,7 +11,6 @@ use rudof_rdf::rdf_core::{
     FocusRDF, Matcher, NeighsRDF, RDFError, SHACLPath,
 };
 use shacl_ir::compiled::schema_ir::SchemaIR as ShaclSchemaIR;
-use sophia_api::term::Term;
 
 use crate::prelude::*;
 

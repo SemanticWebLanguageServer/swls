@@ -36,26 +36,14 @@ pub(crate) struct Names<'a> {
 }
 
 impl Names<'_> {
-    /// `iri` as a prefixed name when one of the prefixes gives a plain local
-    /// name, else in full (`rml:shapes/X` would not be a valid prefixed name).
+    /// `iri` as a prefixed name from the document's or the shape documents'
+    /// prefixes, else in full.
     fn iri(&self, iri: &str) -> String {
         std::iter::once(self.document)
             .chain(self.shapes.iter().copied())
-            .filter_map(|p| p.shorten(iri))
-            .find(|short| {
-                short
-                    .split_once(':')
-                    .is_some_and(|(_, local)| plain_local(local))
-            })
+            .find_map(|p| p.shorten(iri))
             .unwrap_or_else(|| format!("<{}>", iri))
     }
-}
-
-fn plain_local(local: &str) -> bool {
-    local
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
-        && !local.ends_with('.')
 }
 
 fn term(names: &Names<'_>, node: Node<'_>) -> String {
