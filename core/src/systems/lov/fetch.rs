@@ -72,17 +72,18 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
     changed: Query<&Prefixes, (Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,)>,
     all_open: Query<&Prefixes, With<Open>>,
-    new_configured: Query<(), Added<ConfiguredOntology>>,
     locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
     preferred: Res<PreferredPrefixes>,
+    revisions: Res<Revisions>,
+    mut seen: Local<Seen>,
     mut loaded: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
 ) {
-    let prefixes: Vec<&Prefixes> = if new_configured.is_empty() {
-        changed.iter().collect()
-    } else {
+    let prefixes: Vec<&Prefixes> = if seen.update(revisions.sources) {
         all_open.iter().collect()
+    } else {
+        changed.iter().collect()
     };
 
     for prefs in prefixes {

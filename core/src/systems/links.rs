@@ -16,13 +16,16 @@ use crate::{
 pub fn derive_prefix_links(
     mut query: Query<(Entity, Ref<Prefixes>, Option<&mut DocumentLinks>)>,
     locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
-    new_configured: Query<(), Added<ConfiguredOntology>>,
     preferred: Res<PreferredPrefixes>,
+    revisions: Res<Revisions>,
+    mut seen: Local<Seen>,
     mut commands: Commands,
     fs: Res<Fs>,
 ) {
     const SOURCE: &str = "prefix import";
-    let refresh_all = !new_configured.is_empty();
+    // Configured ontologies arrive asynchronously, possibly after the
+    // document was opened: relink every document when they do.
+    let refresh_all = seen.update(revisions.sources);
     for (e, prefixes, mut links) in &mut query {
         if !refresh_all && !prefixes.is_changed() {
             continue;

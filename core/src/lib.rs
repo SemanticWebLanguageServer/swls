@@ -96,6 +96,7 @@ pub mod backend;
 
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
+pub mod revisions;
 pub mod store;
 /// Minimal text indexing for LSP position math (replaces ropey).
 pub mod text;
@@ -131,6 +132,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.insert_resource(OntologyExtractor::new());
     world.init_resource::<systems::PreferredPrefixes>();
     world.init_resource::<components::Documents>();
+    world.init_resource::<revisions::Revisions>();
 
     parse::setup_schedule::<C>(world);
     hover::setup_schedule(world);

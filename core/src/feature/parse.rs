@@ -39,7 +39,12 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         derive_owl_imports_links.after(triples).before(end),
         fetch_lov_properties::<C>.after(prefixes).before(end),
         extract_type_hierarchy.after(triples).before(end),
-        infer_types.after(triples).before(end),
+        // Consumers of shared data run after its producers, so a change is seen
+        // in the same pass (see `crate::revisions`).
+        infer_types
+            .after(extract_type_hierarchy)
+            .after(derive_ontologies)
+            .before(end),
         check_added_ontology_extract.after(triples).before(end),
         open_imports::<C>.after(triples).before(end),
         // store things

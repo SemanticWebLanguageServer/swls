@@ -45,7 +45,11 @@ pub fn union_query(query: &str) -> Option<oxigraph::sparql::PreparedSparqlQuery>
 pub fn load_store(
     query: Query<(&Triples, &Label), (Changed<Triples>, Without<Open>)>,
     store: Res<Store>,
+    mut revisions: ResMut<Revisions>,
 ) {
+    if !query.is_empty() {
+        revisions.store += 1;
+    }
     for (t, label) in &query {
         store.remove_document(label);
         let Some(graph) = Store::graph_name(label) else {

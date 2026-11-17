@@ -109,6 +109,7 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
 
                 queue.push(move |world: &mut World| {
                     world.spawn((lov, ConfiguredOntology));
+                    world.resource_mut::<Revisions>().sources += 1;
                 });
             }
 

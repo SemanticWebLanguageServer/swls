@@ -115,17 +115,20 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
     Some(definitions)
 }
 
-/// Recompute [`Ontologies`] whenever the store contents changed, i.e. whenever a
-/// background document was added or its triples changed (see [`load_store`]).
+/// Recompute [`Ontologies`] whenever the store changed (see [`load_store`] and
+/// [`Revisions::store`]), and bump [`Revisions::ontologies`].
 ///
 /// [`load_store`]: crate::store::load_store
 pub fn derive_ontologies(
-    query: Query<(), (Changed<Triples>, Without<Open>)>,
     store: Res<Store>,
     mut resource: ResMut<Ontologies>,
     mut hierarchy: ResMut<TypeHierarchy>,
+    mut revisions: ResMut<Revisions>,
+    mut seen: Local<Seen>,
 ) {
-    if !query.is_empty() {
+    if seen.update(revisions.store) {
+        revisions.ontologies += 1;
+        let hierarchy_before = hierarchy.size();
         if let Some(classes) = find_classes(&store.0) {
             tracing::debug!("Derive {} classes", classes.len());
             resource.classes = classes;
@@ -144,6 +147,9 @@ pub fn derive_ontologies(
             }
 
             resource.properties = properties;
+        }
+        if hierarchy.size() != hierarchy_before {
+            revisions.hierarchy += 1;
         }
     }
 }

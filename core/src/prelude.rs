@@ -16,6 +16,7 @@ pub use crate::{
         *,
     },
     lang::{Lang, LangHelper},
+    revisions::{Revisions, Seen},
     setup_schedule_labels, systems,
     systems::prefix::{Prefix, Prefixes},
     systems::PrefixComponent,
