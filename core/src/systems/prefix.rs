@@ -58,7 +58,16 @@ impl Prefixes {
                 let local = value.strip_prefix(prefix.url.as_str())?;
                 valid(local).then_some((prefix.url.as_str().len(), prefix, local))
             })
-            .max_by_key(|(len, _, _)| *len)
+            // Longest namespace first; on a tie prefer a named prefix over the
+            // empty one, then the alphabetically first, so the result does not
+            // depend on declaration order.
+            .max_by_key(|(len, prefix, _)| {
+                (
+                    *len,
+                    !prefix.prefix.is_empty(),
+                    std::cmp::Reverse(prefix.prefix.clone()),
+                )
+            })
             .map(|(_, prefix, local)| format!("{}:{}", prefix.prefix, local))
     }
 }
@@ -383,6 +392,19 @@ mod shorten_tests {
             Some("rml:shapes/X")
         );
         assert_eq!(p.shorten("http://other.test/x"), None);
+    }
+
+    #[test]
+    fn ties_prefer_a_named_prefix_then_alphabetical() {
+        let p = prefixes(&[
+            ("", "http://w3id.org/rml/shapes/"),
+            ("zz", "http://w3id.org/rml/shapes/"),
+            ("rmlsh", "http://w3id.org/rml/shapes/"),
+        ]);
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rmlsh:X")
+        );
     }
 
     #[test]

@@ -22,11 +22,10 @@
 //!
 //! ## Position convention
 //!
-//! Positions are 0-indexed `(line, character)` matching the LSP spec.  The harness works at
-//! the ECS level and does **not** apply the `Backend::adjust_position` -1 offset.  Pass the
-//! character index of the **first character of the token** you want resolved (not the cursor
-//! position after the last typed character).  This is consistent with the position values used
-//! in the existing unit tests inside `lang-turtle`.
+//! Positions are 0-indexed `(line, character)` LSP cursor positions, exactly as an editor
+//! sends them and as the server receives them: a cursor sits *between* characters. A cursor
+//! touching a word (inside it, or right after it, e.g. `ex:fo|;`) belongs to that word; in
+//! whitespace it belongs to no token (see `swls_core::util::token::token_at_cursor`).
 
 #![allow(dead_code)]
 
@@ -244,8 +243,7 @@ impl LspHarness {
 
     /// Request completion items at `(line, character)`.
     ///
-    /// Positions are 0-indexed as in the LSP spec.  The character value is the index of the
-    /// **first character of the token** being completed (consistent with the existing unit tests).
+    /// Positions are 0-indexed LSP cursor positions (see the crate docs).
     pub fn completions(
         &mut self,
         handle: &FileHandle,
