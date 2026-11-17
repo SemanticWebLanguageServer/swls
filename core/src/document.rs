@@ -31,14 +31,6 @@ use crate::{
 /// Diagnostic reason of the notice shown on an open cache file.
 const CACHED_COPY: &str = "cached_copy";
 
-fn find(world: &mut World, url: &Url) -> Option<Entity> {
-    world
-        .query::<(Entity, &Label)>()
-        .iter(world)
-        .find(|x| &x.1 .0 == url)
-        .map(|x| x.0)
-}
-
 /// Open `item` in the editor and parse it. Returns its entity.
 pub fn open_document(world: &mut World, item: TextDocumentItem) -> Entity {
     let url = item.uri.clone();
@@ -46,7 +38,7 @@ pub fn open_document(world: &mut World, item: TextDocumentItem) -> Entity {
     // Keep the server's copy of a background document before the editor buffer
     // replaces it.
     let mut background = false;
-    if let Some(e) = find(world, &url) {
+    if let Some(e) = find_document(world, &url) {
         let entity = world.entity(e);
         background = entity.contains::<Background>();
         if background && !entity.contains::<Open>() && !entity.contains::<Snapshot>() {
@@ -120,7 +112,7 @@ pub enum Closed {
 
 /// The editor closed `url`: stop treating it as open and clear its diagnostics.
 pub fn close_document(world: &mut World, url: &Url) -> Closed {
-    let Some(entity) = find(world, url) else {
+    let Some(entity) = find_document(world, url) else {
         return Closed::Unknown;
     };
 

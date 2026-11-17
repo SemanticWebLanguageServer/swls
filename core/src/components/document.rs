@@ -73,8 +73,88 @@ pub struct Snapshot(pub String);
 pub struct Global;
 
 /// [`Component`] containing the [`lsp_types::Url`] of the current document.
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+///
+/// Immutable: every document is indexed by its label in [`Documents`], which
+/// component hooks keep up to date. Insert a new `Label` to relabel a document.
+#[derive(Component, AsRef, Deref, Debug)]
+#[component(immutable, on_insert = register_document, on_replace = unregister_document)]
 pub struct Label(pub crate::lsp_types::Url);
+
+/// Every document in the world, by URL.
+///
+/// Maintained by [`Label`]'s hooks, so it is correct however a document is
+/// spawned, relabelled or despawned. Look documents up with
+/// [`find_document`] rather than scanning labels.
+///
+/// What kind of document an entity is follows from its markers: [`Open`] (the
+/// editor has it), [`Background`] (the server loaded it), both (a background
+/// document the user opened), and for a background document whether its URL
+/// is in the ontology cache (`FsTrait::is_cache_url`).
+#[derive(Resource, Debug, Default)]
+pub struct Documents(std::collections::HashMap<crate::lsp_types::Url, Entity>);
+
+impl Documents {
+    /// The document labelled `url`.
+    pub fn get(&self, url: &crate::lsp_types::Url) -> Option<Entity> {
+        self.0.get(url).copied()
+    }
+
+    /// Every document, by URL.
+    pub fn iter(&self) -> impl Iterator<Item = (&crate::lsp_types::Url, Entity)> {
+        self.0.iter().map(|(u, e)| (u, *e))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+fn register_document(
+    mut world: bevy_ecs::world::DeferredWorld,
+    ctx: bevy_ecs::lifecycle::HookContext,
+) {
+    let Some(url) = world.get::<Label>(ctx.entity).map(|l| l.0.clone()) else {
+        return;
+    };
+    if let Some(mut docs) = world.get_resource_mut::<Documents>() {
+        if let Some(previous) = docs.0.insert(url.clone(), ctx.entity) {
+            if previous != ctx.entity {
+                tracing::warn!("Two documents labelled {}, keeping the newest", url);
+            }
+        }
+    }
+}
+
+fn unregister_document(
+    mut world: bevy_ecs::world::DeferredWorld,
+    ctx: bevy_ecs::lifecycle::HookContext,
+) {
+    let Some(url) = world.get::<Label>(ctx.entity).map(|l| l.0.clone()) else {
+        return;
+    };
+    if let Some(mut docs) = world.get_resource_mut::<Documents>() {
+        if docs.0.get(&url) == Some(&ctx.entity) {
+            docs.0.remove(&url);
+        }
+    }
+}
+
+/// The document labelled `url`, from the [`Documents`] registry (or, in a
+/// world set up without it, by scanning labels).
+pub fn find_document(world: &mut World, url: &crate::lsp_types::Url) -> Option<Entity> {
+    if let Some(docs) = world.get_resource::<Documents>() {
+        return docs.get(url);
+    }
+    world
+        .query::<(Entity, &Label)>()
+        .iter(world)
+        .find(|(_, l)| &l.0 == url)
+        .map(|(e, _)| e)
+}
 
 /// [`Component`] used to remember the linked documents.
 ///
@@ -98,3 +178,67 @@ pub struct KeyWords(pub Vec<&'static str>);
 /// [`Component`] containing comment text extracted from the CST (stripped of `#` prefix).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
 pub struct Comments(pub Vec<crate::util::Spanned<String>>);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lsp_types::Url;
+
+    fn url(s: &str) -> Url {
+        Url::parse(s).unwrap()
+    }
+
+    fn world() -> World {
+        let mut world = World::new();
+        world.init_resource::<Documents>();
+        world
+    }
+
+    #[test]
+    fn registry_follows_spawn_relabel_and_despawn() {
+        let mut world = world();
+        let a = world.spawn(Label(url("file:///a.ttl"))).id();
+        let b = world.spawn(Label(url("file:///b.ttl"))).id();
+        assert_eq!(find_document(&mut world, &url("file:///a.ttl")), Some(a));
+        assert_eq!(world.resource::<Documents>().len(), 2);
+
+        world
+            .entity_mut(a)
+            .insert(Label(url("file:///renamed.ttl")));
+        assert_eq!(find_document(&mut world, &url("file:///a.ttl")), None);
+        assert_eq!(
+            find_document(&mut world, &url("file:///renamed.ttl")),
+            Some(a)
+        );
+
+        world.despawn(b);
+        assert_eq!(find_document(&mut world, &url("file:///b.ttl")), None);
+        assert_eq!(world.resource::<Documents>().len(), 1);
+
+        world.entity_mut(a).remove::<Label>();
+        assert!(world.resource::<Documents>().is_empty());
+    }
+
+    #[test]
+    fn removing_a_stale_duplicate_keeps_the_current_document() {
+        let mut world = world();
+        let first = world.spawn(Label(url("file:///x.ttl"))).id();
+        let second = world.spawn(Label(url("file:///x.ttl"))).id();
+        assert_eq!(
+            find_document(&mut world, &url("file:///x.ttl")),
+            Some(second)
+        );
+        world.despawn(first);
+        assert_eq!(
+            find_document(&mut world, &url("file:///x.ttl")),
+            Some(second)
+        );
+    }
+
+    #[test]
+    fn lookup_without_the_registry_scans_labels() {
+        let mut world = World::new();
+        let a = world.spawn(Label(url("file:///a.ttl"))).id();
+        assert_eq!(find_document(&mut world, &url("file:///a.ttl")), Some(a));
+    }
+}

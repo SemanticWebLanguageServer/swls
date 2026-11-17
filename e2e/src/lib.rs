@@ -195,12 +195,7 @@ impl LspHarness {
     /// Handle to the document the server holds for `url` (opened or loaded in the background).
     pub fn handle(&mut self, url: &str) -> Option<FileHandle> {
         let parsed = Url::parse(url).ok()?;
-        let entity = self
-            .world
-            .query::<(Entity, &Label)>()
-            .iter(&self.world)
-            .find(|(_, l)| l.0 == parsed)
-            .map(|(e, _)| e)?;
+        let entity = find_document(&mut self.world, &parsed)?;
         Some(FileHandle {
             entity,
             url: url.to_string(),
