@@ -23,34 +23,80 @@ use std::future::Future;
 pub(crate) type LocalFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
 pub type Job = Box<dyn FnOnce() -> LocalFuture + Send>;
 
-// TODO: use other tmp file location
+/// Native file system, with the ontology cache in the user's cache directory
+/// (`~/.cache/swls` on Linux, `~/Library/Caches/swls` on macOS,
+/// `%LOCALAPPDATA%\\swls` on Windows), falling back to `<tmp>/swls`.
+///
+/// The cache is shared by every server process of the user: files are written
+/// atomically and marked read-only, so concurrent servers never see a partial
+/// file and editors warn before a cached copy is edited.
 #[derive(Debug)]
 pub struct BinFs(PathBuf);
 impl BinFs {
     pub fn new() -> Self {
-        let mut tmp_dir = std::env::temp_dir();
-        tmp_dir.push("swls");
-        let mut c = 0;
-        tmp_dir.push(c.to_string());
-        while std::fs::exists(&tmp_dir).unwrap_or(false) {
-            tmp_dir.pop();
-            c += 1;
-            tmp_dir.push(c.to_string());
-        }
-        Self(tmp_dir)
+        let root = dirs::cache_dir()
+            .unwrap_or_else(std::env::temp_dir)
+            .join("swls");
+        Self(root)
     }
+}
+
+/// Write `content` to `path` atomically and leave it read-only.
+///
+/// The content goes to a uniquely named sibling first, which is then renamed
+/// over `path`, so readers (and other servers) only ever see a complete file.
+async fn write_read_only(path: &std::path::Path, content: &str) -> std::io::Result<()> {
+    let parent = path.parent().unwrap_or(std::path::Path::new("."));
+    fs::create_dir_all(parent).await?;
+
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    let tmp = parent.join(format!(".{}.{}.tmp", file_name, std::process::id()));
+    write(&tmp, content.as_bytes()).await?;
+
+    let mut perms = fs::metadata(&tmp).await?.permissions();
+    perms.set_readonly(true);
+    fs::set_permissions(&tmp, perms).await?;
+
+    // Windows refuses to replace a read-only file.
+    #[cfg(windows)]
+    if let Ok(meta) = fs::metadata(path).await {
+        let mut perms = meta.permissions();
+        perms.set_readonly(false);
+        let _ = fs::set_permissions(path, perms).await;
+    }
+
+    if let Err(e) = fs::rename(&tmp, path).await {
+        let _ = fs::remove_file(&tmp).await;
+        return Err(e);
+    }
+    Ok(())
 }
 
 #[tower_lsp::async_trait]
 impl FsTrait for BinFs {
-    fn virtual_url(&self, url: &str) -> Option<swls_core::lsp_types::Url> {
-        let mut pb = self.0.clone();
-        if let Ok(url) = swls_core::lsp_types::Url::parse(url) {
-            pb.push(url.path());
-        } else {
-            pb.push(url);
+    fn virtual_url(&self, path: &str) -> Option<swls_core::lsp_types::Url> {
+        swls_core::lsp_types::Url::from_file_path(self.0.join(path)).ok()
+    }
+
+    fn cache_root(&self) -> Option<Url> {
+        Url::from_directory_path(&self.0).ok()
+    }
+
+    async fn write_cache(&self, url: &Url, content: &str) -> Option<()> {
+        let fp = url.to_file_path().ok()?;
+        match write_read_only(&fp, content).await {
+            Ok(()) => Some(()),
+            Err(e) => {
+                tracing::warn!("Failed to write cache file {}: {}", fp.display(), e);
+                None
+            }
         }
-        swls_core::lsp_types::Url::from_file_path(pb).ok()
+    }
+
+    async fn cache_age(&self, url: &Url) -> Option<std::time::Duration> {
+        let fp = url.to_file_path().ok()?;
+        let modified = fs::metadata(fp).await.ok()?.modified().ok()?;
+        Some(modified.elapsed().unwrap_or_default())
     }
 
     async fn read_file(&self, url: &swls_core::lsp_types::Url) -> Option<String> {
@@ -270,5 +316,48 @@ impl Client for TowerClient {
         version: Option<i32>,
     ) -> () {
         self.client.publish_diagnostics(uri, diags, version).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fs_in(dir: &std::path::Path) -> BinFs {
+        BinFs(dir.to_path_buf())
+    }
+
+    #[tokio::test]
+    async fn cache_files_are_written_read_only_and_can_be_replaced() {
+        let dir = std::env::temp_dir().join(format!("swls-binfs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let fs = fs_in(&dir);
+        let url = fs.virtual_url("lov/foaf.ttl").unwrap();
+        let path = url.to_file_path().unwrap();
+
+        fs.write_cache(&url, "v1").await.unwrap();
+        assert!(std::fs::metadata(&path).unwrap().permissions().readonly());
+        assert!(fs.cache_age(&url).await.unwrap() < std::time::Duration::from_secs(60));
+
+        // The server can still refresh its own read-only file.
+        fs.write_cache(&url, "v2").await.unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "v2");
+        assert!(std::fs::metadata(&path).unwrap().permissions().readonly());
+
+        // No temporary files are left behind.
+        let names: Vec<_> = std::fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(names, vec!["foaf.ttl"]);
+
+        assert!(fs.is_cache_url(&url));
+        assert!(!fs.is_cache_url(&Url::parse("file:///elsewhere/foaf.ttl").unwrap()));
+
+        let mut perms = std::fs::metadata(&path).unwrap().permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        perms.set_readonly(false);
+        let _ = std::fs::set_permissions(&path, perms);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -180,10 +180,16 @@ impl ClientSync for TestClient {
 #[derive(Debug)]
 pub struct TestFs(PathBuf);
 impl TestFs {
+    /// A fresh, empty cache directory for this instance.
+    ///
+    /// Every test gets its own directory so tests running in parallel (threads
+    /// or processes) never see or delete each other's cached files.
     pub fn new() -> Self {
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let mut tmp_dir = std::env::temp_dir();
-        tmp_dir.push("swls");
-        tmp_dir.push("test");
+        tmp_dir.push("swls-test");
+        tmp_dir.push(format!("{}-{}", std::process::id(), n));
 
         if exists(&tmp_dir).unwrap_or(false) {
             let _ = remove_dir_all(&tmp_dir);
@@ -194,16 +200,28 @@ impl TestFs {
     pub async fn empty(&self) {}
 }
 
+impl Drop for TestFs {
+    fn drop(&mut self) {
+        let _ = remove_dir_all(&self.0);
+    }
+}
+
 #[async_trait::async_trait]
 impl FsTrait for TestFs {
-    fn virtual_url(&self, url: &str) -> Option<swls_core::lsp_types::Url> {
-        let mut pb = self.0.clone();
-        if let Ok(url) = swls_core::lsp_types::Url::parse(url) {
-            pb.push(url.path());
-        } else {
-            pb.push(url);
-        }
-        swls_core::lsp_types::Url::from_file_path(pb).ok()
+    fn virtual_url(&self, path: &str) -> Option<swls_core::lsp_types::Url> {
+        swls_core::lsp_types::Url::from_file_path(self.0.join(path)).ok()
+    }
+
+    fn cache_root(&self) -> Option<Url> {
+        Url::from_directory_path(&self.0).ok()
+    }
+
+    async fn cache_age(&self, url: &Url) -> Option<std::time::Duration> {
+        let modified = std::fs::metadata(url.to_file_path().ok()?)
+            .ok()?
+            .modified()
+            .ok()?;
+        Some(modified.elapsed().unwrap_or_default())
     }
 
     async fn read_file(&self, url: &swls_core::lsp_types::Url) -> Option<String> {

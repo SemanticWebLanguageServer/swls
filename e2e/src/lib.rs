@@ -147,6 +147,63 @@ impl LspHarness {
     }
 }
 
+// ─── Editor lifecycle (didOpen / didClose) ────────────────────────────────────
+
+impl LspHarness {
+    /// Open a document the way the editor does (`textDocument/didOpen`), going through
+    /// [`swls_core::document::open_document`]: unlike [`open_file`](Self::open_file) this
+    /// handles documents the server already loaded in the background.
+    pub fn editor_open(&mut self, url: &str, lang: &str, content: &str) -> FileHandle {
+        let item = swls_core::lsp_types::TextDocumentItem {
+            uri: Url::parse(url).unwrap(),
+            language_id: lang.to_string(),
+            version: 1,
+            text: content.to_string(),
+        };
+        let entity = swls_core::document::open_document(&mut self.world, item);
+        self.entities.insert(url.to_string(), entity);
+        FileHandle {
+            entity,
+            url: url.to_string(),
+        }
+    }
+
+    /// Close a document the way the editor does (`textDocument/didClose`), mirroring
+    /// `Backend::did_close`.
+    pub fn editor_close(&mut self, handle: &FileHandle) {
+        use swls_core::document::{close_document, restore_background, Closed};
+        let url = Url::parse(&handle.url).unwrap();
+        if let Closed::Background { entity, snapshot } = close_document(&mut self.world, &url) {
+            let fs = self.world.resource::<Fs>().clone();
+            if let Some(content) = block_on(fs.0.read_file(&url)).or(snapshot) {
+                restore_background(&mut self.world, entity, content);
+            }
+        }
+        self.drain_tasks();
+    }
+
+    /// Where the server caches the remote document at `source`.
+    pub fn cache_url(&self, source: &str) -> Url {
+        let fs = self.world.resource::<Fs>();
+        fs.0.cache_url(&Url::parse(source).unwrap()).unwrap()
+    }
+
+    /// Handle to the document the server holds for `url` (opened or loaded in the background).
+    pub fn handle(&mut self, url: &str) -> Option<FileHandle> {
+        let parsed = Url::parse(url).ok()?;
+        let entity = self
+            .world
+            .query::<(Entity, &Label)>()
+            .iter(&self.world)
+            .find(|(_, l)| l.0 == parsed)
+            .map(|(e, _)| e)?;
+        Some(FileHandle {
+            entity,
+            url: url.to_string(),
+        })
+    }
+}
+
 // ─── Async task management ────────────────────────────────────────────────────
 
 impl LspHarness {

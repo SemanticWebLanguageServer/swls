@@ -537,29 +537,8 @@ impl<C: Client> Backend<C> {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
-        let lang_id = Some(item.language_id.clone());
-        let spawn = spawn_or_insert(
-            item.uri.clone(),
-            (
-                Source(item.text.clone()),
-                Label(item.uri.clone()),
-                RopeC(LineIndex::new(&item.text)),
-                Wrapped(item),
-                DocumentLinks(Vec::new()),
-                Open,
-                Types(HashMap::new()),
-            ),
-            lang_id,
-            (),
-        );
-
         let entity = self
-            .run(|world| {
-                let id = spawn(world);
-                world.run_schedule(ParseLabel);
-                world.flush();
-                id
-            })
+            .run(|world| crate::document::open_document(world, item))
             .await;
 
         if let Some(entity) = entity {
@@ -569,6 +548,35 @@ impl<C: Client> Backend<C> {
         debug!("Requesting tokens refresh");
         let _ = self.client.send_request::<SemanticTokensRefresh>(()).await;
         debug!("Semantic tokens refresh");
+    }
+
+    /// The editor closed a document.
+    ///
+    /// A document the server also loads by itself (e.g. a cached ontology the
+    /// user opened through goto-definition) gets the server's copy back, so
+    /// unsaved edits never stick. See [`crate::document`].
+    #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    pub async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let url = params.text_document.uri;
+        self.entities.lock().await.remove(url.as_str());
+
+        let closed = {
+            let url = url.clone();
+            self.run(move |world| crate::document::close_document(world, &url))
+                .await
+        };
+
+        if let Some(crate::document::Closed::Background { entity, snapshot }) = closed {
+            let fs = self.run(|w| w.resource::<Fs>().clone()).await;
+            let on_disk = match fs {
+                Some(fs) => fs.0.read_file(&url).await,
+                None => None,
+            };
+            if let Some(content) = on_disk.or(snapshot) {
+                self.run(move |world| crate::document::restore_background(world, entity, content))
+                    .await;
+            }
+        }
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]

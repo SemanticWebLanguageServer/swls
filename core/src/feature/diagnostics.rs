@@ -45,6 +45,18 @@ impl DiagnosticPublisher {
         };
         self.tx.unbounded_send(item).ok()
     }
+
+    /// Forget every diagnostic of `uri` and tell the client to clear them.
+    pub fn clear(&mut self, uri: &Url) -> Option<()> {
+        self.diagnostics.remove(uri);
+        self.tx
+            .unbounded_send(DiagnosticItem {
+                diagnostics: Vec::new(),
+                uri: uri.clone(),
+                version: None,
+            })
+            .ok()
+    }
 }
 
 #[derive(Debug)]
