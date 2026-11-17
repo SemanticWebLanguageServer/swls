@@ -95,7 +95,7 @@ impl NeighsRDF for Rdf {
     }
 }
 
-impl<'b> TryInto<oxrdf::Term> for MyTerm<'static> {
+impl TryInto<oxrdf::Term> for MyTerm<'static> {
     type Error = ();
 
     fn try_into(self) -> std::result::Result<oxrdf::Term, Self::Error> {
@@ -126,7 +126,7 @@ impl<'b> TryInto<oxrdf::Term> for MyTerm<'static> {
                 return Err(());
             }
         };
-        return Ok(output);
+        Ok(output)
     }
 }
 
@@ -216,9 +216,8 @@ impl Literal for MyTerm<'static> {
     }
 
     fn lang(&self) -> Option<r_term::literal::Lang> {
-        match &self.context {
-            TermContext::LangTag(cow) => return r_term::literal::Lang::new(cow.as_ref()).ok(),
-            _ => {}
+        if let TermContext::LangTag(cow) = &self.context {
+            return r_term::literal::Lang::new(cow.as_ref()).ok();
         }
         None
     }
@@ -281,7 +280,7 @@ fn dt_to_slit(value: &str, dt: &str) -> r_term::literal::ConcreteLiteral {
 
     SLiteral::DatatypeLiteral {
         lexical_form: value.to_string(),
-        datatype: prefixmap::IriRef::Iri(IriS::new_unchecked(&dt)),
+        datatype: prefixmap::IriRef::Iri(IriS::new_unchecked(dt)),
     }
 }
 
@@ -474,12 +473,7 @@ impl rudof_rdf::rdf_core::Rdf for Rdf {
 
     fn term_as_sliteral(term: &Self::Term) -> Result<r_term::literal::ConcreteLiteral, RDFError> {
         let lit = Self::term_as_literal(term)?;
-        let slit =
-            <Self::Literal as TryInto<r_term::literal::ConcreteLiteral>>::try_into(lit.clone())
-                .map_err(|_| RDFError::LiteralAsSLiteral {
-                    literal: lit.to_string(),
-                })?;
-        Ok(slit)
+        Ok(lit.into())
     }
 
     fn term_as_subject(term: &Self::Term) -> Result<Self::Subject, RDFError> {
@@ -544,7 +538,7 @@ impl rudof_rdf::rdf_core::Rdf for Rdf {
 
     fn compare(&self, term1: &Self::Term, term2: &Self::Term) -> Result<Ordering, RDFError> {
         term1
-            .partial_cmp(&term2)
+            .partial_cmp(term2)
             .ok_or_else(|| RDFError::ComparisonError {
                 term1: term1.to_string(),
                 term2: term2.to_string(),

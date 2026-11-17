@@ -173,10 +173,9 @@ pub fn validate_shapes(
 
                     for res in all {
                         if let Some(m) = res.message() {
-                            write!(&mut writer, "{}\n", m).unwrap();
+                            writeln!(&mut writer, "{}", m).unwrap();
                         } else {
-                            write!(&mut writer, "Component {} ", res.component().to_string())
-                                .unwrap();
+                            write!(&mut writer, "Component {} ", res.component()).unwrap();
                         }
                     }
 
@@ -191,9 +190,9 @@ pub fn validate_shapes(
 
                     let id = MyTerm::from(shape.id().clone());
                     if id.ty == Some(sophia_api::term::TermKind::Iri) {
-                        write!(&mut writer, "({})\n", id.value).unwrap();
+                        writeln!(&mut writer, "({})", id.value).unwrap();
                     } else {
-                        write!(&mut writer, "\n",).unwrap();
+                        writeln!(&mut writer,).unwrap();
                     }
 
                     if let Some(source) = res.source().cloned() {

@@ -45,7 +45,7 @@ pub fn spawn_or_insert(
     move |world: &mut World| {
         let out = if let Some(entity) = world
             .query::<(Entity, &Label)>()
-            .iter(&world)
+            .iter(world)
             .find(|x| x.1 .0 == url)
             .map(|x| x.0)
         {
@@ -106,7 +106,7 @@ pub fn spawn_background(
 }
 
 pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver>) {
-    while let Ok(Some(mut com)) = receiver.0.try_next() {
+    while let Ok(mut com) = receiver.0.try_recv() {
         commands.append(&mut com);
     }
 }
@@ -140,7 +140,7 @@ pub fn keyword_complete(
                 CompletionItemKind::KEYWORD,
                 kwd.to_string(),
                 crate::lsp_types::TextEdit {
-                    range: range.clone(),
+                    range,
                     new_text: kwd.to_string(),
                 },
             );

@@ -138,6 +138,12 @@ struct CollectedNode {
     resolver: ContextResolver,
 }
 
+impl Default for ComponentRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComponentRegistry {
     pub fn new() -> Self {
         Self {

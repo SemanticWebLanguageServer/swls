@@ -76,7 +76,7 @@ impl<C: Client> Backend<C> {
         let mut commands = CommandQueue::default();
         commands.push(move |world: &mut World| {
             let o = f(world);
-            if let Err(_) = tx.send(o) {
+            if tx.send(o).is_err() {
                 error!("Failed to run schedule for {}", stringify!(T));
             };
         });
@@ -101,7 +101,7 @@ impl<C: Client> Backend<C> {
         commands.push(move |world: &mut World| {
             world.entity_mut(entity).insert(param);
             world.run_schedule(schedule.clone());
-            if let Err(_) = tx.send(world.entity_mut(entity).take::<T>()) {
+            if tx.send(world.entity_mut(entity).take::<T>()).is_err() {
                 error!(name: "Failed to run schedule", "Failed to run schedule {:?}", schedule);
             };
         });
@@ -293,7 +293,6 @@ impl<C: Client> Backend<C> {
             config.workspaces.extend(added);
         })
         .await;
-        ()
     }
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
@@ -453,7 +452,7 @@ impl<C: Client> Backend<C> {
             .await
         {
             tracing::debug!("hover returned {} items", hover.0.len());
-            if hover.0.len() > 0 {
+            if !hover.0.is_empty() {
                 return Ok(Some(crate::lsp_types::Hover {
                     contents: crate::lsp_types::HoverContents::Markup(MarkupContent {
                         kind: MarkupKind::Markdown,
@@ -487,7 +486,7 @@ impl<C: Client> Backend<C> {
             request.as_ref().map(|x| x.0.len()).unwrap_or(0)
         );
 
-        Ok(request.and_then(|x| Some(x.0)))
+        Ok(request.map(|x| x.0))
     }
 
     #[instrument(skip(self))]

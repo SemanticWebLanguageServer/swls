@@ -241,8 +241,8 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                     cq.push(move |world: &mut World| {
                         if world
                             .query::<(Entity, &Label)>()
-                            .iter(&world)
-                            .find(|x| x.1.as_str() == &url)
+                            .iter(world)
+                            .find(|x| x.1.as_str() == url)
                             .is_none()
                         {
                             world.spawn((Source(resp.body), Label(label)));
@@ -260,8 +260,8 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                     cq.push(move |world: &mut World| {
                         if world
                             .query::<(Entity, &Label)>()
-                            .iter(&world)
-                            .find(|x| x.1.as_str() == &url)
+                            .iter(world)
+                            .find(|x| x.1.as_str() == url)
                             .is_none()
                         {
                             let item = TextDocumentItem {
@@ -443,7 +443,7 @@ fn parse_jsonld_system<C: Client + Resource + Clone>(
         let gn = parse.green_node.clone();
         let base = label.0.to_string();
         let span = 0..source.0.len();
-        let e = entity.clone();
+        let e = entity;
         let mut sender = sender.clone();
         let cjs_contexts = cjs_contexts.clone();
         client.spawn_local(move || async move {

@@ -17,7 +17,7 @@ pub async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(
         let fetch = || async {
             let resp = client
                 .fetch(
-                    &location,
+                    location,
                     &HashMap::from([(String::from("Accept"), String::from("text/turtle"))]),
                 )
                 .await
@@ -36,11 +36,11 @@ pub async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(
         };
         Some(vec![(content, url)])
     } else {
-        if let Ok(url) = Url::parse(&location) {
+        if let Ok(url) = Url::parse(location) {
             let content = fs.0.read_file(&url).await?;
             Some(vec![(content, url)])
         } else {
-            let files = fs.0.glob_read(&location).await?;
+            let files = fs.0.glob_read(location).await?;
             Some(
                 files
                     .into_iter()
@@ -64,8 +64,8 @@ pub fn file_name_to_url(_name: &str) -> Option<Url> {
 }
 
 pub fn prefix_from_url(url: &Url) -> Option<(Cow<'static, str>, Cow<'static, str>)> {
-    let segments = url.path_segments()?;
-    let last = segments.last()?;
+    let mut segments = url.path_segments()?;
+    let last = segments.next_back()?;
 
     let prefix = last.rsplit_once('.').map(|(x, _)| x).unwrap_or(last);
     let prefix: Cow<'static, str> = Cow::Owned(prefix.to_string());

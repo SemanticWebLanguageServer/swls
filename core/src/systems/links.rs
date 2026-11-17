@@ -21,7 +21,7 @@ pub fn derive_prefix_links(
     mut commands: Commands,
     fs: Res<Fs>,
 ) {
-    const SOURCE: &'static str = "prefix import";
+    const SOURCE: &str = "prefix import";
     let refresh_all = !new_configured.is_empty();
     for (e, prefixes, mut links) in &mut query {
         if !refresh_all && !prefixes.is_changed() {
@@ -29,7 +29,7 @@ pub fn derive_prefix_links(
         }
         let mut new_links = Vec::new();
         for u in prefixes.0.iter() {
-            let sources = namespace_sources(&fs, u.url.as_str(), &u.prefix, &preferred, &locals);
+            let sources = namespace_sources(&fs, u.url.as_str(), &u.prefix, &preferred, locals);
             if sources.is_empty() {
                 new_links.push((u.url.clone(), SOURCE));
             }
@@ -58,7 +58,7 @@ pub fn derive_owl_imports_links(
     mut commands: Commands,
     fs: Res<Fs>,
 ) {
-    const SOURCE: &'static str = "owl:imports";
+    const SOURCE: &str = "owl:imports";
     for (e, label, triples, mut links) in &mut query {
         if let Some(links) = links.as_mut() {
             links.retain(|e| e.1 != SOURCE);

@@ -316,6 +316,8 @@ pub enum TurtleSimpleError {
 // ── Turtle extension trait ────────────────────────────────────────────────────
 pub trait TurtleExt {
     fn get_simple_triples<'a>(&'a self) -> Result<Triples2<'a>, TurtleSimpleError>;
+    // Public API used across crates; renaming it is out of scope for lint cleanup.
+    #[allow(clippy::wrong_self_convention)]
     fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples2<'a>;
     fn shorten(&self, url: &str) -> Option<String>;
 }

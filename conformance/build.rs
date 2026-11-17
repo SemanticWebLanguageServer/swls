@@ -102,6 +102,8 @@ fn sanitize_test_name(original: &str, existing: &mut HashSet<String>) -> String 
     make_unique(s, existing)
 }
 
+// Mirrors the manifest entry; not every field is used to generate tests.
+#[allow(dead_code)]
 #[derive(Debug)]
 struct TurtleEval {
     name: String,
@@ -146,6 +148,7 @@ pub fn {}() {{
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct TurtleSyntax {
     name: String,

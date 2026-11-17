@@ -132,7 +132,7 @@ pub fn publish_diagnostics<L: Lang>(
             .0
             .iter()
             .cloned()
-            .map(|x| Into::<SimpleDiagnostic>::into(x))
+            .map(Into::<SimpleDiagnostic>::into)
             .flat_map(|item| {
                 let (span, message) = (item.range, item.msg);
                 let start_position = offset_to_position(span.start, &rope.0)?;

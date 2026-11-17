@@ -13,4 +13,4 @@ pub struct LocalPrefix {
     pub rank: usize,
 }
 
-pub const LOCAL_PREFIXES: &'static [LocalPrefix] = min_prefixes::LOCAL_PREFIXES;
+pub const LOCAL_PREFIXES: &[LocalPrefix] = min_prefixes::LOCAL_PREFIXES;

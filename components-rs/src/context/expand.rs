@@ -202,7 +202,7 @@ impl ContextResolver {
             let expanded_base = self.expand_term(base_iri);
             if let Some(suffix) = iri.strip_prefix(expanded_base.as_str()) {
                 let base_len = expanded_base.len();
-                if best.as_ref().is_none_or(|(_, bl)| base_len > *bl) {
+                if best.as_ref().map_or(true, |(_, bl)| base_len > *bl) {
                     best = Some((format!("{prefix}:{suffix}"), base_len));
                 }
             }
@@ -255,7 +255,7 @@ impl IriCompactor {
                 (name.clone(), expanded)
             })
             .collect();
-        prefixes.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        prefixes.sort_by_key(|p| std::cmp::Reverse(p.1.len()));
 
         let terms: Vec<(String, String)> = resolver
             .terms

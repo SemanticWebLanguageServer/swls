@@ -164,11 +164,10 @@ impl LangHelper for JsonLdHelper {
         types: Vec<Cow<'_, str>>,
     ) -> Option<swls_core::lsp_types::InlayHint> {
         let (label, position) = if let Some(lt) = last_type {
-            if let Some(pos) = offset_to_position(lt.end, &rope) {
+            {
+                let pos = offset_to_position(lt.end, rope)?;
                 let label = format!(", {}", types.join(", "));
                 (label, pos)
-            } else {
-                return None;
             }
         } else {
             let offset = if rope.char_at_byte(subject.start) == Some('[') {
@@ -177,7 +176,8 @@ impl LangHelper for JsonLdHelper {
                 subject.end
             };
 
-            if let Some(pos) = offset_to_position(offset + 1, &rope) {
+            {
+                let pos = offset_to_position(offset + 1, rope)?;
                 let label = if types.len() == 1 {
                     format!(r#" "@type": "{}";"#, types[0])
                 } else {
@@ -191,12 +191,10 @@ impl LangHelper for JsonLdHelper {
                     )
                 };
                 (label, pos)
-            } else {
-                return None;
             }
         };
 
-        return Some(swls_core::lsp_types::InlayHint {
+        Some(swls_core::lsp_types::InlayHint {
             position,
             label: swls_core::lsp_types::InlayHintLabel::String(label),
             kind: None,
@@ -205,7 +203,7 @@ impl LangHelper for JsonLdHelper {
             padding_left: None,
             padding_right: None,
             data: None,
-        });
+        })
     }
 }
 
@@ -231,8 +229,8 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
                 if source.0.contains("\"@context\"") {
                     commands
                         .entity(entity)
-                        .insert(JsonLdLang::default())
-                        .insert(DynLang(Box::new(JsonLdHelper::default())));
+                        .insert(JsonLdLang)
+                        .insert(DynLang(Box::new(JsonLdHelper)));
                 }
             }
         },
@@ -385,7 +383,6 @@ fn goto_cjs(
             None
         };
         let st: &str = triple_term_str
-            .as_deref()
             .or(context_expanded.as_deref())
             .unwrap_or(raw_token);
 
@@ -434,7 +431,7 @@ fn goto_cjs(
 
         if triple_term_str.is_none() {
             // Import IRIs: strip any fragment, then resolve to a local file path.
-            let target = resolve_iri(&label.as_str(), st);
+            let target = resolve_iri(label.as_str(), st);
             if let Ok(uri) = swls_core::lsp_types::Url::parse(&target) {
                 req.0.push(Location {
                     uri,
@@ -465,7 +462,7 @@ mod fs {
         async fn read_to_string(&self, url: &Url) -> Result<String> {
             self.0
                  .0
-                .read_file(&url)
+                .read_file(url)
                 .await
                 .ok_or(ComponentsJsError::General(format!(
                     "Failed to read file {}",
@@ -674,7 +671,6 @@ fn start_jsonld<C: Client + Resource + Clone>(
                 });
                 let _ = commands.unbounded_send(command_queue);
             }
-            ()
         };
         client.spawn(thing);
     } else {

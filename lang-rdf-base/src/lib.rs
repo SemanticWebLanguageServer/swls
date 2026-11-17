@@ -188,7 +188,7 @@ mod tokens {
             // JSON-LD, anonymous blank nodes have a Spanned span that covers the
             // entire nested { } object, so stamping ENUM_MEMBER here would wipe
             // out all inner coloring — inner triples handle their own content.
-            Term::BlankNode(BlankNode::Named(_, _)) => return,
+            Term::BlankNode(BlankNode::Named(_, _)) => (),
             Term::BlankNode(BlankNode::Unnamed(pos, _, _)) => {
                 for po in pos {
                     for o in &po.object {
@@ -205,7 +205,7 @@ mod tokens {
                 let dt = la.as_ref().map(|x| Term::NamedNode(x.clone()));
                 add_term(&dt, ttc, kind, source);
             }
-            _ => return,
+            _ => (),
         }
     }
 

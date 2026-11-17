@@ -22,3 +22,6 @@ async-std      = "1.13.2"
 
 swls-core = { path = "../core/" }
 glob = "0.3.3"
+
+[lints]
+workspace = true

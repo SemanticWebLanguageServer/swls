@@ -70,7 +70,7 @@ mod tests {
 
         let mut last_diags = move || -> Vec<swls_core::lsp_types::Diagnostic> {
             let mut items: Vec<DiagnosticItem> = Vec::new();
-            while let Ok(Some(x)) = rx.try_next() {
+            while let Ok(x) = rx.try_recv() {
                 items.push(x);
             }
             items

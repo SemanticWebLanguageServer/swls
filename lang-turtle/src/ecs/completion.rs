@@ -51,7 +51,7 @@ pub fn subject_completion(
                                 subj.to_string(),
                                 swls_core::lsp_types::TextEdit {
                                     new_text,
-                                    range: word.range.clone(),
+                                    range: word.range,
                                 },
                             )
                             .documentation(format!("Subject from {}", label.0)),

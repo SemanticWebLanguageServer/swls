@@ -16,39 +16,34 @@ pub fn find_classes(
     let mut definitions = HashMap::new();
     if let QueryResults::Solutions(solutions) =
         crate::store::union_query(include_str!("../../queries/class_definitions.sparql"))?
-            .on_store(&store)
+            .on_store(store)
             .execute()
             .ok()?
     {
-        for solution in solutions {
-            if let Ok(solution) = solution {
-                let class = solution.get("class").unwrap();
-                let title = solution.get("title");
-                let description = solution.get("description");
+        for solution in solutions.flatten() {
+            let class = solution.get("class").unwrap();
+            let title = solution.get("title");
+            let description = solution.get("description");
 
-                match (NamedNode::try_from(class.clone()),) {
-                    (Ok(class),) => {
-                        let v = definitions
-                            .entry(class.clone())
-                            .or_insert_with(|| DefinedClass {
-                                term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
-                                locations: std::collections::HashSet::new(),
-                                titles: Default::default(),
-                                descriptions: Default::default(),
-                            });
+            if let (Ok(class),) = (NamedNode::try_from(class.clone()),) {
+                let v = definitions
+                    .entry(class.clone())
+                    .or_insert_with(|| DefinedClass {
+                        term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
+                        locations: std::collections::HashSet::new(),
+                        titles: Default::default(),
+                        descriptions: Default::default(),
+                    });
 
-                        if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
-                            v.titles.insert(title.value(), title.language());
-                        }
+                if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
+                    v.titles.insert(title.value(), title.language());
+                }
 
-                        if let Some(description) =
-                            description.and_then(|x| Literal::try_from(x.clone()).ok())
-                        {
-                            v.descriptions
-                                .insert(description.value(), description.language());
-                        }
-                    }
-                    _ => {}
+                if let Some(description) =
+                    description.and_then(|x| Literal::try_from(x.clone()).ok())
+                {
+                    v.descriptions
+                        .insert(description.value(), description.language());
                 }
             }
         }
@@ -66,57 +61,52 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
     let mut definitions = HashMap::new();
     if let QueryResults::Solutions(solutions) =
         crate::store::union_query(include_str!("../../queries/property_definitions.sparql"))?
-            .on_store(&store)
+            .on_store(store)
             .execute()
             .ok()?
     {
-        for solution in solutions {
-            if let Ok(solution) = solution {
-                let class = solution.get("property").unwrap();
-                let title = solution.get("title");
-                let description = solution.get("description");
+        for solution in solutions.flatten() {
+            let class = solution.get("property").unwrap();
+            let title = solution.get("title");
+            let description = solution.get("description");
 
-                let range = solution
-                    .get("range")
-                    .and_then(|r| NamedNode::try_from(r.clone()).ok())
-                    .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
-                let domain = solution
-                    .get("domain")
-                    .and_then(|r| NamedNode::try_from(r.clone()).ok())
-                    .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
+            let range = solution
+                .get("range")
+                .and_then(|r| NamedNode::try_from(r.clone()).ok())
+                .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
+            let domain = solution
+                .get("domain")
+                .and_then(|r| NamedNode::try_from(r.clone()).ok())
+                .map(|r| MyTerm::named_node(r.as_str(), 0..0).to_owned());
 
-                match (NamedNode::try_from(class.clone()),) {
-                    (Ok(class),) => {
-                        let v = definitions
-                            .entry(class.as_str().to_string())
-                            .or_insert_with(|| DefinedProperty {
-                                term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
-                                locations: std::collections::HashSet::new(),
-                                titles: Default::default(),
-                                descriptions: Default::default(),
-                                ranges: std::collections::HashSet::new(),
-                                domains: std::collections::HashSet::new(),
-                            });
+            if let (Ok(class),) = (NamedNode::try_from(class.clone()),) {
+                let v = definitions
+                    .entry(class.as_str().to_string())
+                    .or_insert_with(|| DefinedProperty {
+                        term: MyTerm::named_node(class.as_str(), 0..0).to_owned(),
+                        locations: std::collections::HashSet::new(),
+                        titles: Default::default(),
+                        descriptions: Default::default(),
+                        ranges: std::collections::HashSet::new(),
+                        domains: std::collections::HashSet::new(),
+                    });
 
-                        if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
-                            v.titles.insert(title.value(), title.language());
-                        }
+                if let Some(title) = title.and_then(|x| Literal::try_from(x.clone()).ok()) {
+                    v.titles.insert(title.value(), title.language());
+                }
 
-                        if let Some(description) =
-                            description.and_then(|x| Literal::try_from(x.clone()).ok())
-                        {
-                            v.descriptions
-                                .insert(description.value(), description.language());
-                        }
-                        if let Some(domain) = domain {
-                            v.domains.insert(domain);
-                        }
+                if let Some(description) =
+                    description.and_then(|x| Literal::try_from(x.clone()).ok())
+                {
+                    v.descriptions
+                        .insert(description.value(), description.language());
+                }
+                if let Some(domain) = domain {
+                    v.domains.insert(domain);
+                }
 
-                        if let Some(range) = range {
-                            v.ranges.insert(range);
-                        }
-                    }
-                    _ => {}
+                if let Some(range) = range {
+                    v.ranges.insert(range);
                 }
             }
         }

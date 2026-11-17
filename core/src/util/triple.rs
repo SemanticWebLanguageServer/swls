@@ -2,7 +2,6 @@ use std::{
     borrow::{Borrow, Cow},
     hash::Hash,
     sync::Arc,
-    usize,
 };
 
 use bevy_ecs::prelude::*;
@@ -137,7 +136,6 @@ pub fn get_current_triple(
                     (TripleTarget::Object, &t.object.span, t),
                 ]
             })
-            .into_iter()
             .filter(|x| x.1.contains(&offset))
             .min_by_key(|x| x.1.end - x.1.start)
         {
@@ -237,30 +235,34 @@ impl<'b, 'a> TryFrom<&'b MyQuad<'a>> for oxigraph::model::Quad {
 }
 
 impl<'a> MyQuad<'a> {
+    /// This quad in oxigraph's model, in the named graph `graph`. `None` when a
+    /// term cannot be represented (e.g. a literal subject).
     pub fn into_oxi_graph(
         &self,
         graph: impl TryInto<oxigraph::model::Term>,
-    ) -> Result<oxigraph::model::Quad, ()> {
-        let graph = graph.try_into().map_err(|_| ())?;
-        let graph = oxigraph::model::NamedOrBlankNode::try_from(graph).map_err(|_| ())?;
+    ) -> Option<oxigraph::model::Quad> {
+        let graph = graph.try_into().ok()?;
+        let graph = oxigraph::model::NamedOrBlankNode::try_from(graph).ok()?;
         let graph = oxigraph::model::GraphName::from(graph);
 
         self.into_oxi(Some(graph))
     }
 
+    /// This quad in oxigraph's model, in `graph` (the default graph when
+    /// `None`). `None` when a term cannot be represented.
     pub fn into_oxi(
         &self,
         graph: Option<oxigraph::model::GraphName>,
-    ) -> Result<oxigraph::model::Quad, ()> {
-        let subject = oxigraph::model::Term::try_from(&self.subject)?;
-        let predicate = oxigraph::model::Term::try_from(&self.predicate)?;
-        let object = oxigraph::model::Term::try_from(&self.object)?;
+    ) -> Option<oxigraph::model::Quad> {
+        let subject = oxigraph::model::Term::try_from(&self.subject).ok()?;
+        let predicate = oxigraph::model::Term::try_from(&self.predicate).ok()?;
+        let object = oxigraph::model::Term::try_from(&self.object).ok()?;
         let graph = graph.unwrap_or_default();
 
-        let subject = oxigraph::model::NamedOrBlankNode::try_from(subject).map_err(|_| ())?;
-        let predicate = oxigraph::model::NamedNode::try_from(predicate).map_err(|_| ())?;
+        let subject = oxigraph::model::NamedOrBlankNode::try_from(subject).ok()?;
+        let predicate = oxigraph::model::NamedNode::try_from(predicate).ok()?;
 
-        Ok(oxigraph::model::Quad::new(
+        Some(oxigraph::model::Quad::new(
             subject, predicate, object, graph,
         ))
     }
@@ -319,7 +321,7 @@ impl<'a, 'b> TryFrom<&'b MyTerm<'a>> for oxigraph::model::Term {
                 return Err(());
             }
         };
-        return Ok(output);
+        Ok(output)
     }
 }
 
@@ -373,11 +375,7 @@ pub struct MyTerm<'a> {
 }
 impl<'a> PartialOrd for MyTerm<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.value.partial_cmp(&other.value) {
-            Some(core::cmp::Ordering::Equal) => {}
-            ord => return ord,
-        }
-        self.ty.partial_cmp(&other.ty)
+        Some(Ord::cmp(self, other))
     }
 }
 impl<'a> Ord for MyTerm<'a> {
@@ -422,7 +420,7 @@ impl<'a> MyTerm<'a> {
         let value = Cow::Owned(self.value.to_string());
         MyTerm {
             value,
-            ty: self.ty.clone(),
+            ty: self.ty,
             span: self.span.clone(),
             context: self.context.to_owned(),
         }
@@ -570,7 +568,7 @@ impl<'a> Triples2<'a> {
         }
     }
 
-    pub fn imports(&self, cb: impl FnMut(IriRef<MownStr<'_>>) -> ()) {
+    pub fn imports(&self, cb: impl FnMut(IriRef<MownStr<'_>>)) {
         if let Some(ref base) = self.base {
             self.triples
                 .quads_matching([base], [owl::imports], Any, Any)
@@ -580,7 +578,7 @@ impl<'a> Triples2<'a> {
         }
     }
 
-    pub fn sub_class_of(&self, mut cb: impl FnMut(IriRef<MownStr<'_>>, IriRef<MownStr<'_>>) -> ()) {
+    pub fn sub_class_of(&self, mut cb: impl FnMut(IriRef<MownStr<'_>>, IriRef<MownStr<'_>>)) {
         self.triples
             .quads_matching(Any, [rdfs::subClassOf], Any, Any)
             .flatten()

@@ -22,3 +22,6 @@ sophia_api.workspace   = true
 sophia_iri.workspace   = true
 sophia_turtle = "0.9.0"
 sophia_inmem = "0.9.0"
+
+[lints]
+workspace = true

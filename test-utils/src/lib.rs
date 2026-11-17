@@ -166,7 +166,7 @@ impl ClientSync for TestClient {
             let mut headers = Vec::new();
             async_std::task::sleep(Duration::from_millis(200)).await;
             headers.push(("Content-Type".to_string(), "text/turtle".to_string()));
-            let status = body.is_some().then_some(200).unwrap_or(404);
+            let status = if body.is_some() { 200 } else { 404 };
             Ok(Resp {
                 headers,
                 body: body.unwrap_or_default(),
@@ -198,6 +198,12 @@ impl TestFs {
         Self(tmp_dir)
     }
     pub async fn empty(&self) {}
+}
+
+impl Default for TestFs {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Drop for TestFs {
@@ -253,24 +259,24 @@ impl FsTrait for TestFs {
         fs::write(fp, content.as_bytes()).await.ok()
     }
 
-    async fn read_dir(&self, path: &swls_core::lsp_types::Url) -> Option<Vec<FsDirEntry>> {
+    async fn read_dir(&self, _path: &swls_core::lsp_types::Url) -> Option<Vec<FsDirEntry>> {
         None
     }
-    async fn is_file(&self, path: &swls_core::lsp_types::Url) -> bool {
+    async fn is_file(&self, _path: &swls_core::lsp_types::Url) -> bool {
         true
     }
-    async fn is_dir(&self, path: &swls_core::lsp_types::Url) -> bool {
+    async fn is_dir(&self, _path: &swls_core::lsp_types::Url) -> bool {
         false
     }
 
-    async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>> {
+    async fn glob(&self, _base: &Url, _pattern: &str) -> Option<Vec<FsDirEntry>> {
         None
     }
 }
 
 pub fn setup_world(
     client: TestClient,
-    f: impl FnOnce(&mut World) -> (),
+    f: impl FnOnce(&mut World),
 ) -> (World, UnboundedReceiver<DiagnosticItem>) {
     let mut world = World::new();
     setup_schedule_labels::<TestClient>(&mut world);
@@ -326,7 +332,7 @@ pub fn create_file(
 }
 
 pub fn debug_world(world: &mut World) {
-    for e in world.query::<Entity>().iter(&world) {
+    for e in world.query::<Entity>().iter(world) {
         let e = world.entity(e);
         if let Some(l) = e.get::<Label>() {
             println!("-- Entity {} -- ", l.as_str());

@@ -23,7 +23,7 @@ fn sorted_file_paths_by_size_desc(dir: impl AsRef<Path>) -> std::io::Result<Vec<
         })
         .collect::<Vec<_>>();
 
-    files.sort_by(|a, b| b.1.cmp(&a.1));
+    files.sort_by_key(|f| std::cmp::Reverse(f.1));
     Ok(files.into_iter().map(|(path, _)| path).collect())
 }
 

@@ -46,14 +46,14 @@ pub fn complete_class(
                 if to_beat.starts_with(&token.text) {
                     let mut completion = SimpleCompletion::new(
                         CompletionItemKind::CLASS,
-                        format!("{}", to_beat),
+                        to_beat.to_string(),
                         TextEdit {
-                            range: token.range.clone(),
+                            range: token.range,
                             new_text: to_beat.to_string(),
                         },
                     )
                     .label_description(class.full_title())
-                    .documentation(class.full_docs(&hierarchy, &prefixes));
+                    .documentation(class.full_docs(&hierarchy, prefixes));
 
                     if superclasses.contains(class.term.as_str()) {
                         completion.kind = CompletionItemKind::INTERFACE;
@@ -87,7 +87,7 @@ pub fn hover_class(
                 request.0.push(format!(
                     "## {}\n\n{}",
                     class.full_title(),
-                    class.full_docs(&hierarchy, &prefixes)
+                    class.full_docs(&hierarchy, prefixes)
                 ));
             }
         }
@@ -159,17 +159,17 @@ pub fn complete_properties(
 
                 let to_beat = lang.write_iri(prefixes, &property.term.value);
 
-                if to_beat.starts_with(&bare_text) {
+                if to_beat.starts_with(bare_text) {
                     let mut completion = SimpleCompletion::new(
                         CompletionItemKind::ENUM_MEMBER,
                         to_beat.to_string(),
                         TextEdit {
-                            range: token.range.clone(),
+                            range: token.range,
                             new_text: lang.quote(&to_beat),
                         },
                     )
-                    .label_description(&property.full_title())
-                    .documentation(&property.full_docs(&prefixes));
+                    .label_description(property.full_title())
+                    .documentation(property.full_docs(prefixes));
 
                     if correct_domain {
                         completion.kind = CompletionItemKind::FIELD;
@@ -211,7 +211,7 @@ pub fn hover_property(
             request.0.push(format!(
                 "## {}\n\n{}",
                 c.full_title(),
-                c.full_docs(&prefixes)
+                c.full_docs(prefixes)
             ));
         }
     }

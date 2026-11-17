@@ -128,8 +128,8 @@ impl SimpleCompletion {
     }
 }
 
-impl Into<CompletionItem> for SimpleCompletion {
-    fn into(self) -> CompletionItem {
+impl From<SimpleCompletion> for CompletionItem {
+    fn from(val: SimpleCompletion) -> Self {
         let SimpleCompletion {
             _is_snippet: is_snippet,
             _filter_text: filter_text,
@@ -140,12 +140,9 @@ impl Into<CompletionItem> for SimpleCompletion {
             kind,
             edits,
             _commit_char: commit_char,
-        } = self;
+        } = val;
 
-        let text_edit = edits
-            .iter()
-            .next()
-            .map(|x| CompletionTextEdit::Edit(x.clone()));
+        let text_edit = edits.first().map(|x| CompletionTextEdit::Edit(x.clone()));
 
         let additional_text_edits = edits.into_iter().skip(1).collect();
 
@@ -165,7 +162,7 @@ impl Into<CompletionItem> for SimpleCompletion {
             }),
             text_edit,
             additional_text_edits: Some(additional_text_edits),
-            commit_characters: commit_char.map(|x| vec![String::from(x)]),
+            commit_characters: commit_char.map(|x| vec![x]),
             ..Default::default()
         }
     }

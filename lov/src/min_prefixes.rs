@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use super::LocalPrefix;
 
-pub const LOCAL_PREFIXES: &'static [LocalPrefix] = &[
+pub const LOCAL_PREFIXES: &[LocalPrefix] = &[
     LocalPrefix {
         location: Cow::Borrowed("http://xmlns.com/foaf/0.1/"),
         namespace: Cow::Borrowed("http://xmlns.com/foaf/0.1/"),

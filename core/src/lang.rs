@@ -9,10 +9,7 @@ pub fn head() -> crate::lsp_types::Range {
         line: 0,
         character: 0,
     };
-    crate::lsp_types::Range {
-        end: start.clone(),
-        start,
-    }
+    crate::lsp_types::Range { end: start, start }
 }
 
 pub trait Lang: 'static {
@@ -66,7 +63,7 @@ pub trait LangHelper: std::fmt::Debug {
         inp
     }
     fn quote(&self, inp: &str) -> String {
-        format!("{}", inp)
+        inp.to_string()
     }
     /// Return the source keyword used to introduce a prefix declaration
     /// (used only for display / span-finding purposes).
@@ -194,9 +191,7 @@ pub trait LangHelper: std::fmt::Debug {
     /// - contains `:` but no `://` → prefixed name (e.g. `ex:foo`), keep as-is
     /// - otherwise → bare label, wrap in `< >` to be safe
     fn rename_wrap(&self, new_text: &str) -> String {
-        if new_text.starts_with('<') && new_text.ends_with('>') {
-            new_text.to_string()
-        } else if new_text.starts_with("_:") {
+        if (new_text.starts_with('<') && new_text.ends_with('>')) || new_text.starts_with("_:") {
             new_text.to_string()
         } else if new_text.contains("://") {
             format!("<{}>", new_text)
@@ -251,11 +246,10 @@ pub trait LangHelper: std::fmt::Debug {
         types: Vec<Cow<'_, str>>,
     ) -> Option<crate::lsp_types::InlayHint> {
         let (label, position) = if let Some(lt) = last_type {
-            if let Some(pos) = offset_to_position(lt.end, &rope) {
+            {
+                let pos = offset_to_position(lt.end, rope)?;
                 let label = format!(", {}", types.join(", "));
                 (label, pos)
-            } else {
-                return None;
             }
         } else {
             let offset = if rope.char_at_byte(subject.start) == Some('[') {
@@ -264,15 +258,14 @@ pub trait LangHelper: std::fmt::Debug {
                 subject.end
             };
 
-            if let Some(pos) = offset_to_position(offset, &rope) {
+            {
+                let pos = offset_to_position(offset, rope)?;
                 let label = format!(" a {};", types.join(", "));
                 (label, pos)
-            } else {
-                return None;
             }
         };
 
-        return Some(crate::lsp_types::InlayHint {
+        Some(crate::lsp_types::InlayHint {
             position,
             label: crate::lsp_types::InlayHintLabel::String(label),
             kind: None,
@@ -281,6 +274,6 @@ pub trait LangHelper: std::fmt::Debug {
             padding_left: None,
             padding_right: None,
             data: None,
-        });
+        })
     }
 }
