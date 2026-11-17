@@ -5,7 +5,7 @@ use bevy_ecs::{
     system::Res,
     world::{CommandQueue, World},
 };
-use swls_core::{lsp_types::TextDocumentItem, prelude::*};
+use swls_core::{lsp_types::TextDocumentItem, prelude::*, systems::ConfiguredOntology};
 
 use crate::prefix::{find, prefix_from_source, prefix_from_url};
 
@@ -35,7 +35,7 @@ pub fn extract_known_shapes_from_config<C: Client + ClientSync + Resource + Clon
                     text: String::new(),
                 };
 
-                let spawn = spawn_or_insert(
+                let spawn = spawn_background(
                     url.clone(),
                     (
                         RopeC(LineIndex::new(&content)),
@@ -104,10 +104,12 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                 };
 
                 queue.push(move |world: &mut World| {
-                    world.spawn(lov);
+                    world.spawn((lov, ConfiguredOntology));
                 });
             }
 
+            // Let open documents pick up the new ontologies (links, fetches).
+            queue.push(|world: &mut World| world.run_schedule(ParseLabel));
             let _ = sender.unbounded_send(queue);
         };
 

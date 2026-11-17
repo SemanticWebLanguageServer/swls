@@ -20,7 +20,7 @@ pub use crate::{
     text::{LineIndex, PositionEncoding},
     systems,
     systems::prefix::{Prefix, Prefixes},
-    systems::spawn_or_insert,
+    systems::{spawn_background, spawn_or_insert},
     systems::PrefixComponent,
     util::{
         fs::*,

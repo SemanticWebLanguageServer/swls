@@ -32,7 +32,8 @@ pub use properties::{
 mod lov;
 pub use lov::{
     check_added_ontology_extract, fetch_lov_properties, init_ontology_extractor, open_imports,
-    populate_known_ontologies, FromPrefix, OntologyExtractor, PrefixEntry,
+    configured_url, namespace_sources, populate_known_ontologies, ConfiguredOntology, FromPrefix,
+    NamespaceSource, OntologyExtractor, PrefixEntry,
 };
 use tracing::instrument;
 
@@ -64,6 +65,34 @@ pub fn spawn_or_insert(
         world.flush();
         world.run_schedule(ParseLabel);
         out
+    }
+}
+
+/// Like [`spawn_or_insert`], for documents the server loads in the background
+/// (LOV ontologies, `owl:imports`, configured ontologies and shapes).
+///
+/// If the user has a document with the same URL [`Open`], their buffer is the
+/// source of truth: `content` is dropped and only `extra` is added. Without this
+/// guard a late fetch, or an `owl:imports` of a file being edited, would replace
+/// the editor's text with the copy on disk.
+pub fn spawn_background(
+    url: crate::lsp_types::Url,
+    content: impl Bundle,
+    language_id: Option<String>,
+    extra: impl Bundle,
+) -> impl (FnOnce(&mut World) -> Entity) + 'static + Send + Sync {
+    move |world: &mut World| {
+        let open = world
+            .query_filtered::<(Entity, &Label), With<Open>>()
+            .iter(world)
+            .find(|x| x.1 .0 == url)
+            .map(|x| x.0);
+        if let Some(entity) = open {
+            tracing::debug!("{} is open in the editor, keeping the editor's content", url);
+            world.entity_mut(entity).insert(extra);
+            return entity;
+        }
+        spawn_or_insert(url, content, language_id, extra)(world)
     }
 }
 

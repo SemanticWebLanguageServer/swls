@@ -20,6 +20,7 @@ use crate::{
     feature::goto_definition::GotoDefinitionRequest,
     lsp_types::{Location, Range, Url},
     prelude::*,
+    systems::{namespace_sources, ConfiguredOntology},
     util::offset_to_position,
 };
 
@@ -157,24 +158,28 @@ pub fn hover_prefix(
 #[instrument(skip(query, fs))]
 pub fn goto_prefix(
     mut query: Query<(&PrefixComponent, &mut GotoDefinitionRequest)>,
+    locals: Query<(&LocalPrefix, Option<&ConfiguredOntology>)>,
     fs: Res<Fs>,
 ) {
     for (prefix, mut req) in &mut query {
         if !prefix.is_namespace() {
             continue;
         }
-        // Same resolution `derive_prefix_links` uses for the document-link, so
-        // goto lands on whatever file the server loads for this prefix.
-        let target = fs
-            .0
-            .lov_url(&prefix.namespace, &prefix.name)
-            .or_else(|| Url::parse(&prefix.namespace).ok());
-
-        if let Some(uri) = target {
-            req.0.push(Location {
-                uri,
-                range: Range::default(),
-            });
+        // Same resolution `derive_prefix_links` and the fetch system use, so goto
+        // lands on the file(s) the server loads for this prefix: one location per
+        // configured ontology when several describe the namespace.
+        let mut targets: Vec<Url> =
+            namespace_sources(&fs, &prefix.namespace, &prefix.name, &locals)
+                .into_iter()
+                .map(|s| s.url)
+                .collect();
+        if targets.is_empty() {
+            targets.extend(Url::parse(&prefix.namespace).ok());
         }
+
+        req.0.extend(targets.into_iter().map(|uri| Location {
+            uri,
+            range: Range::default(),
+        }));
     }
 }

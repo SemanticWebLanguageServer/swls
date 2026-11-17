@@ -10,16 +10,15 @@ pub fn find_classes(
 ) -> Option<HashMap<oxigraph::model::NamedNode, DefinedClass>> {
     use oxigraph::{
         model::{Literal, NamedNode},
-        sparql::{QueryResults, SparqlEvaluator},
+        sparql::QueryResults,
     };
 
     let mut definitions = HashMap::new();
-    if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
-        .parse_query(include_str!("../../queries/class_definitions.sparql"))
-        .ok()?
-        .on_store(&store)
-        .execute()
-        .ok()?
+    if let QueryResults::Solutions(solutions) =
+        crate::store::union_query(include_str!("../../queries/class_definitions.sparql"))?
+            .on_store(&store)
+            .execute()
+            .ok()?
     {
         for solution in solutions {
             if let Ok(solution) = solution {
@@ -60,16 +59,15 @@ pub fn find_classes(
 pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String, DefinedProperty>> {
     use oxigraph::{
         model::{Literal, NamedNode},
-        sparql::{QueryResults, SparqlEvaluator},
+        sparql::QueryResults,
     };
 
     let mut definitions = HashMap::new();
-    if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
-        .parse_query(include_str!("../../queries/property_definitions.sparql"))
-        .ok()?
-        .on_store(&store)
-        .execute()
-        .ok()?
+    if let QueryResults::Solutions(solutions) =
+        crate::store::union_query(include_str!("../../queries/property_definitions.sparql"))?
+            .on_store(&store)
+            .execute()
+            .ok()?
     {
         for solution in solutions {
             if let Ok(solution) = solution {
@@ -125,8 +123,12 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
     Some(definitions)
 }
 
+/// Recompute [`Ontologies`] whenever the store contents changed, i.e. whenever a
+/// background document was added or its triples changed (see [`load_store`]).
+///
+/// [`load_store`]: crate::store::load_store
 pub fn derive_ontologies(
-    query: Query<(), Added<Triples>>,
+    query: Query<(), (Changed<Triples>, Without<Open>)>,
     store: Res<Store>,
     mut resource: ResMut<Ontologies>,
     mut hierarchy: ResMut<TypeHierarchy>,
