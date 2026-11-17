@@ -362,7 +362,11 @@ pub fn jsonld_property_completion(
     registry: Res<Registry>,
     config: Res<ServerConfig>,
 ) {
-    if config.config.local.is_disabled(Disabled::CompletionProperty) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::CompletionProperty)
+    {
         return;
     }
     for (token, triple, types, active_ctx, prefixes, mut request) in &mut query {
@@ -462,9 +466,7 @@ mod tests {
         // spawned task), so drive those tasks to completion before querying the
         // cursor's triple.
         let client = world.resource::<TestClient>().clone();
-        futures::executor::block_on(
-            client.await_futures(|| world.run_schedule(swls_core::Tasks)),
-        );
+        futures::executor::block_on(client.await_futures(|| world.run_schedule(swls_core::Tasks)));
 
         // Verify that a TripleComponent is set with Predicate target when the
         // cursor is inside the "foaf:name" key (line 3, char 3 ≈ inside the key).

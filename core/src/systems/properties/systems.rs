@@ -109,7 +109,11 @@ pub fn complete_properties(
     resource: Res<Ontologies>,
     config: Res<ServerConfig>,
 ) {
-    if config.config.local.is_disabled(Disabled::CompletionProperty) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::CompletionProperty)
+    {
         return;
     }
     for (token, triple, prefixes, _this_label, types, mut request, lang) in &mut query {
@@ -222,7 +226,12 @@ pub fn hover_excluded_property(
     config: Res<ServerConfig>,
 ) {
     let allowed = &config.config.local.allowed_properties;
-    if allowed.is_empty() || config.config.local.is_disabled(Disabled::HoverExcludedProperty) {
+    if allowed.is_empty()
+        || config
+            .config
+            .local
+            .is_disabled(Disabled::HoverExcludedProperty)
+    {
         return;
     }
     for (triple, mut request) in &mut query {

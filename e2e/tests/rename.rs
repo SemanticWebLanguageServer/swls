@@ -27,7 +27,9 @@ fn prepare_rename_turtle_iri_strips_angle_brackets() {
     let src = "@prefix ex: <http://example.org/> .\nex:s <http://example.org/pred> ex:o .";
     let file = h.open_file("file:///iri_rename.ttl", "turtle", src);
 
-    let result = h.prepare_rename(&file, 1, 5).expect("rename should be available on IRI token");
+    let result = h
+        .prepare_rename(&file, 1, 5)
+        .expect("rename should be available on IRI token");
     assert_eq!(
         result.placeholder, "http://example.org/pred",
         "placeholder should strip angle brackets"
@@ -257,7 +259,8 @@ fn prepare_rename_jsonld_iri_strips_double_quotes() {
     // Minimal JSON-LD document with a quoted IRI as @id value
     // The term span covers `"http://example.org/subject"` (with quotes).
     // The placeholder shown to the user should strip the quotes.
-    let src = r#"{"@id": "http://example.org/subject", "http://example.org/pred": {"@value": "hello"}}"#;
+    let src =
+        r#"{"@id": "http://example.org/subject", "http://example.org/pred": {"@value": "hello"}}"#;
     let file = h.open_file("file:///id_rename.jsonld", "jsonld", src);
     h.drain_tasks();
 
@@ -285,7 +288,8 @@ fn prepare_rename_jsonld_iri_strips_double_quotes() {
 #[test_log::test]
 fn rename_jsonld_iri_wraps_new_name_in_quotes() {
     let mut h = LspHarness::new();
-    let src = r#"{"@id": "http://example.org/subject", "http://example.org/pred": {"@value": "hello"}}"#;
+    let src =
+        r#"{"@id": "http://example.org/subject", "http://example.org/pred": {"@value": "hello"}}"#;
     let file = h.open_file("file:///id_rewrap.jsonld", "jsonld", src);
     h.drain_tasks();
 

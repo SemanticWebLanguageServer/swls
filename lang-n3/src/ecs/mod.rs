@@ -54,9 +54,8 @@ fn collect_errors(
             match child {
                 NodeOrToken::Node(n) => {
                     if n.kind() == SyntaxKind::Error {
-                        let range = rdf_parsers::effective_error_span::<
-                            rdf_parsers::n3::parser::Lang,
-                        >(&n);
+                        let range =
+                            rdf_parsers::effective_error_span::<rdf_parsers::n3::parser::Lang>(&n);
                         let msg = n
                             .parent()
                             .map(|p| format!("Expected: {:?}", p.kind()))

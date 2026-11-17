@@ -15,7 +15,11 @@ pub fn organize_imports(
     mut query: Query<(&Element, &RopeC, &Label, &mut CodeActionRequest), With<TurtleLang>>,
     config: Res<ServerConfig>,
 ) {
-    if config.config.local.is_disabled(Disabled::CodeActionOrganizeImports) {
+    if config
+        .config
+        .local
+        .is_disabled(Disabled::CodeActionOrganizeImports)
+    {
         return;
     }
     for (turtle, rope, label, mut req) in &mut query {

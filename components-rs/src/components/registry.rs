@@ -162,8 +162,7 @@ impl ComponentRegistry {
         state: &ModuleState,
     ) -> Result<()> {
         let mut all_nodes: HashMap<String, CollectedNode> = HashMap::new();
-        let mut visited_files: std::collections::HashSet<Url> =
-            std::collections::HashSet::new();
+        let mut visited_files: std::collections::HashSet<Url> = std::collections::HashSet::new();
         let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
         let mut id_source_files: HashMap<String, String> = HashMap::new();
         let mut file_sources: HashMap<String, String> = HashMap::new();
@@ -187,10 +186,7 @@ impl ComponentRegistry {
                     )
                     .await?;
                 } else {
-                    tracing::warn!(
-                        "Component file does not exist: {}",
-                        component_url.as_str()
-                    );
+                    tracing::warn!("Component file does not exist: {}", component_url.as_str());
                 }
             }
         }

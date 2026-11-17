@@ -138,7 +138,12 @@ pub fn semantic_tokens_system(
                 advance(cur_byte, token.start, &mut cur_line, &mut cur_col);
                 let start_line = cur_line;
                 let start_col = cur_col;
-                let length = advance(token.start, token.start + token.length, &mut cur_line, &mut cur_col);
+                let length = advance(
+                    token.start,
+                    token.start + token.length,
+                    &mut cur_line,
+                    &mut cur_col,
+                );
                 cur_byte = token.start + token.length;
 
                 let delta_line = start_line - pre_line;

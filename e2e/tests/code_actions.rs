@@ -172,7 +172,10 @@ fn extract_blank_node_works_in_trig() {
         .unwrap();
     let result = apply_edits(&src, edits);
     assert!(result.contains("foaf:knows _:b0 ."), "got:\n{result}");
-    assert!(result.contains("_:b0 foaf:name \"Alice\" ."), "got:\n{result}");
+    assert!(
+        result.contains("_:b0 foaf:name \"Alice\" ."),
+        "got:\n{result}"
+    );
 }
 
 #[test_log::test]
@@ -199,7 +202,10 @@ fn extract_blank_node_works_in_sparql() {
         .unwrap();
     let result = apply_edits(src, edits);
     assert!(result.contains("foaf:knows _:b0 "), "got:\n{result}");
-    assert!(result.contains("_:b0 foaf:name \"Alice\" ."), "got:\n{result}");
+    assert!(
+        result.contains("_:b0 foaf:name \"Alice\" ."),
+        "got:\n{result}"
+    );
 }
 
 // ─── Inline named blank node (inverse of extract) ─────────────────────────────
@@ -208,9 +214,7 @@ fn extract_blank_node_works_in_sparql() {
 fn inline_blank_node_offered_and_applies() {
     let mut h = LspHarness::new();
     // A labelled blank node defined on its own line and referenced once.
-    let src = format!(
-        "{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n"
-    );
+    let src = format!("{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n");
     let file = h.open_file("file:///inline.ttl", "turtle", &src);
     h.drain_tasks();
 
@@ -243,9 +247,7 @@ fn inline_blank_node_offered_and_applies() {
 #[test_log::test]
 fn inline_offered_when_cursor_on_definition() {
     let mut h = LspHarness::new();
-    let src = format!(
-        "{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n"
-    );
+    let src = format!("{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n");
     let file = h.open_file("file:///inline_def.ttl", "turtle", &src);
     h.drain_tasks();
 
@@ -292,9 +294,7 @@ fn no_inline_when_referenced_multiple_times() {
 #[test_log::test]
 fn inline_blank_node_works_in_trig() {
     let mut h = LspHarness::new();
-    let src = format!(
-        "{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n"
-    );
+    let src = format!("{PRELUDE}<#s> foaf:knows _:b0 .\n_:b0 foaf:name \"Alice\" .\n");
     let file = h.open_file("file:///inline.trig", "trig", &src);
     h.drain_tasks();
 

@@ -24,11 +24,7 @@ pub struct LspBackend {
 }
 
 impl LspBackend {
-    pub fn new(
-        sender: CommandSender,
-        client: TowerClient,
-        tokens: Vec<SemanticTokenType>,
-    ) -> Self {
+    pub fn new(sender: CommandSender, client: TowerClient, tokens: Vec<SemanticTokenType>) -> Self {
         Self {
             backend: Backend::new(sender, client, tokens),
         }
@@ -88,10 +84,7 @@ impl LanguageServer for LspBackend {
         lift(self.backend.hover(params).await)
     }
 
-    async fn formatting(
-        &self,
-        params: DocumentFormattingParams,
-    ) -> Result<Option<Vec<TextEdit>>> {
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         lift(self.backend.formatting(params).await)
     }
 

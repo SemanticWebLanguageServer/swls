@@ -23,8 +23,8 @@ use crate::{
 
 mod data;
 use data::*;
-pub(crate) mod model;
 mod describe;
+pub(crate) mod model;
 mod template;
 pub use describe::{hover_shape_property, shape_property_completions};
 pub use template::complete_shape_templates;

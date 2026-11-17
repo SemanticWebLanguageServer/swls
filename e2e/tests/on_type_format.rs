@@ -16,7 +16,11 @@ fn typing_colon_after_known_undeclared_prefix_inserts_declaration() {
         .on_type_format(&file, 0, 8)
         .expect("typing ':' after a known prefix should insert a declaration");
 
-    assert_eq!(edits.len(), 1, "expected a single declaration edit, got {edits:?}");
+    assert_eq!(
+        edits.len(),
+        1,
+        "expected a single declaration edit, got {edits:?}"
+    );
     assert_eq!(
         edits[0].new_text, "@prefix foaf: <http://xmlns.com/foaf/0.1/>.\n",
         "should insert the foaf prefix declaration"
@@ -119,8 +123,7 @@ fn jsonld_typing_colon_in_string_adds_prefix_to_context() {
 #[test_log::test]
 fn jsonld_typing_colon_for_declared_prefix_does_nothing() {
     let mut h = LspHarness::new();
-    let src =
-        r#"{"@context": {"foaf": "http://xmlns.com/foaf/0.1/"}, "foaf:knows": "x"}"#;
+    let src = r#"{"@context": {"foaf": "http://xmlns.com/foaf/0.1/"}, "foaf:knows": "x"}"#;
     let file = h.open_file("file:///otf_decl.jsonld", "jsonld", src);
     h.drain_tasks();
 

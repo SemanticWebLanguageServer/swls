@@ -45,7 +45,10 @@ use swls_core::{
         hover::{HoverRequest, Label as HoverLabel},
         on_type_format::{Label as OnTypeFormatLabel, OnTypeFormatRequest},
         parse::Label as ParseLabel,
-        rename::{PrepareRenameRequest, PrepareRename as PrepareRenameLabel, Rename as RenameLabel, RenameEdits},
+        rename::{
+            PrepareRename as PrepareRenameLabel, PrepareRenameRequest, Rename as RenameLabel,
+            RenameEdits,
+        },
     },
     lsp_types::{CodeAction, CompletionItemKind, Diagnostic, Position, Range, TextEdit, Url},
     prelude::*,
@@ -128,9 +131,10 @@ impl LspHarness {
 
     /// Update the source of an already-open file and re-parse.
     pub fn update_file(&mut self, handle: &FileHandle, new_content: &str) {
-        self.world
-            .entity_mut(handle.entity)
-            .insert((Source(new_content.to_string()), RopeC(LineIndex::new(new_content))));
+        self.world.entity_mut(handle.entity).insert((
+            Source(new_content.to_string()),
+            RopeC(LineIndex::new(new_content)),
+        ));
         self.world.run_schedule(ParseLabel);
     }
 
@@ -247,7 +251,12 @@ impl LspHarness {
     ///
     /// Positions are 0-indexed as in the LSP spec.  The character value is the index of the
     /// **first character of the token** being completed (consistent with the existing unit tests).
-    pub fn completions(&mut self, handle: &FileHandle, line: u32, character: u32) -> Vec<SimpleCompletion> {
+    pub fn completions(
+        &mut self,
+        handle: &FileHandle,
+        line: u32,
+        character: u32,
+    ) -> Vec<SimpleCompletion> {
         self.world.entity_mut(handle.entity).insert((
             CompletionRequest(Vec::new()),
             PositionComponent(Position { line, character }),
@@ -337,7 +346,8 @@ impl LspHarness {
     }
 
     /// Check whether the document currently has the `Dirty` marker (i.e. has parse errors).
-    pub fn is_dirty(&self, handle: &FileHandle) -> bool {        self.world.entity(handle.entity).contains::<Dirty>()
+    pub fn is_dirty(&self, handle: &FileHandle) -> bool {
+        self.world.entity(handle.entity).contains::<Dirty>()
     }
 
     /// Current source text of a document as the server sees it.
@@ -466,7 +476,10 @@ impl LspHarness {
     ///     .contains_label("@prefix")
     ///     .count_at_least(1);
     /// ```
-    pub fn assert_completions<'a>(&self, completions: &'a [SimpleCompletion]) -> CompletionAssert<'a> {
+    pub fn assert_completions<'a>(
+        &self,
+        completions: &'a [SimpleCompletion],
+    ) -> CompletionAssert<'a> {
         CompletionAssert { completions }
     }
 

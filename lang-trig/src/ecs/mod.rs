@@ -206,7 +206,10 @@ mod tests {
 
     #[test]
     fn trig_formatting_on_by_default() {
-        assert_eq!(format_with(None).as_deref(), Some("<a> <b> <c>;\n  <d> <e>.\n"));
+        assert_eq!(
+            format_with(None).as_deref(),
+            Some("<a> <b> <c>;\n  <d> <e>.\n")
+        );
     }
 
     #[test]

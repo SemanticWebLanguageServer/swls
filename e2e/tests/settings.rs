@@ -112,8 +112,7 @@ fn allow_listed_property_does_not_warn() {
     let mut h = LspHarness::new();
     h.set_config(|c| {
         c.closed_namespaces.insert(CFG_NS.to_string());
-        c.allowed_properties
-            .insert(format!("{CFG_NS}unknown"));
+        c.allowed_properties.insert(format!("{CFG_NS}unknown"));
     });
 
     h.open_linked_file("file:///cfg-onto2.ttl", "turtle", CFG_ONTO_TTL);
@@ -187,7 +186,8 @@ fn unknown_property_offers_allow_quick_fix() {
         .and_then(|c| c.arguments.as_ref())
         .expect("command should carry arguments");
     assert!(
-        args.iter().any(|v| v.as_str() == Some(&format!("{CFG_NS}unknown"))),
+        args.iter()
+            .any(|v| v.as_str() == Some(&format!("{CFG_NS}unknown"))),
         "quick-fix should target cfg:unknown, got: {args:?}"
     );
 }
@@ -219,8 +219,7 @@ fn hover_on_allow_listed_property_explains_exclusion() {
     let mut h = LspHarness::new();
     h.set_config(|c| {
         c.closed_namespaces.insert(CFG_NS.to_string());
-        c.allowed_properties
-            .insert(format!("{CFG_NS}unknown"));
+        c.allowed_properties.insert(format!("{CFG_NS}unknown"));
     });
 
     h.open_linked_file("file:///cfg-onto5.ttl", "turtle", CFG_ONTO_TTL);
@@ -278,7 +277,11 @@ fn syntax_diagnostics_disabled_by_config() {
     });
 
     // Missing closing `.` — a syntax error.
-    let file = h.open_file("file:///syntax_disabled.ttl", "turtle", "<> a <http://example.org/Thing>");
+    let file = h.open_file(
+        "file:///syntax_disabled.ttl",
+        "turtle",
+        "<> a <http://example.org/Thing>",
+    );
     let diags = h.run_diagnostics();
 
     let syntax_errors: Vec<_> = diags
@@ -289,6 +292,9 @@ fn syntax_diagnostics_disabled_by_config() {
     assert!(
         syntax_errors.is_empty(),
         "syntax diagnostics should be silenced when disabled, got: {:?}",
-        syntax_errors.iter().map(|(_, d)| &d.message).collect::<Vec<_>>()
+        syntax_errors
+            .iter()
+            .map(|(_, d)| &d.message)
+            .collect::<Vec<_>>()
     );
 }

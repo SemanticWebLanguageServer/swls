@@ -309,7 +309,8 @@ fn completion_prefix_disabled_by_config() {
     h.drain_tasks();
 
     let completions = h.completions(&file, 1, 0);
-    h.assert_completions(&completions).does_not_contain_label("foaf");
+    h.assert_completions(&completions)
+        .does_not_contain_label("foaf");
 }
 
 #[test_log::test]

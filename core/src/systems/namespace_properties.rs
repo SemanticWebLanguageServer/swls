@@ -80,7 +80,10 @@ pub fn validate_namespace_properties(
 ) {
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
-    let disabled = config.config.local.is_disabled(Disabled::NamespaceProperties);
+    let disabled = config
+        .config
+        .local
+        .is_disabled(Disabled::NamespaceProperties);
 
     for (triples, rope, item) in &query {
         let violations =
@@ -117,7 +120,10 @@ pub fn unknown_property_code_action(
 ) {
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
-    let disabled = config.config.local.is_disabled(Disabled::NamespaceProperties);
+    let disabled = config
+        .config
+        .local
+        .is_disabled(Disabled::NamespaceProperties);
 
     for (triples, rope, position, mut req) in &mut query {
         let cursor = position.0;

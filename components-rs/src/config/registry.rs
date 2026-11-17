@@ -76,7 +76,8 @@ impl ConfigRegistry {
             let mut id_spans: HashMap<String, Range<usize>> = HashMap::new();
             collect_id_spans(&doc, &resolver, &mut id_spans);
 
-            self.process_imports(fs, &doc, &resolver, state, url).await?;
+            self.process_imports(fs, &doc, &resolver, state, url)
+                .await?;
 
             let entries: Vec<&JsonLdVal> = if let Some(graph) = doc.get("@graph") {
                 match graph.as_array() {

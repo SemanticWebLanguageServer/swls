@@ -15,7 +15,10 @@ fn valid_turtle_has_no_dirty_marker() {
                foaf:name \"Alice\" .";
     let file = h.open_file("file:///valid.ttl", "turtle", src);
 
-    assert!(!h.is_dirty(&file), "Valid Turtle document should not be Dirty");
+    assert!(
+        !h.is_dirty(&file),
+        "Valid Turtle document should not be Dirty"
+    );
 }
 
 #[test_log::test]
@@ -25,7 +28,10 @@ fn valid_sparql_has_no_dirty_marker() {
                SELECT ?s WHERE { ?s a foaf:Person . }";
     let file = h.open_file("file:///valid.sparql", "sparql", src);
 
-    assert!(!h.is_dirty(&file), "Valid SPARQL document should not be Dirty");
+    assert!(
+        !h.is_dirty(&file),
+        "Valid SPARQL document should not be Dirty"
+    );
 }
 
 // ─── Invalid documents ────────────────────────────────────────────────────────

@@ -104,7 +104,16 @@ pub fn prepare_rename(
 }
 
 #[instrument(skip(query))]
-pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &DynLang, &mut RenameEdits)>) {
+pub fn rename(
+    mut query: Query<(
+        &TripleComponent,
+        &Triples,
+        &RopeC,
+        &Label,
+        &DynLang,
+        &mut RenameEdits,
+    )>,
+) {
     for (triple, triples, rope, label, lang, mut edits) in &mut query {
         // Text RDF syntaxes rename via the model-based systems; skip them here.
         if lang.0.model_based_rename() {
@@ -117,7 +126,8 @@ pub fn rename(mut query: Query<(&TripleComponent, &Triples, &RopeC, &Label, &Dyn
 
         // Collect unique byte-span ranges to avoid duplicate edits when the same
         // term appears as subject/predicate/object across multiple triples.
-        let mut seen_spans: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+        let mut seen_spans: std::collections::HashSet<(usize, usize)> =
+            std::collections::HashSet::new();
 
         for quad in triples.0.iter() {
             for term in [quad.s(), quad.p(), quad.o()] {

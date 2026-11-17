@@ -18,12 +18,7 @@ use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use swls_lov::LocalPrefix;
 use tracing::instrument;
 
-use crate::{
-    lsp_types::TextEdit,
-    prelude::*,
-    systems::PrefixEntry,
-    util::position_to_offset,
-};
+use crate::{lsp_types::TextEdit, prelude::*, systems::PrefixEntry, util::position_to_offset};
 
 /// [`Component`] collecting the on-type-formatting [`TextEdit`]s for a request.
 #[derive(Component, Debug)]

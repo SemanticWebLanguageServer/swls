@@ -47,13 +47,11 @@ fn undefined_prefix_diagnostic_spans_the_token() {
 
     let diags = h.run_diagnostics();
 
-    let error = diags
-        .iter()
-        .find(|(url, d)| {
-            url.as_str() == file.url
-                && d.severity == Some(DiagnosticSeverity::ERROR)
-                && d.message.contains("\"ex\"")
-        });
+    let error = diags.iter().find(|(url, d)| {
+        url.as_str() == file.url
+            && d.severity == Some(DiagnosticSeverity::ERROR)
+            && d.message.contains("\"ex\"")
+    });
 
     assert!(
         error.is_some(),
@@ -133,8 +131,7 @@ fn undefined_prefix_quickfix_links_all_occurrence_diagnostics() {
     assert!(
         linked
             .iter()
-            .all(|d| d.severity == Some(DiagnosticSeverity::ERROR)
-                && d.message.contains("\"ex\"")),
+            .all(|d| d.severity == Some(DiagnosticSeverity::ERROR) && d.message.contains("\"ex\"")),
         "linked diagnostics should be the undefined-prefix errors, got: {:?}",
         linked.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
@@ -360,7 +357,10 @@ fn add_missing_prefix_code_action_inserts_at_file_top() {
         .and_then(|c| c.values().next())
         .expect("code action should have text edits");
 
-    assert!(!edits.is_empty(), "code action should have at least one edit");
+    assert!(
+        !edits.is_empty(),
+        "code action should have at least one edit"
+    );
 
     // The insert position should be at the top (line 0, char 0)
     let edit = &edits[0];
@@ -399,9 +399,7 @@ fn jsonld_prefix_warnings(src: &str, url: &str) -> Vec<String> {
     h.drain_tasks();
     h.run_diagnostics()
         .into_iter()
-        .filter(|(u, d)| {
-            u.as_str() == file.url && d.severity == Some(DiagnosticSeverity::WARNING)
-        })
+        .filter(|(u, d)| u.as_str() == file.url && d.severity == Some(DiagnosticSeverity::WARNING))
         .map(|(_, d)| d.message)
         .collect()
 }
@@ -581,7 +579,10 @@ fn add_missing_prefix_code_action_disabled_by_config() {
 
     let actions = h.code_actions(&file);
 
-    let add_foaf: Vec<_> = actions.iter().filter(|a| a.title.contains("foaf")).collect();
+    let add_foaf: Vec<_> = actions
+        .iter()
+        .filter(|a| a.title.contains("foaf"))
+        .collect();
 
     assert!(
         add_foaf.is_empty(),

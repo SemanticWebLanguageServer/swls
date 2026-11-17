@@ -92,7 +92,11 @@ impl ContextResolver {
         Ok(())
     }
 
-    fn load_context_object(&mut self, obj: &JsonLdVal, known_contexts: &HashMap<String, JsonLdVal>) -> Result<()> {
+    fn load_context_object(
+        &mut self,
+        obj: &JsonLdVal,
+        known_contexts: &HashMap<String, JsonLdVal>,
+    ) -> Result<()> {
         let members = obj
             .as_object()
             .ok_or_else(|| ComponentsJsError::ContextResolution("Expected object".into()))?;
@@ -124,8 +128,10 @@ impl ContextResolver {
                         if let Some(id) = val.get("@id").and_then(|v| v.as_str()) {
                             let type_coercion =
                                 val.get("@type").and_then(|v| v.as_str()).map(String::from);
-                            let container =
-                                val.get("@container").and_then(|v| v.as_str()).map(String::from);
+                            let container = val
+                                .get("@container")
+                                .and_then(|v| v.as_str())
+                                .map(String::from);
                             self.terms.insert(
                                 key.clone(),
                                 TermDef {
@@ -411,7 +417,8 @@ mod tests {
     use rdf_parsers::jsonld::convert::parse_json;
 
     fn make_cjs_context() -> HashMap<String, JsonLdVal> {
-        let ctx_json = parse_json(r#"{
+        let ctx_json = parse_json(
+            r#"{
             "@context": {
                 "oo": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#",
                 "Module": { "@id": "oo:Module" },
@@ -426,7 +433,8 @@ mod tests {
                 "requireElement": { "@id": "oo:componentPath" },
                 "import": { "@id": "rdfs:seeAlso", "@type": "@id" }
             }
-        }"#)
+        }"#,
+        )
         .unwrap();
         let mut known = HashMap::new();
         known.insert(
@@ -473,8 +481,14 @@ mod tests {
         ]"#).unwrap();
         let resolver = ContextResolver::from_context_value(&ctx_ref, &known).unwrap();
 
-        assert_eq!(resolver.expand_term("ex:MyModule"), "http://example.org/MyModule");
-        assert_eq!(resolver.expand_term("hello:say"), "http://example.org/hello/say");
+        assert_eq!(
+            resolver.expand_term("ex:MyModule"),
+            "http://example.org/MyModule"
+        );
+        assert_eq!(
+            resolver.expand_term("hello:say"),
+            "http://example.org/hello/say"
+        );
     }
 
     #[test]
@@ -508,7 +522,10 @@ mod tests {
         let nodes = extract_graph_nodes(&doc, &known).unwrap();
         assert_eq!(nodes.len(), 1);
         let module = &nodes[0];
-        assert_eq!(module.id.as_deref(), Some("http://example.org/HelloWorldModule"));
+        assert_eq!(
+            module.id.as_deref(),
+            Some("http://example.org/HelloWorldModule")
+        );
         assert_eq!(
             module.types,
             vec!["https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Module"]
@@ -518,10 +535,13 @@ mod tests {
     #[test]
     fn test_vocab_expansion() {
         let known = HashMap::new();
-        let ctx = parse_json(r#"{
+        let ctx = parse_json(
+            r#"{
             "@vocab": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#",
             "ex": "http://example.org/"
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let resolver = ContextResolver::from_context_value(&ctx, &known).unwrap();
 
         assert_eq!(

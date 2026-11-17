@@ -1,7 +1,7 @@
+use crate::lsp_types::Url;
 use bevy_ecs::prelude::Resource;
 use derive_more::derive::AsRef;
 use std::sync::Arc;
-use crate::lsp_types::Url;
 
 #[derive(Resource, Clone, AsRef, Debug)]
 pub struct Fs(pub Arc<dyn FsTrait + Sync + Send>);
