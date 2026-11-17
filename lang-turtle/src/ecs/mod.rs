@@ -128,7 +128,13 @@ mod tests {
 
         let links: &DocumentLinks = world.entity(entity).get().expect("document links exists");
         assert_eq!(links.len(), 1);
-        assert_eq!(links[0].0.as_str(), "file:///tmp/swls/test/foaf.ttl");
+        let expected = world
+            .resource::<Fs>()
+            .0
+            .lov_url("http://xmlns.com/foaf/0.1/", "foaf")
+            .unwrap();
+        assert_eq!(links[0].0, expected);
+        assert!(links[0].0.as_str().ends_with("/lov/foaf.ttl"));
         assert_eq!(links[0].1, "prefix import");
     }
 }

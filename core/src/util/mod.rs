@@ -11,6 +11,7 @@ use crate::{
 /// explicit and changeable in one place.
 const ENCODING: PositionEncoding = PositionEncoding::Utf16;
 
+pub mod cache;
 pub mod fs;
 /// Commonly used RDF prefixes
 pub mod ns;

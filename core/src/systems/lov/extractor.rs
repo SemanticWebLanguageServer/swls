@@ -43,7 +43,7 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
                 Types(HashMap::new()),
             ),
             Some("turtle".into()),
-            OntologyExtract,
+            (OntologyExtract, Background),
         );
 
         debug!("Init ontology {}", local.name);

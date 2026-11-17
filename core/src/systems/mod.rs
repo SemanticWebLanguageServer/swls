@@ -89,10 +89,10 @@ pub fn spawn_background(
             .map(|x| x.0);
         if let Some(entity) = open {
             tracing::debug!("{} is open in the editor, keeping the editor's content", url);
-            world.entity_mut(entity).insert(extra);
+            world.entity_mut(entity).insert((extra, Background));
             return entity;
         }
-        spawn_or_insert(url, content, language_id, extra)(world)
+        spawn_or_insert(url, content, language_id, (extra, Background))(world)
     }
 }
 

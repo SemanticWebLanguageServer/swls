@@ -68,6 +68,10 @@ impl LanguageServer for LspBackend {
         self.backend.did_open(params).await;
     }
 
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        self.backend.did_close(params).await;
+    }
+
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         self.backend.did_change(params).await;
     }

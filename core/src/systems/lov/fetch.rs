@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use serde::Deserialize;
@@ -16,7 +13,7 @@ use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix};
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
-    util::{fs::Fs, ns::owl},
+    util::{cache, fs::Fs, ns::owl},
 };
 
 #[derive(Deserialize, Debug)]
@@ -212,24 +209,10 @@ pub fn spawn_document(
     let _ = sender.unbounded_send(command_queue);
 }
 
-/// Tag the spawned document with the prefix it was loaded for and, when `url` is
-/// a cache location, write the content there so the editor can open it.
-fn extra_from_lov<C: Client + Resource>(
-    from: FromPrefix,
-    content: String,
-    url: Url,
-    is_cache: bool,
-    fs: Fs,
-) -> impl FnOnce(Entity, &mut World) + Send + Sync + 'static {
+/// Tag the spawned document with the prefix it was loaded for.
+fn extra_from_lov(from: FromPrefix) -> impl FnOnce(Entity, &mut World) + Send + Sync + 'static {
     move |e, world| {
         world.entity_mut(e).insert(from);
-
-        if is_cache {
-            let client = world.resource::<C>();
-            client.spawn(async move {
-                fs.0.write_file(&url, &content).await;
-            });
-        }
     }
 }
 
@@ -284,17 +267,25 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(
     None
 }
 
+/// Load the ontology for a prefix without a built-in or configured entry, from
+/// the cache when fresh, otherwise from the LOV mirror / API.
 async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
     tracing::debug!("Fetching LOV for prefix {}", prefix.prefix);
-    if prefix.prefix.to_ascii_lowercase() == prefix.prefix {
-        if let Some(body) = fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c).await {
-            let extra =
-                extra_from_lov::<C>(FromPrefix(prefix), body.clone(), label.clone(), true, fs);
-            spawn_document(label, body, &sender, extra);
-        }
+    if prefix.prefix.to_ascii_lowercase() != prefix.prefix {
+        return;
+    }
+    let body = cache::cached(&fs, &label, || {
+        fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c)
+    })
+    .await;
+    if let Some(body) = body {
+        spawn_document(label, body, &sender, extra_from_lov(FromPrefix(prefix)));
     }
 }
 
+/// Load a built-in or configured ontology. Its content is known, it is only
+/// written to the cache (when `label` is a cache location) so the editor can
+/// open it.
 async fn local_lov<C: Client + Resource>(
     local: swls_lov::LocalPrefix,
     label: Url,
@@ -311,13 +302,19 @@ async fn local_lov<C: Client + Resource>(
     );
     let content = if local.content.is_empty() {
         tracing::debug!("Fetching from LOV {}", local.name);
-        if let Some(body) = fetch_lov_body(&local.name, &local.namespace, c).await {
-            Cow::Owned(body)
-        } else {
+        let fetched = cache::cached(&fs, &label, || {
+            fetch_lov_body(&local.name, &local.namespace, c)
+        })
+        .await;
+        let Some(body) = fetched else {
             return;
-        }
+        };
+        body
     } else {
-        local.content
+        if is_cache {
+            cache::store(&fs, &label, &local.content).await;
+        }
+        local.content.to_string()
     };
 
     let Ok(namespace) = Url::parse(&local.namespace) else {
@@ -329,6 +326,5 @@ async fn local_lov<C: Client + Resource>(
         url: namespace,
     });
 
-    let extra = extra_from_lov::<C>(from, content.to_string(), label.clone(), is_cache, fs);
-    spawn_document(label, content.to_string(), &sender, extra);
+    spawn_document(label, content, &sender, extra_from_lov(from));
 }

@@ -1,6 +1,10 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use swls_core::{lsp_types::Url, prelude::*, util::fs::File};
+use swls_core::{
+    lsp_types::Url,
+    prelude::*,
+    util::{cache::cached, fs::File},
+};
 
 use swls_lang_rdf_base::traits::{NamedNodeExt, Turtle, TurtleExt};
 
@@ -10,14 +14,26 @@ use swls_lang_rdf_base::traits::{NamedNodeExt, Turtle, TurtleExt};
 pub async fn find(location: &str, fs: &Fs, client: &impl Client) -> Option<Vec<(String, Url)>> {
     if location.starts_with("http") {
         let url = Url::parse(location).ok()?;
-        let content = client
-            .fetch(
-                &location,
-                &HashMap::from([(String::from("Accept"), String::from("text/turtle"))]),
-            )
-            .await
-            .ok()?
-            .body;
+        let fetch = || async {
+            let resp = client
+                .fetch(
+                    &location,
+                    &HashMap::from([(String::from("Accept"), String::from("text/turtle"))]),
+                )
+                .await
+                .ok()?;
+            if resp.status != 200 {
+                tracing::warn!("Fetching {} failed with status {}", location, resp.status);
+                return None;
+            }
+            Some(resp.body)
+        };
+        // Remote resources are cached, so the server starts offline with
+        // what it fetched before and does not hit the network on every start.
+        let content = match fs.0.cache_url(&url) {
+            Some(cache_url) => cached(fs, &cache_url, fetch).await?,
+            None => fetch().await?,
+        };
         Some(vec![(content, url)])
     } else {
         if let Ok(url) = Url::parse(&location) {

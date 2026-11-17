@@ -113,6 +113,8 @@ pub mod util;
 /// For example, if [`Triples`] are defined, [systems::derive_classes] will
 /// derive [`DefinedClass`](struct@systems::DefinedClass) from them and add them to the [`Entity`].
 pub mod components;
+/// Editor lifecycle of documents (open / close) and the cached-copy rules.
+pub mod document;
 /// Hosts all common features of the semantic language server.
 pub mod feature;
 /// Defines common language traits

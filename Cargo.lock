@@ -3311,6 +3311,7 @@ name = "swls"
 version = "0.5.2"
 dependencies = [
  "bevy_ecs",
+ "dirs",
  "futures",
  "glob",
  "reqwest",

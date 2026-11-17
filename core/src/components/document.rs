@@ -54,6 +54,20 @@ pub struct Open;
 #[derive(Component, Debug)]
 pub struct Dirty;
 
+/// A document the server loaded by itself (an LOV ontology, an `owl:imports`
+/// target, a configured ontology or shape), as opposed to one the editor opened.
+///
+/// Its triples feed the shared store. When the user opens it in the editor the
+/// buffer is shown and analysed, but edits never reach the store, and closing it
+/// restores the server's copy (see [`crate::document`]).
+#[derive(Component, Debug)]
+pub struct Background;
+
+/// The server's copy of a [`Background`] document, kept while the editor has it
+/// [`Open`] so it can be restored when the editor closes it.
+#[derive(Component, Debug)]
+pub struct Snapshot(pub String);
+
 /// Indicates that this should be a global entity, linked to all other documents
 #[derive(Component, Debug)]
 pub struct Global;
