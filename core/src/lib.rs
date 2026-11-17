@@ -130,6 +130,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<Ontologies>();
     world.insert_resource(OntologyExtractor::new());
     world.init_resource::<systems::PreferredPrefixes>();
+    world.init_resource::<components::Documents>();
 
     parse::setup_schedule::<C>(world);
     hover::setup_schedule(world);

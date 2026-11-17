@@ -239,12 +239,7 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                 if let Ok(resp) = client_clone.fetch(&url, &HashMap::new()).await {
                     let mut cq = CommandQueue::default();
                     cq.push(move |world: &mut World| {
-                        if world
-                            .query::<(Entity, &Label)>()
-                            .iter(world)
-                            .find(|x| x.1.as_str() == url)
-                            .is_none()
-                        {
+                        if find_document(world, &label).is_none() {
                             world.spawn((Source(resp.body), Label(label)));
                             let _ = world.run_system_once(derive_jsonld_triples::<C>);
                         }
@@ -258,12 +253,7 @@ fn fetch_from_web<C: Client + Resource + Clone>(
                 if let Some(resp) = fs.0.read_file(&label).await {
                     let mut cq = CommandQueue::default();
                     cq.push(move |world: &mut World| {
-                        if world
-                            .query::<(Entity, &Label)>()
-                            .iter(world)
-                            .find(|x| x.1.as_str() == url)
-                            .is_none()
-                        {
+                        if find_document(world, &label).is_none() {
                             let item = TextDocumentItem {
                                 version: 1,
                                 uri: label.clone(),

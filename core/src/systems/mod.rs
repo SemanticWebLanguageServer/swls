@@ -43,12 +43,7 @@ pub fn spawn_or_insert(
     extra: impl Bundle,
 ) -> impl (FnOnce(&mut World) -> Entity) + 'static + Send + Sync {
     move |world: &mut World| {
-        let out = if let Some(entity) = world
-            .query::<(Entity, &Label)>()
-            .iter(world)
-            .find(|x| x.1 .0 == url)
-            .map(|x| x.0)
-        {
+        let out = if let Some(entity) = find_document(world, &url) {
             world.entity_mut(entity).insert(bundle).insert(extra);
             entity
         } else {
@@ -88,11 +83,7 @@ pub fn spawn_background(
     extra: impl Bundle,
 ) -> impl (FnOnce(&mut World) -> Entity) + 'static + Send + Sync {
     move |world: &mut World| {
-        let open = world
-            .query_filtered::<(Entity, &Label), With<Open>>()
-            .iter(world)
-            .find(|x| x.1 .0 == url)
-            .map(|x| x.0);
+        let open = find_document(world, &url).filter(|&e| world.entity(e).contains::<Open>());
         if let Some(entity) = open {
             tracing::debug!(
                 "{} is open in the editor, keeping the editor's content",

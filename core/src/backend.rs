@@ -1,15 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::text::LineIndex;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
-    entity::Entity,
     schedule::ScheduleLabel,
     world::{CommandQueue, World},
 };
 use completion::CompletionRequest;
-use futures::lock::Mutex;
 use goto_type::GotoTypeRequest;
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
@@ -44,7 +42,6 @@ pub type Result<T> = std::result::Result<T, ServerError>;
 /// (the `swls` binary's `tower_lsp` adapter, or a future wasm dispatcher) call these
 /// directly. It is generic over the [`Client`] used to send server-to-client messages.
 pub struct Backend<C> {
-    entities: Arc<Mutex<HashMap<String, Entity>>>,
     sender: CommandSender,
     client: C,
     semantic_tokens: Vec<SemanticTokenType>,
@@ -61,7 +58,6 @@ impl<C> std::fmt::Debug for Backend<C> {
 impl<C: Client> Backend<C> {
     pub fn new(sender: CommandSender, client: C, tokens: Vec<SemanticTokenType>) -> Self {
         Self {
-            entities: Default::default(),
             sender,
             client,
             semantic_tokens: tokens,
@@ -89,9 +85,15 @@ impl<C: Client> Backend<C> {
         rx.await.ok()
     }
 
+    /// Run `schedule` for the document at `url` with the request component(s)
+    /// `param`, and take the response component `T`.
+    ///
+    /// The document is looked up inside the world, in the same step that runs
+    /// the schedule, so a document closed in between cannot be used after it
+    /// is gone. `None` when there is no such document.
     async fn run_schedule<T: Component>(
         &self,
-        entity: Entity,
+        url: Url,
         schedule: impl ScheduleLabel + Clone,
         param: impl Bundle,
     ) -> Option<T> {
@@ -99,6 +101,11 @@ impl<C: Client> Backend<C> {
 
         let mut commands = CommandQueue::default();
         commands.push(move |world: &mut World| {
+            let Some(entity) = find_document(world, &url) else {
+                debug!("No document {}", url);
+                let _ = tx.send(None);
+                return;
+            };
             world.entity_mut(entity).insert(param);
             world.run_schedule(schedule.clone());
             if tx.send(world.entity_mut(entity).take::<T>()).is_err() {
@@ -114,9 +121,10 @@ impl<C: Client> Backend<C> {
         rx.await.unwrap_or_default()
     }
 
-    async fn get_entity(&self, uri: &str) -> Option<Entity> {
-        let map = self.entities.lock().await;
-        map.get(uri).copied()
+    /// The document a request is about. Requests refer to documents by URL;
+    /// the entity is looked up when the request runs (see [`Self::run_schedule`]).
+    async fn document(&self, uri: &str) -> Option<Url> {
+        Url::parse(uri).ok()
     }
 
     /// Whether the given LSP feature has been disabled via [`ServerConfig`].
@@ -305,13 +313,13 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         }
         let uri = params.text_document.uri.as_str();
-        let Some(entity) = self.get_entity(uri).await else {
-            debug!("Didn't find entity {} stopping", uri);
+        let Some(doc) = self.document(uri).await else {
+            debug!("No document {}", uri);
             return Ok(None);
         };
 
         if let Some(res) = self
-            .run_schedule::<HighlightRequest>(entity, SemanticLabel, HighlightRequest(vec![]))
+            .run_schedule::<HighlightRequest>(doc, SemanticLabel, HighlightRequest(vec![]))
             .await
         {
             Ok(Some(SemanticTokensResult::Tokens(
@@ -338,8 +346,8 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::References).await {
             return Ok(None);
         }
-        let Some(entity) = self
-            .get_entity(params.text_document_position.text_document.uri.as_str())
+        let Some(doc) = self
+            .document(params.text_document_position.text_document.uri.as_str())
             .await
         else {
             return Ok(None);
@@ -350,7 +358,7 @@ impl<C: Client> Backend<C> {
 
         let arr = self
             .run_schedule::<ReferencesRequest>(
-                entity,
+                doc,
                 ReferencesLabel,
                 (PositionComponent(pos), ReferencesRequest(Vec::new())),
             )
@@ -368,7 +376,7 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::Rename).await {
             return Ok(None);
         }
-        let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
+        let Some(doc) = self.document(params.text_document.uri.as_str()).await else {
             return Ok(None);
         };
 
@@ -376,11 +384,7 @@ impl<C: Client> Backend<C> {
         Self::adjust_position(&mut pos);
 
         let resp = self
-            .run_schedule::<PrepareRenameRequest>(
-                entity,
-                PrepareRenameLabel,
-                PositionComponent(pos),
-            )
+            .run_schedule::<PrepareRenameRequest>(doc, PrepareRenameLabel, PositionComponent(pos))
             .await
             .map(|x| PrepareRenameResponse::RangeWithPlaceholder {
                 range: x.range,
@@ -395,8 +399,8 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::Rename).await {
             return Ok(Some(WorkspaceEdit::new(HashMap::new())));
         }
-        let Some(entity) = self
-            .get_entity(params.text_document_position.text_document.uri.as_str())
+        let Some(doc) = self
+            .document(params.text_document_position.text_document.uri.as_str())
             .await
         else {
             return Ok(None);
@@ -408,7 +412,7 @@ impl<C: Client> Backend<C> {
         let mut change_map: HashMap<crate::lsp_types::Url, Vec<TextEdit>> = HashMap::new();
         if let Some(changes) = self
             .run_schedule::<RenameEdits>(
-                entity,
+                doc,
                 RenameLabel,
                 (
                     PositionComponent(pos),
@@ -431,8 +435,8 @@ impl<C: Client> Backend<C> {
         }
         let request: HoverRequest = HoverRequest::default();
 
-        let Some(entity) = self
-            .get_entity(
+        let Some(doc) = self
+            .document(
                 params
                     .text_document_position_params
                     .text_document
@@ -448,7 +452,7 @@ impl<C: Client> Backend<C> {
         Self::adjust_position(&mut pos);
 
         if let Some(hover) = self
-            .run_schedule::<HoverRequest>(entity, HoverLabel, (request, PositionComponent(pos)))
+            .run_schedule::<HoverRequest>(doc, HoverLabel, (request, PositionComponent(pos)))
             .await
         {
             tracing::debug!("hover returned {} items", hover.0.len());
@@ -472,13 +476,13 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         }
         let uri = params.text_document.uri.as_str();
-        let Some(entity) = self.get_entity(uri).await else {
-            debug!("Didn't find entity {}", uri);
+        let Some(doc) = self.document(uri).await else {
+            debug!("No document {}", uri);
             return Ok(None);
         };
 
         let request = self
-            .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest::default())
+            .run_schedule::<InlayRequest>(doc, InlayLabel, InlayRequest::default())
             .await;
 
         debug!(
@@ -498,13 +502,13 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         }
         let uri = params.text_document.uri.as_str();
-        let Some(entity) = self.get_entity(uri).await else {
-            debug!("Didn't find entity {}", uri);
+        let Some(doc) = self.document(uri).await else {
+            debug!("No document {}", uri);
             return Ok(None);
         };
 
         let request = self
-            .run_schedule::<FormatRequest>(entity, FormatLabel, FormatRequest(None))
+            .run_schedule::<FormatRequest>(doc, FormatLabel, FormatRequest(None))
             .await;
         Ok(request.and_then(|x| x.0))
     }
@@ -518,7 +522,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         }
         let uri = params.text_document_position.text_document.uri.as_str();
-        let Some(entity) = self.get_entity(uri).await else {
+        let Some(doc) = self.document(uri).await else {
             return Ok(None);
         };
 
@@ -527,7 +531,7 @@ impl<C: Client> Backend<C> {
         let pos = params.text_document_position.position;
         let request = self
             .run_schedule::<on_type_format::OnTypeFormatRequest>(
-                entity,
+                doc,
                 OnTypeFormatLabel,
                 (
                     PositionComponent(pos),
@@ -543,13 +547,11 @@ impl<C: Client> Backend<C> {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
-        let entity = self
-            .run(|world| crate::document::open_document(world, item))
-            .await;
-
-        if let Some(entity) = entity {
-            self.entities.lock().await.insert(url, entity);
-        }
+        self.run(|world| {
+            crate::document::open_document(world, item);
+        })
+        .await;
+        debug!("Opened {}", url);
 
         debug!("Requesting tokens refresh");
         let _ = self.client.send_request::<SemanticTokensRefresh>(()).await;
@@ -564,7 +566,6 @@ impl<C: Client> Backend<C> {
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     pub async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let url = params.text_document.uri;
-        self.entities.lock().await.remove(url.as_str());
 
         let closed = {
             let url = url.clone();
@@ -587,8 +588,8 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     pub async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let Some(entity) = self.get_entity(params.text_document.uri.as_str()).await else {
-            debug!("Didn't find entity {}", params.text_document.uri.as_str());
+        let Some(doc) = self.document(params.text_document.uri.as_str()).await else {
+            debug!("No document {}", params.text_document.uri.as_str());
             return;
         };
 
@@ -601,6 +602,10 @@ impl<C: Client> Backend<C> {
         };
 
         self.run(move |world| {
+            let Some(entity) = find_document(world, &doc) else {
+                debug!("No document {}", doc);
+                return;
+            };
             let rope_c = RopeC(LineIndex::new(&change.text));
             world
                 .entity_mut(entity)
@@ -631,8 +636,8 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::GotoDefinition).await {
             return Ok(None);
         }
-        let Some(entity) = self
-            .get_entity(
+        let Some(doc) = self
+            .document(
                 params
                     .text_document_position_params
                     .text_document
@@ -649,7 +654,7 @@ impl<C: Client> Backend<C> {
 
         let arr = self
             .run_schedule::<GotoDefinitionRequest>(
-                entity,
+                doc,
                 GotoDefinitionLabel,
                 (PositionComponent(pos), GotoDefinitionRequest(Vec::new())),
             )
@@ -670,8 +675,8 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::GotoTypeDefinition).await {
             return Ok(None);
         }
-        let Some(entity) = self
-            .get_entity(
+        let Some(doc) = self
+            .document(
                 params
                     .text_document_position_params
                     .text_document
@@ -688,7 +693,7 @@ impl<C: Client> Backend<C> {
 
         let arr = self
             .run_schedule::<GotoTypeRequest>(
-                entity,
+                doc,
                 GotoTypeLabel,
                 (PositionComponent(pos), GotoTypeRequest(Vec::new())),
             )
@@ -707,14 +712,14 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         }
         let uri = params.text_document.uri.as_str();
-        let Some(entity) = self.get_entity(uri).await else {
+        let Some(doc) = self.document(uri).await else {
             return Ok(None);
         };
 
         let pos = params.range.start;
         let request = self
             .run_schedule::<CodeActionRequest>(
-                entity,
+                doc,
                 CodeActionLabel,
                 (CodeActionRequest::default(), PositionComponent(pos)),
             )
@@ -782,8 +787,8 @@ impl<C: Client> Backend<C> {
         if self.is_disabled(Disabled::Completion).await {
             return Ok(None);
         }
-        let Some(entity) = self
-            .get_entity(params.text_document_position.text_document.uri.as_str())
+        let Some(doc) = self
+            .document(params.text_document_position.text_document.uri.as_str())
             .await
         else {
             return Ok(None);
@@ -796,7 +801,7 @@ impl<C: Client> Backend<C> {
 
         let completions: Option<Vec<crate::lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
-                entity,
+                doc,
                 CompletionLabel,
                 (CompletionRequest(vec![]), PositionComponent(pos)),
             )
