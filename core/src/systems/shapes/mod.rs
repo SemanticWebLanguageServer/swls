@@ -16,6 +16,8 @@ use crate::{lsp_types::TextDocumentItem, prelude::*, util};
 
 mod data;
 use data::*;
+mod template;
+pub use template::complete_shape_templates;
 
 fn shacl_schema_from_data<RDF: FocusRDF + std::fmt::Debug>(
     rdf_data: RDF,

@@ -51,6 +51,13 @@ pub enum Disabled {
     /// (Turtle only).
     #[serde(alias = "COMPLETION_SUBJECT", alias = "completion_subject")]
     CompletionSubject,
+    /// Snippet completions that fill in the properties SHACL shapes expect for
+    /// the subject (required properties, or all properties).
+    #[serde(
+        alias = "COMPLETION_SHAPE_TEMPLATE",
+        alias = "completion_shape_template"
+    )]
+    CompletionShapeTemplate,
 
     /// Master switch: disables `textDocument/hover` entirely (and stops
     /// advertising the capability). See also the `hover_*` variants below to
