@@ -139,10 +139,6 @@ impl<C: Client> Backend<C> {
         .await
         .unwrap_or(false)
     }
-
-    fn adjust_position(pos: &mut Position) {
-        pos.character = pos.character.saturating_sub(1);
-    }
 }
 
 impl<C: Client> Backend<C> {
@@ -353,8 +349,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.text_document_position.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position.position;
 
         let arr = self
             .run_schedule::<ReferencesRequest>(
@@ -380,8 +375,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.position;
 
         let resp = self
             .run_schedule::<PrepareRenameRequest>(doc, PrepareRenameLabel, PositionComponent(pos))
@@ -406,8 +400,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.text_document_position.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position.position;
 
         let mut change_map: HashMap<crate::lsp_types::Url, Vec<TextEdit>> = HashMap::new();
         if let Some(changes) = self
@@ -448,8 +441,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.text_document_position_params.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position_params.position;
 
         if let Some(hover) = self
             .run_schedule::<HoverRequest>(doc, HoverLabel, (request, PositionComponent(pos)))
@@ -526,8 +518,8 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        // Use the exact position after the typed character — do NOT apply
-        // `adjust_position` here, the scan expects the cursor right after `:`.
+        // The exact position after the typed character: the scan expects the
+        // cursor right after `:`.
         let pos = params.text_document_position.position;
         let request = self
             .run_schedule::<on_type_format::OnTypeFormatRequest>(
@@ -649,8 +641,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.text_document_position_params.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position_params.position;
 
         let arr = self
             .run_schedule::<GotoDefinitionRequest>(
@@ -688,8 +679,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        let mut pos = params.text_document_position_params.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position_params.position;
 
         let arr = self
             .run_schedule::<GotoTypeRequest>(
@@ -794,10 +784,7 @@ impl<C: Client> Backend<C> {
             return Ok(None);
         };
 
-        // Problem: when the cursor is at the end of an ident, that ident is not in range of the
-        // cursor
-        let mut pos = params.text_document_position.position;
-        Self::adjust_position(&mut pos);
+        let pos = params.text_document_position.position;
 
         let completions: Option<Vec<crate::lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(

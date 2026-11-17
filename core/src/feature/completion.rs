@@ -1,4 +1,7 @@
 use crate::lsp_types::{MarkupContent, MarkupKind};
+use crate::prelude::{
+    MyTerm, PositionComponent, RopeC, TokenComponent, TripleComponent, TripleTarget,
+};
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 
@@ -29,6 +32,9 @@ pub fn setup_schedule(world: &mut World) {
         get_current_triple
             .after(get_current_cst_token)
             .before(generate_completions),
+        get_cursor_context
+            .after(get_current_triple)
+            .before(generate_completions),
         keyword_complete.after(generate_completions),
         complete_class.after(generate_completions),
         complete_properties.after(generate_completions),
@@ -40,6 +46,101 @@ pub fn setup_schedule(world: &mut World) {
 }
 
 pub fn generate_completions() {}
+
+/// What a completion request is about, resolved once from the cursor so every
+/// completion source agrees. Inserted by [`get_cursor_context`].
+#[derive(Component, Debug, Clone)]
+pub struct CursorContext {
+    /// The role of the position at the cursor.
+    pub target: TripleTarget,
+    /// The resource being described: the subject of the triple at the cursor,
+    /// or the blank node whose `[ … ]` the cursor is in.
+    pub subject: Option<MyTerm<'static>>,
+    /// The word being typed at the cursor (empty in whitespace or after
+    /// punctuation).
+    pub typed: String,
+    /// Where completion text goes: the typed word, or an empty range at the
+    /// cursor.
+    pub range: crate::lsp_types::Range,
+    /// Whether inserted text needs a leading space (the cursor is right after
+    /// `;`, `,` or `[`).
+    pub needs_space: bool,
+}
+
+impl CursorContext {
+    /// Whether the cursor is where a predicate of [`Self::subject`] goes.
+    pub fn at_predicate(&self) -> bool {
+        self.target == TripleTarget::Predicate && self.subject.is_some()
+    }
+
+    /// `text` prefixed with a space when [`Self::needs_space`].
+    pub fn spaced(&self, text: &str) -> String {
+        if self.needs_space {
+            format!(" {}", text)
+        } else {
+            text.to_string()
+        }
+    }
+}
+
+/// Resolve the [`CursorContext`] of a completion request from the token and
+/// triple at the cursor.
+pub fn get_cursor_context(
+    query: Query<(
+        Entity,
+        &PositionComponent,
+        Option<&TokenComponent>,
+        Option<&TripleComponent>,
+        &RopeC,
+    )>,
+    mut commands: Commands,
+) {
+    for (entity, pos, token, triple, rope) in &query {
+        let offset = crate::util::position_to_offset(pos.0, &rope.0).unwrap_or_default();
+        let at_cursor = crate::lsp_types::Range::new(pos.0, pos.0);
+
+        let token_text = token.map(|t| t.text.as_str()).unwrap_or_default();
+        let punctuation =
+            !token_text.is_empty() && token_text.chars().all(|c| ";.,[](){}".contains(c));
+        let (typed, range, needs_space) = match token {
+            Some(t) if !t.text.is_empty() && !punctuation => (t.text.clone(), t.range, false),
+            // Right after `;` / `,` / `[`: insert behind it, separated by a space.
+            Some(t) if punctuation && t.source_span.end <= offset => {
+                let end = crate::lsp_types::Range::new(t.range.end, t.range.end);
+                (String::new(), end, matches!(token_text, ";" | "," | "["))
+            }
+            _ => (String::new(), at_cursor, false),
+        };
+
+        let (mut target, mut subject) = match triple {
+            Some(t) => (t.target, Some(t.triple.subject.to_owned())),
+            None => (TripleTarget::Subject, None),
+        };
+        // Inside `[ … ]` but not on a term: a predicate of that blank node.
+        if let Some(t) = triple {
+            let inside = |term: &MyTerm<'_>| {
+                term.ty == Some(sophia_api::term::TermKind::BlankNode)
+                    && term.span.start < offset
+                    && offset < term.span.end
+            };
+            let on_term = !typed.is_empty();
+            if !on_term && target == TripleTarget::Subject && inside(&t.triple.subject) {
+                target = TripleTarget::Predicate;
+            } else if !on_term && target == TripleTarget::Object && inside(&t.triple.object) {
+                target = TripleTarget::Predicate;
+                subject = Some(t.triple.object.to_owned());
+            }
+        }
+
+        commands.entity(entity).insert(CursorContext {
+            target,
+            subject,
+            typed,
+            range,
+            needs_space,
+        });
+    }
+}
 
 #[derive(Debug)]
 pub struct SimpleCompletion {

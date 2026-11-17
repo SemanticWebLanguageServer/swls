@@ -7,6 +7,7 @@ use sophia_api::term::{Term as _, TermKind};
 use tracing::{instrument, trace};
 
 use crate::{
+    feature::completion::CursorContext,
     lsp_types::{CompletionItemKind, TextEdit},
     prelude::*,
 };
@@ -14,7 +15,7 @@ use crate::{
 #[instrument(skip(query, resource, config))]
 pub fn complete_class(
     mut query: Query<(
-        &TokenComponent,
+        &CursorContext,
         &TripleComponent,
         &Prefixes,
         &Types,
@@ -28,7 +29,7 @@ pub fn complete_class(
     if config.config.local.is_disabled(Disabled::CompletionClass) {
         return;
     }
-    for (token, triple, prefixes, types, mut request, lang) in &mut query {
+    for (cursor, triple, prefixes, types, mut request, lang) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
         {
@@ -43,13 +44,13 @@ pub fn complete_class(
             for class in resource.classes.values() {
                 let to_beat = lang.write_iri(prefixes, &class.term.value);
 
-                if to_beat.starts_with(&token.text) {
+                if to_beat.starts_with(&cursor.typed) {
                     let mut completion = SimpleCompletion::new(
                         CompletionItemKind::CLASS,
                         to_beat.to_string(),
                         TextEdit {
-                            range: token.range,
-                            new_text: to_beat.to_string(),
+                            range: cursor.range,
+                            new_text: cursor.spaced(&to_beat),
                         },
                     )
                     .label_description(class.full_title())
@@ -97,8 +98,7 @@ pub fn hover_class(
 #[instrument(skip(query, hierarchy, resource, config))]
 pub fn complete_properties(
     mut query: Query<(
-        &TokenComponent,
-        &TripleComponent,
+        &CursorContext,
         &Prefixes,
         &Label,
         &Types,
@@ -116,22 +116,21 @@ pub fn complete_properties(
     {
         return;
     }
-    for (token, triple, prefixes, _this_label, types, mut request, lang) in &mut query {
-        if triple.target == TripleTarget::Predicate {
-            let tts = types.get(&triple.triple.subject.value);
-            let bare_text = lang.unquote(&token.text);
+    for (cursor, prefixes, _this_label, types, mut request, lang) in &mut query {
+        let Some(subject) = cursor.subject.as_ref().filter(|_| cursor.at_predicate()) else {
+            continue;
+        };
+        {
+            let tts = types.get(&subject.value);
+            let bare_text = lang.unquote(&cursor.typed);
 
             if let Some(tts) = tts.as_ref() {
-                trace!("Types for {}", triple.triple.subject.value);
+                trace!("Types for {}", subject.value);
                 for t in *tts {
-                    trace!(
-                        "{} {}",
-                        triple.triple.subject.value,
-                        hierarchy.type_name(*t)
-                    );
+                    trace!("{} {}", subject.value, hierarchy.type_name(*t));
                 }
             } else {
-                trace!("No types for {}", triple.triple.subject.value);
+                trace!("No types for {}", subject.value);
             }
 
             let subclasses: HashSet<_> = tts
@@ -164,8 +163,8 @@ pub fn complete_properties(
                         CompletionItemKind::ENUM_MEMBER,
                         to_beat.to_string(),
                         TextEdit {
-                            range: token.range,
-                            new_text: lang.quote(&to_beat),
+                            range: cursor.range,
+                            new_text: cursor.spaced(&lang.quote(&to_beat)),
                         },
                     )
                     .label_description(property.full_title())

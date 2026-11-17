@@ -25,7 +25,7 @@ use crate::{
 
 /// [`Component`] used to indicate the term type of currently targeted
 /// [`Token`](`crate::prelude::Token`) in the Triple.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TripleTarget {
     Subject,
     Predicate,
@@ -123,10 +123,9 @@ pub fn get_current_triple(
             continue;
         };
 
-        // First try: find the narrowest triple whose span inclusively contains the cursor.
-        // Using inclusive end (<=) so the cursor at exactly span.end (e.g. after a partially
-        // written predicate or object) still matches.
-
+        // First try: the narrowest term the cursor is on. A cursor sits between
+        // characters, so a term that ends at the cursor counts too (the term being
+        // typed, e.g. `ex:fo|`), after terms that contain it.
         if let Some((target, _, t)) = triples
             .iter()
             .flat_map(|t| {
@@ -136,8 +135,8 @@ pub fn get_current_triple(
                     (TripleTarget::Object, &t.object.span, t),
                 ]
             })
-            .filter(|x| x.1.contains(&offset))
-            .min_by_key(|x| x.1.end - x.1.start)
+            .filter(|x| x.1.contains(&offset) || (x.1.end == offset && x.1.start < x.1.end))
+            .min_by_key(|x| (!x.1.contains(&offset), x.1.end - x.1.start))
         {
             tracing::debug!(
                 "Narrowest triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",

@@ -26,6 +26,7 @@ use data::*;
 mod describe;
 pub(crate) mod model;
 mod template;
+pub mod visible;
 pub use describe::{hover_shape_property, shape_property_completions};
 pub use template::complete_shape_templates;
 
@@ -125,10 +126,7 @@ pub fn validate_shapes(
         let mut runner = NativeEngine::new();
 
         for (other_label, schema, global, shape_triples) in &other {
-            if global.is_none()
-                && links.iter().find(|link| link.0 == other_label.0).is_none()
-                && label.0 != other_label.0
-            {
+            if !visible::shapes_apply(other_label, global.is_some(), label, links) {
                 continue;
             }
 

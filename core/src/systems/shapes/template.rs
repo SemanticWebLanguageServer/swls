@@ -22,14 +22,13 @@
 //! `sh:datatype` decide between `<…>`, `"…"` and plain placeholders.
 
 use bevy_ecs::prelude::*;
-use sophia_api::term::{Term as _, TermKind};
 
 use super::model::*;
 use crate::{
-    feature::completion::{CompletionRequest, SimpleCompletion},
-    lsp_types::{CompletionItemKind, Position, Range, TextEdit},
+    feature::completion::{CompletionRequest, CursorContext, SimpleCompletion},
+    lsp_types::{CompletionItemKind, Position, TextEdit},
     prelude::*,
-    systems::shapes::ShaclShapes,
+    systems::shapes::visible::{visible_shapes, ShapeDocs},
 };
 
 // ─── Rendering ───────────────────────────────────────────────────────────────
@@ -240,65 +239,6 @@ fn plain(snippet: &str) -> String {
 
 // ─── Completion system ───────────────────────────────────────────────────────
 
-const PUNCTUATION: &[&str] = &[";", ".", ",", "[", "]", "(", ")"];
-
-/// Where to insert a template, and whether it needs a separating space.
-fn insert_range(token: &TokenComponent, pos: Position) -> (Range, bool) {
-    let is_punct = PUNCTUATION.contains(&token.text.as_str());
-    let contains = token.range.start <= pos && pos <= token.range.end;
-    if !is_punct && contains {
-        // Replace what the user typed.
-        (token.range, false)
-    } else if is_punct && contains && token.range.start < pos {
-        // Right after `;` / `[`: insert behind it.
-        (Range::new(token.range.end, token.range.end), true)
-    } else {
-        // The token is further on (e.g. a `.` on the next line): insert here.
-        (Range::new(pos, pos), false)
-    }
-}
-
-/// Move an empty insertion point to the end of its line when only whitespace
-/// follows it, so a template typed on a blank line keeps the line's indentation
-/// (the backend reports completion positions one character early).
-fn settle(rope: &RopeC, range: Range) -> Range {
-    if range.start != range.end {
-        return range;
-    }
-    let Some(line) = rope.0.line_str(range.start.line as usize) else {
-        return range;
-    };
-    let line = line.trim_end_matches(['\n', '\r']);
-    let col = range.start.character as usize;
-    let chars: Vec<char> = line.chars().collect();
-    if col >= chars.len() || !chars[col..].iter().all(|c| *c == ' ' || *c == '\t') {
-        return range;
-    }
-    let end = Position::new(range.start.line, chars.len() as u32);
-    Range::new(end, end)
-}
-
-/// Where to insert text written at a predicate position, and whether it needs
-/// a leading space (right after `;` or `[`).
-pub(crate) fn predicate_range(
-    token: &TokenComponent,
-    pos: Position,
-    rope: &RopeC,
-) -> (Range, bool) {
-    let (range, space) = insert_range(token, pos);
-    (settle(rope, range), space)
-}
-
-/// Whether the cursor is at a predicate position of the triple's subject,
-/// including the body of an empty blank node (`[` … `]`), which the triple
-/// lookup reports as a subject position.
-pub(crate) fn at_predicate(triple: &TripleComponent, token: &TokenComponent) -> bool {
-    triple.target == TripleTarget::Predicate
-        || (triple.target == TripleTarget::Subject
-            && triple.triple.subject.kind() == TermKind::BlankNode
-            && token.text == "]")
-}
-
 /// Indentation for continuation lines of a template inserted at `at`.
 fn indentation(rope: &RopeC, at: Position) -> String {
     let line = rope.0.line_str(at.line as usize).unwrap_or_default();
@@ -318,9 +258,7 @@ fn indentation(rope: &RopeC, at: Position) -> String {
 /// the SHACL shapes that apply to the subject at the cursor.
 pub fn complete_shape_templates(
     mut query: Query<(
-        &TokenComponent,
-        &TripleComponent,
-        &PositionComponent,
+        &CursorContext,
         &Prefixes,
         &Triples,
         &Label,
@@ -329,7 +267,7 @@ pub fn complete_shape_templates(
         &DynLang,
         &mut CompletionRequest,
     )>,
-    shapes: Query<(&Label, &Triples, Option<&Global>), With<ShaclShapes>>,
+    shapes: ShapeDocs,
     hierarchy: Res<TypeHierarchy>,
     config: Res<ServerConfig>,
 ) {
@@ -338,23 +276,15 @@ pub fn complete_shape_templates(
         return;
     }
 
-    for (token, triple, pos, prefixes, triples, label, links, rope, lang, mut request) in &mut query
-    {
-        if !lang.shape_templates() {
+    for (cursor, prefixes, triples, label, links, rope, lang, mut request) in &mut query {
+        if !lang.shape_templates() || !cursor.at_predicate() {
             continue;
         }
-        let subject = &triple.triple.subject;
-        if !at_predicate(triple, token) {
+        let Some(subject) = cursor.subject.as_ref() else {
             continue;
-        }
+        };
 
-        let docs: Vec<&[MyQuad<'static>]> = shapes
-            .iter()
-            .filter(|(l, _, global)| {
-                global.is_some() || l.0 == label.0 || links.iter().any(|link| link.0 == l.0)
-            })
-            .map(|(_, t, _)| t.0.as_slice())
-            .collect();
+        let (docs, _) = visible_shapes(&shapes, label, links);
         if docs.is_empty() {
             continue;
         }
@@ -366,34 +296,28 @@ pub fn complete_shape_templates(
         }
         let required: Vec<_> = all.iter().filter(|p| p.required).cloned().collect();
 
-        let (range, leading_space) = predicate_range(token, pos.0, rope);
+        let range = cursor.range;
         let indent = indentation(rope, range.start);
-        let filter = if range == token.range {
-            token.text.clone()
-        } else {
-            String::new()
-        };
 
         let mut offer = |props: &[Property], label: &str, sort: &str| {
             let snippet = render(props, prefixes, &indent);
             let preview = plain(&snippet);
-            let new_text = if leading_space {
-                format!(" {}", snippet)
-            } else {
-                snippet
-            };
             let names: Vec<_> = props.iter().map(|p| p.name.as_str()).collect();
             request.push(
                 SimpleCompletion::new(
                     CompletionItemKind::SNIPPET,
                     label.to_string(),
-                    TextEdit { range, new_text },
+                    TextEdit {
+                        range,
+                        new_text: cursor.spaced(&snippet),
+                    },
                 )
                 .as_snippet()
                 .label_description(names.join(", "))
                 .documentation(documentation(props, prefixes, &preview))
                 .sort_text(sort)
-                .filter_text(format!("{}{}", filter, label)),
+                // Clients filter on the typed word; keep the template visible.
+                .filter_text(format!("{}{}", cursor.typed, label)),
             );
         };
 

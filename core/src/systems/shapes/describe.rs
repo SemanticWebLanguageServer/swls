@@ -15,15 +15,15 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::*;
 use sophia_api::term::{Term as _, TermKind};
 
-use super::{model::*, template};
+use super::model::*;
 use crate::{
     feature::{
-        completion::{CompletionRequest, SimpleCompletion},
+        completion::{CompletionRequest, CursorContext, SimpleCompletion},
         hover::HoverRequest,
     },
     lsp_types::{CompletionItemKind, TextEdit},
     prelude::*,
-    systems::shapes::ShaclShapes,
+    systems::shapes::visible::{visible_shapes, ShapeDocs},
     util::lang_text::normalize_ws,
 };
 
@@ -31,17 +31,27 @@ use crate::{
 /// the shape documents declare (so `xsd:string` reads well even when the
 /// document does not declare `xsd:`).
 pub(crate) struct Names<'a> {
-    pub(crate) document: &'a Prefixes,
-    pub(crate) shapes: Vec<&'a Prefixes>,
+    document: &'a Prefixes,
+    /// Every prefix the shape documents declare, as one set, so the choice
+    /// between them does not depend on the order the documents are visited.
+    shapes: Prefixes,
 }
 
-impl Names<'_> {
-    /// `iri` as a prefixed name from the document's or the shape documents'
-    /// prefixes, else in full.
+impl<'a> Names<'a> {
+    pub(crate) fn new(document: &'a Prefixes, shapes: Vec<&'a Prefixes>) -> Self {
+        let declared = shapes.iter().flat_map(|p| p.0.iter().cloned()).collect();
+        Self {
+            document,
+            shapes: Prefixes(declared, document.1.clone()),
+        }
+    }
+
+    /// `iri` as a prefixed name from the document's prefixes, else from the
+    /// shape documents' prefixes, else in full.
     fn iri(&self, iri: &str) -> String {
-        std::iter::once(self.document)
-            .chain(self.shapes.iter().copied())
-            .find_map(|p| p.shorten(iri))
+        self.document
+            .shorten(iri)
+            .or_else(|| self.shapes.shorten(iri))
             .unwrap_or_else(|| format!("<{}>", iri))
     }
 }
@@ -272,37 +282,6 @@ fn docs_per_predicate(
     out
 }
 
-type ShapeDocs<'w, 's> = Query<
-    'w,
-    's,
-    (
-        &'static Label,
-        &'static Triples,
-        Option<&'static Global>,
-        Option<&'static Prefixes>,
-    ),
-    With<ShaclShapes>,
->;
-
-/// Triples and prefixes of the shape documents visible to a document.
-fn visible_shapes<'a>(
-    shapes: &'a ShapeDocs,
-    label: &Label,
-    links: &DocumentLinks,
-) -> (Vec<&'a [MyQuad<'static>]>, Vec<&'a Prefixes>) {
-    shapes
-        .iter()
-        .filter(|(l, _, global, _)| {
-            global.is_some() || l.0 == label.0 || links.iter().any(|link| link.0 == l.0)
-        })
-        .map(|(_, t, _, p)| (t.0.as_slice(), p))
-        .fold((Vec::new(), Vec::new()), |(mut ts, mut ps), (t, p)| {
-            ts.push(t);
-            ps.extend(p);
-            (ts, ps)
-        })
-}
-
 /// Hover system: document a predicate with the property shapes that apply to
 /// it for this subject.
 pub fn hover_shape_property(
@@ -335,10 +314,7 @@ pub fn hover_shape_property(
             continue;
         }
         let graph = ShapeGraph::new(docs);
-        let names = Names {
-            document: prefixes,
-            shapes: shape_prefixes,
-        };
+        let names = Names::new(prefixes, shape_prefixes);
         let focus = Focus::new(&triple.triple.subject, &triples.0, &hierarchy);
         for applied in applied_property_shapes(&graph, &focus) {
             let applies = property_paths(&graph, applied.node)
@@ -356,14 +332,11 @@ pub fn hover_shape_property(
 /// Runs after [`complete_properties`](crate::systems::complete_properties).
 pub fn shape_property_completions(
     mut query: Query<(
-        &TokenComponent,
-        &TripleComponent,
-        &PositionComponent,
+        &CursorContext,
         &Prefixes,
         &Triples,
         &Label,
         &DocumentLinks,
-        &RopeC,
         &DynLang,
         &mut CompletionRequest,
     )>,
@@ -375,21 +348,20 @@ pub fn shape_property_completions(
     if local.is_disabled(Disabled::CompletionProperty) || local.is_disabled(Disabled::Shapes) {
         return;
     }
-    for (token, triple, pos, prefixes, triples, label, links, rope, lang, mut request) in &mut query
-    {
-        if !template::at_predicate(triple, token) {
+    for (cursor, prefixes, triples, label, links, lang, mut request) in &mut query {
+        if !cursor.at_predicate() {
             continue;
         }
+        let Some(subject) = cursor.subject.as_ref() else {
+            continue;
+        };
         let (docs, shape_prefixes) = visible_shapes(&shapes, label, links);
         if docs.is_empty() {
             continue;
         }
         let graph = ShapeGraph::new(docs);
-        let names = Names {
-            document: prefixes,
-            shapes: shape_prefixes,
-        };
-        let focus = Focus::new(&triple.triple.subject, &triples.0, &hierarchy);
+        let names = Names::new(prefixes, shape_prefixes);
+        let focus = Focus::new(subject, &triples.0, &hierarchy);
         let per_predicate = docs_per_predicate(&graph, &focus, &names);
         if per_predicate.is_empty() {
             continue;
@@ -426,28 +398,21 @@ pub fn shape_property_completions(
         }
 
         // Predicates only the shapes know about.
-        let typed = lang.unquote(&token.text);
-        let (range, leading_space) = template::predicate_range(token, pos.0, rope);
+        let typed = lang.unquote(&cursor.typed);
         for (i, (path, docs, required)) in per_predicate.iter().enumerate() {
-            if documented[i] || focus_has(&triple.triple.subject, &triples.0, path) {
+            if documented[i] || focus_has(subject, &triples.0, path) {
                 continue;
             }
-            let short = prefixes
-                .shorten(path)
-                .unwrap_or_else(|| format!("<{}>", path));
-            if range == token.range && !short.starts_with(typed) {
+            let short = lang.write_iri(prefixes, path);
+            if !short.starts_with(typed) {
                 continue;
             }
             let mut item = SimpleCompletion::new(
                 CompletionItemKind::FIELD,
                 short.clone(),
                 TextEdit {
-                    range,
-                    new_text: format!(
-                        "{}{}",
-                        if leading_space { " " } else { "" },
-                        lang.quote(&short)
-                    ),
+                    range: cursor.range,
+                    new_text: cursor.spaced(&lang.quote(&short)),
                 },
             )
             .documentation(docs.join("\n\n---\n\n"))
