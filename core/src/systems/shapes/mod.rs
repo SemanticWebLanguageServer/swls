@@ -51,7 +51,11 @@ pub fn derive_shapes(
 }
 
 /// System evaluates linked shapes
-#[instrument(skip(query, other, client, res))]
+///
+/// Validates open documents whose triples changed, and every open document when
+/// shapes were added or changed: shapes usually arrive in the background (LOV,
+/// `owl:imports`, configured shapes), after the document was opened.
+#[instrument(skip(query, other, changed_shapes, client, res))]
 pub fn validate_shapes(
     query: Query<
         (
@@ -60,20 +64,26 @@ pub fn validate_shapes(
             &DocumentLinks,
             &Wrapped<TextDocumentItem>,
             &Prefixes,
-            &Triples,
+            Ref<Triples>,
             &DynLang,
         ),
-        (Changed<Triples>, With<Open>),
+        With<Open>,
     >,
     other: Query<(&Label, &ShaclShapes, Option<&Global>, &Triples)>,
+    changed_shapes: Query<(), Changed<ShaclShapes>>,
     mut client: ResMut<DiagnosticPublisher>,
     res: Res<ServerConfig>,
 ) {
     if res.config.local.disabled.contains(&Disabled::Shapes) {
         return;
     }
+    let shapes_changed = !changed_shapes.is_empty();
 
     for (rope, label, links, item, prefixes, triples, lang) in &query {
+        if !shapes_changed && !triples.is_changed() {
+            continue;
+        }
+        let triples: &Triples = &triples;
         if !lang.supports_shape_validation() {
             continue;
         }
@@ -87,10 +97,7 @@ pub fn validate_shapes(
 
         for (other_label, schema, global, shape_triples) in &other {
             if global.is_none()
-                && links
-                    .iter()
-                    .find(|link| link.0.as_str().starts_with(other_label.0.as_str()))
-                    .is_none()
+                && links.iter().find(|link| link.0 == other_label.0).is_none()
                 && label.0 != other_label.0
             {
                 continue;

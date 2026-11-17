@@ -38,7 +38,10 @@ mod system {
     use goto_definition::GotoDefinitionRequest;
     use sophia_api::{quad::Quad as _, term::TermKind};
 
-    use crate::{prelude::*, util::token_to_location};
+    use crate::{
+        prelude::*,
+        util::{ns::owl, token_to_location},
+    };
 
     pub fn goto_definition(
         mut query: Query<(
@@ -50,6 +53,7 @@ mod system {
             &mut GotoDefinitionRequest,
         )>,
         project: Query<(&Triples, &RopeC, &Label)>,
+        fs: Res<Fs>,
     ) {
         for (triple, triples, label, rope, pos, mut req) in &mut query {
             let target = triple.kind();
@@ -65,6 +69,23 @@ mod system {
             }
 
             tracing::debug!("kind {:?}", target);
+
+            // `owl:imports <iri>`: jump to the imported document.
+            if target == TermKind::Iri
+                && triple.target == TripleTarget::Object
+                && triple.triple.p().value == owl::imports.iriref().as_str()
+            {
+                let imported = crate::lsp_types::Url::parse(&term.value)
+                    .ok()
+                    .and_then(|iri| crate::systems::import_url(&fs, &iri));
+                if let Some(uri) = imported {
+                    req.0.push(crate::lsp_types::Location {
+                        uri,
+                        range: Default::default(),
+                    });
+                }
+            }
+
             if target == TermKind::Iri {
                 for (triples, rope, label) in &project {
                     tracing::debug!("Looking into buffer {}", label.as_str());

@@ -9,7 +9,7 @@ use sophia_api::{
 };
 use tracing::{debug, error, span};
 
-use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix};
+use super::setup::{namespace_sources, ConfiguredOntology, FromPrefix, PreferredPrefixes};
 use crate::{
     lsp_types::{TextDocumentItem, Url},
     prelude::*,
@@ -64,45 +64,6 @@ async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> 
     }
 }
 
-pub fn open_imports<C: Client + Resource>(
-    query: Query<(&Triples, &RopeC), Changed<Triples>>,
-    mut opened: Local<HashSet<String>>,
-    sender: Res<CommandSender>,
-    fs: Res<Fs>,
-    client: Res<C>,
-) {
-    for (triples, _) in &query {
-        for object in triples
-            .quads_matching(Any, [owl::imports], Any, Any)
-            .flatten()
-            .flat_map(|s| s.o().iri())
-            .flat_map(|s| Url::parse(s.as_str()))
-        {
-            if opened.contains(object.as_str()) {
-                continue;
-            }
-            opened.insert(object.as_str().to_string());
-
-            let fs = fs.clone();
-            let sender = sender.clone();
-            let fut = async move {
-                if let Some(content) = fs.0.read_file(&object).await {
-                    spawn_document(object, content, &sender.0, |_, _| {});
-
-                    let mut command_queue = CommandQueue::default();
-                    command_queue.push(move |world: &mut World| {
-                        world.run_schedule(SaveLabel);
-                    });
-                    let _ = sender.unbounded_send(command_queue);
-                } else {
-                    tracing::warn!("No content found for {}", object);
-                }
-            };
-            client.spawn(fut);
-        }
-    }
-}
-
 /// Load the ontology documents for every prefix used in an open document.
 ///
 /// Which documents are loaded, and under which label, is decided by
@@ -118,6 +79,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     all_open: Query<&Prefixes, With<Open>>,
     new_configured: Query<(), Added<ConfiguredOntology>>,
     locals: Query<(&swls_lov::LocalPrefix, Option<&ConfiguredOntology>)>,
+    preferred: Res<PreferredPrefixes>,
     mut loaded: Local<HashSet<String>>,
     client: Res<C>,
     fs: Res<Fs>,
@@ -130,7 +92,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
     for prefs in prefixes {
         for prefix in prefs.0.iter() {
-            for source in namespace_sources(&fs, prefix.url.as_str(), &prefix.prefix, &locals) {
+            for source in namespace_sources(
+                &fs,
+                prefix.url.as_str(),
+                &prefix.prefix,
+                &preferred,
+                &locals,
+            ) {
                 if !loaded.insert(source.url.to_string()) {
                     continue;
                 }
@@ -159,7 +127,12 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                             prefix.prefix,
                             prefix.url.as_str()
                         );
-                        client.spawn(fetch_lov(prefix.clone(), source.url, c, sender, fs.clone()));
+                        // Fetch by the vocabulary's preferred name, not the typed one.
+                        let canonical = Prefix {
+                            prefix: source.prefix.clone(),
+                            url: prefix.url.clone(),
+                        };
+                        client.spawn(fetch_lov(canonical, source.url, c, sender, fs.clone()));
                     }
                 }
             }
@@ -169,9 +142,15 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
 type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
 
+/// Load a background document with `content` at `url` and parse it.
+///
+/// `language` is the language id. Pass `None` to let the file extension of
+/// `url` decide: a document matches every language whose id *or* extension
+/// matches, so forcing `turtle` on a `.jsonld` URL would give it both.
 pub fn spawn_document(
     url: Url,
     content: String,
+    language: Option<String>,
     sender: &Sender,
     extra: impl FnOnce(Entity, &mut World) -> () + Send + Sync + 'static,
 ) {
@@ -179,7 +158,7 @@ pub fn spawn_document(
     let item = TextDocumentItem {
         version: 1,
         uri: url.clone(),
-        language_id: String::from("turtle"),
+        language_id: language.clone().unwrap_or_default(),
         text: String::new(),
     };
 
@@ -192,7 +171,7 @@ pub fn spawn_document(
             Wrapped(item),
             Types(HashMap::new()),
         ),
-        Some("turtle".into()),
+        language,
         (),
     );
 
@@ -274,12 +253,30 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     if prefix.prefix.to_ascii_lowercase() != prefix.prefix {
         return;
     }
-    let body = cache::cached(&fs, &label, || {
-        fetch_lov_body(&prefix.prefix, prefix.url.as_str(), c)
+    let namespace = prefix.url.as_str();
+    let body = cache::cached(&fs, &label, || async {
+        let body = fetch_lov_body(&prefix.prefix, namespace, c).await?;
+        // LOV is queried by name, so make sure the vocabulary we got actually
+        // describes this namespace before caching and loading it.
+        if !mentions_namespace(&body, namespace) {
+            tracing::warn!(
+                "LOV vocabulary {} does not describe {}, ignoring it",
+                prefix.prefix,
+                namespace
+            );
+            return None;
+        }
+        Some(body)
     })
     .await;
     if let Some(body) = body {
-        spawn_document(label, body, &sender, extra_from_lov(FromPrefix(prefix)));
+        spawn_document(
+            label,
+            body,
+            Some("turtle".into()),
+            &sender,
+            extra_from_lov(FromPrefix(prefix)),
+        );
     }
 }
 
@@ -326,5 +323,40 @@ async fn local_lov<C: Client + Resource>(
         url: namespace,
     });
 
-    spawn_document(label, content, &sender, extra_from_lov(from));
+    spawn_document(
+        label,
+        content,
+        Some("turtle".into()),
+        &sender,
+        extra_from_lov(from),
+    );
+}
+
+/// Whether `body` mentions `namespace`, also accepting the other of `http` and
+/// `https` (many vocabularies are declared with one and used with the other).
+fn mentions_namespace(body: &str, namespace: &str) -> bool {
+    if body.contains(namespace) {
+        return true;
+    }
+    let swapped = if let Some(rest) = namespace.strip_prefix("https://") {
+        format!("http://{rest}")
+    } else if let Some(rest) = namespace.strip_prefix("http://") {
+        format!("https://{rest}")
+    } else {
+        return false;
+    };
+    body.contains(&swapped)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mentions_namespace;
+
+    #[test]
+    fn namespace_check_accepts_either_scheme() {
+        let body = "@prefix schema: <http://schema.org/> .";
+        assert!(mentions_namespace(body, "http://schema.org/"));
+        assert!(mentions_namespace(body, "https://schema.org/"));
+        assert!(!mentions_namespace(body, "http://xmlns.com/foaf/0.1/"));
+    }
 }
