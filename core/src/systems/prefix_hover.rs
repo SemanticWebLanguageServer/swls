@@ -147,7 +147,7 @@ pub fn hover_prefix(
 
         req.0.push(md);
         if req.1.is_none() {
-            req.1 = Some(prefix.range.clone());
+            req.1 = Some(prefix.range);
         }
     }
 }
@@ -170,7 +170,7 @@ pub fn goto_prefix(
         // lands on the file(s) the server loads for this prefix: one location per
         // configured ontology when several describe the namespace.
         let mut targets: Vec<Url> =
-            namespace_sources(&fs, &prefix.namespace, &prefix.name, &preferred, &locals)
+            namespace_sources(&fs, &prefix.namespace, &prefix.name, &preferred, locals)
                 .into_iter()
                 .map(|s| s.url)
                 .collect();

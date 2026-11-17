@@ -142,6 +142,36 @@ fn parse_n3_system(
     }
 }
 
+pub(crate) fn format_n3_system(
+    mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<N3Lang>>,
+    config: Res<ServerConfig>,
+) {
+    use swls_core::lsp_types::{Position, Range};
+    if !config.config.local.format.n3() {
+        tracing::debug!("N3 formatting disabled by config");
+        return;
+    }
+    for (source, node, mut request) in &mut query {
+        if request.0.is_some() {
+            tracing::debug!("Didn't format with the n3 format system, already formatted");
+            continue;
+        }
+        tracing::debug!("Formatting with n3 format system");
+
+        let root = rowan::SyntaxNode::new_root(node.0.clone());
+
+        let formatted = rdf_parsers::n3::format::format(&root, 80);
+
+        request.0 = Some(vec![swls_core::lsp_types::TextEdit::new(
+            Range::new(
+                Position::new(0, 0),
+                Position::new(source.0.len_lines() as u32 + 1, 0),
+            ),
+            formatted,
+        )]);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -217,7 +247,7 @@ mod tests {
         world.run_schedule(ParseLabel);
 
         let mut messages: Vec<String> = Vec::new();
-        while let Ok(Some(item)) = rx.try_next() {
+        while let Ok(item) = rx.try_recv() {
             for d in item.diagnostics {
                 messages.push(d.message);
             }
@@ -251,35 +281,5 @@ mod tests {
             formatted.as_deref(),
             Some("@prefix ex: <http://ex/>.\n\n{ ?x ex:parent ?y } => { ?x ex:child ?y }.\n\nex:a ex:p ex:b;\n  ex:q ex:c.\n")
         );
-    }
-}
-
-pub(crate) fn format_n3_system(
-    mut query: Query<(&RopeC, &Wrapped<GreenNode>, &mut FormatRequest), With<N3Lang>>,
-    config: Res<ServerConfig>,
-) {
-    use swls_core::lsp_types::{Position, Range};
-    if !config.config.local.format.n3() {
-        tracing::debug!("N3 formatting disabled by config");
-        return;
-    }
-    for (source, node, mut request) in &mut query {
-        if request.0.is_some() {
-            tracing::debug!("Didn't format with the n3 format system, already formatted");
-            continue;
-        }
-        tracing::debug!("Formatting with n3 format system");
-
-        let root = rowan::SyntaxNode::new_root(node.0.clone());
-
-        let formatted = rdf_parsers::n3::format::format(&root, 80);
-
-        request.0 = Some(vec![swls_core::lsp_types::TextEdit::new(
-            Range::new(
-                Position::new(0, 0),
-                Position::new(source.0.len_lines() as u32 + 1, 0),
-            ),
-            formatted,
-        )]);
     }
 }

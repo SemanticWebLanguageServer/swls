@@ -57,6 +57,12 @@ where
     }
 }
 
+impl Default for TracingLayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TracingLayer {
     pub fn new() -> Self {
         let (sender, mut receiver) = mpsc::channel(100);

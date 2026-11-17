@@ -87,13 +87,9 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
     for prefs in prefixes {
         for prefix in prefs.0.iter() {
-            for source in namespace_sources(
-                &fs,
-                prefix.url.as_str(),
-                &prefix.prefix,
-                &preferred,
-                &locals,
-            ) {
+            for source in
+                namespace_sources(&fs, prefix.url.as_str(), &prefix.prefix, &preferred, locals)
+            {
                 if !loaded.insert(source.url.to_string()) {
                     continue;
                 }
@@ -147,7 +143,7 @@ pub fn spawn_document(
     content: String,
     language: Option<String>,
     sender: &Sender,
-    extra: impl FnOnce(Entity, &mut World) -> () + Send + Sync + 'static,
+    extra: impl FnOnce(Entity, &mut World) + Send + Sync + 'static,
 ) {
     let mut command_queue = CommandQueue::default();
     let item = TextDocumentItem {
@@ -226,7 +222,7 @@ pub(super) async fn fetch_lov_body<C: Client + Resource>(
 
     // Fall back to the LOV API: fetch vocabulary info to find the latest file URL.
     if namespace.ends_with('#') || namespace.ends_with('/') {
-        if let Some(url) = extract_file_url(&prefix, &c).await {
+        if let Some(url) = extract_file_url(prefix, &c).await {
             match c.fetch(&url, &std::collections::HashMap::new()).await {
                 Ok(resp) if resp.status == 200 => return Some(resp.body),
                 Ok(resp) => {

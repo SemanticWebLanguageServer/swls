@@ -51,7 +51,7 @@ pub fn test_syntax(location: &str, is_positive: bool) {
                 "Failed to parse turtle\n{}\n\nErrors {:?}",
                 turtle_source, errors
             );
-            assert!(false, "Parsing failed, and shouldn't have failed");
+            panic!("Parsing failed, and shouldn't have failed");
         }
     } else {
         if errors.is_empty() && turtle.is_some() && defined_prefixes {
@@ -60,7 +60,7 @@ pub fn test_syntax(location: &str, is_positive: bool) {
                 turtle_source
             );
 
-            assert!(false, "Parsing succeeded, and should have failed");
+            panic!("Parsing succeeded, and should have failed");
         }
     }
 }

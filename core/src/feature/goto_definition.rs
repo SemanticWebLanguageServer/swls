@@ -92,23 +92,23 @@ mod system {
                     let subs: HashSet<_> = triples
                         .iter()
                         .map(|x| x.s())
-                        .filter(|x| &x.value == &term.value)
+                        .filter(|x| x.value == term.value)
                         .collect();
 
                     req.0.extend(
                         subs.into_iter()
-                            .flat_map(|t| token_to_location(&t.span, label, &rope)),
+                            .flat_map(|t| token_to_location(&t.span, label, rope)),
                     );
                 }
             } else if target == TermKind::BlankNode {
                 let subs: HashSet<_> = triples
                     .iter()
                     .map(|x| x.s())
-                    .filter(|x| &x.value == &term.value)
+                    .filter(|x| x.value == term.value)
                     .collect();
                 req.0.extend(
                     subs.into_iter()
-                        .flat_map(|t| token_to_location(&t.span, label, &rope)),
+                        .flat_map(|t| token_to_location(&t.span, label, rope)),
                 );
             }
         }

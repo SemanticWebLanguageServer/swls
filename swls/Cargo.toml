@@ -36,3 +36,6 @@ default = ["tower-lsp/runtime-tokio"]
 
 [build-dependencies]
 vergen = { version = "8", default-features = false, features = ["build"] }
+
+[lints]
+workspace = true

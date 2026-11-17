@@ -23,3 +23,6 @@ swls-test-utils    = { path = "../test-utils/" }
 
 [dev-dependencies]
 test-log = { version = "0.2.19", features = ["trace"] }
+
+[lints]
+workspace = true

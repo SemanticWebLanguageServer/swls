@@ -35,3 +35,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = tr
 anyhow = { version = "1", optional = true }
 rdf-parsers.workspace = true
 url = "2"
+
+[lints]
+workspace = true

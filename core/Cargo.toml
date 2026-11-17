@@ -63,3 +63,6 @@ mie = { version = "=0.2.9", default-features = false }
 [package.metadata.cargo-machete]
 # Intentionally-unused version pins (see sparql_service / mie above).
 ignored = ["sparql_service", "mie"]
+
+[lints]
+workspace = true

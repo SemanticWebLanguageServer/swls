@@ -429,7 +429,7 @@ pub(crate) fn merge(into: &mut Vec<Property>, p: Property) {
 }
 
 pub(crate) fn local_name(iri: &str) -> &str {
-    iri.rsplit(|c| c == '#' || c == '/' || c == ':')
+    iri.rsplit(['#', '/', ':'])
         .find(|s| !s.is_empty())
         .unwrap_or(iri)
 }

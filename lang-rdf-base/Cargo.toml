@@ -16,3 +16,6 @@ bevy_ecs.workspace = true
 tracing.workspace = true
 swls-core = { workspace = true }
 rdf-parsers.workspace = true
+
+[lints]
+workspace = true

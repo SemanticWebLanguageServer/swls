@@ -65,3 +65,8 @@ members = [
 resolver = "2"
 exclude = ["turtle"]
 
+[workspace.lints.clippy]
+# Bevy systems take their data as parameters, so system signatures naturally
+# have many parameters and nested `Query<(…), (…)>` types.
+type_complexity = "allow"
+too_many_arguments = "allow"

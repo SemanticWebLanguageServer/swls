@@ -34,6 +34,12 @@ pub struct ConfigRegistry {
     pub configs: Vec<ConfigInstance>,
 }
 
+impl Default for ConfigRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConfigRegistry {
     pub fn new() -> Self {
         Self {

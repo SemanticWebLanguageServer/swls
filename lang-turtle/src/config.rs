@@ -15,7 +15,9 @@ pub fn extract_known_shapes_from_config<C: Client + ClientSync + Resource + Clon
     fs: Res<Fs>,
     sender: Res<CommandSender>,
 ) {
-    for on in config.config.local.shapes.iter().cloned() {
+    for on in config.config.local.shapes.iter() {
+        // Owned: it moves into the spawned future.
+        let on = on.clone();
         let c = client.clone();
         let fs = fs.clone();
         let sender = sender.0.clone();
@@ -69,7 +71,9 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
     fs: Res<Fs>,
     sender: Res<CommandSender>,
 ) {
-    for on in config.config.local.ontologies.iter().cloned() {
+    for on in config.config.local.ontologies.iter() {
+        // Owned: it moves into the spawned future.
+        let on = on.clone();
         let c = client.clone();
         let fs = fs.clone();
         let sender = sender.0.clone();

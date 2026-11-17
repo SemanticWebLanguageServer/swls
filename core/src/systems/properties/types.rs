@@ -149,7 +149,7 @@ impl DefinedProperty {
                     docs += ", "
                 }
                 first = false;
-                docs += range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str());
+                docs += range.as_deref().unwrap_or(r.as_str());
             }
         }
 
@@ -165,7 +165,7 @@ impl DefinedProperty {
                     docs += ", "
                 }
                 first = false;
-                docs += range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str());
+                docs += range.as_deref().unwrap_or(r.as_str());
             }
         }
 

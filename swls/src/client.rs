@@ -32,6 +32,12 @@ pub type Job = Box<dyn FnOnce() -> LocalFuture + Send>;
 /// file and editors warn before a cached copy is edited.
 #[derive(Debug)]
 pub struct BinFs(PathBuf);
+impl Default for BinFs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BinFs {
     pub fn new() -> Self {
         let root = dirs::cache_dir()
@@ -150,14 +156,14 @@ impl FsTrait for BinFs {
         Some(entries)
     }
     async fn is_file(&self, path: &Url) -> bool {
-        if let Some(p) = path.to_file_path().ok() {
+        if let Ok(p) = path.to_file_path() {
             p.is_file()
         } else {
             !path.as_str().ends_with('/')
         }
     }
     async fn is_dir(&self, path: &Url) -> bool {
-        if let Some(p) = path.to_file_path().ok() {
+        if let Ok(p) = path.to_file_path() {
             p.is_dir()
         } else {
             !path.as_str().ends_with('/')
@@ -229,10 +235,10 @@ impl ClientSync for TowerClient {
         let client = ::reqwest::Client::new();
         let builder = client.get(url);
         let builder = headers
-            .into_iter()
+            .iter()
             .fold(builder, |builder, (k, v)| builder.header(k, v));
 
-        return async {
+        async {
             let url = m_url.map_err(|_| String::from("invalid url!"))?;
             if url.scheme() == "file" {
                 let mut file = File::open(url.path())
@@ -241,7 +247,7 @@ impl ClientSync for TowerClient {
                 let mut body = String::new();
                 file.read_to_string(&mut body)
                     .await
-                    .map_err(|_| format!("Failed to read file"))?;
+                    .map_err(|_| "Failed to read file".to_string())?;
                 let status = 200;
                 let headers = Vec::new();
                 return Ok(Resp {
@@ -279,7 +285,7 @@ impl ClientSync for TowerClient {
                 status,
             })
         }
-        .boxed();
+        .boxed()
     }
 
     fn spawn_local<F, Fut>(&self, f: F)

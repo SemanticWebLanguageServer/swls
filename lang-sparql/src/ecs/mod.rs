@@ -249,7 +249,7 @@ pub fn variable_completion(
                     CompletionItemKind::VARIABLE,
                     t.clone(),
                     swls_core::lsp_types::TextEdit {
-                        range: token.range.clone(),
+                        range: token.range,
                         new_text: t,
                     },
                 );

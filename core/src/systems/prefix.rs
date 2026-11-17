@@ -11,7 +11,7 @@ use crate::{
     systems::PrefixEntry,
 };
 
-pub const PREFIX_CC: &'static str = include_str!("./prefix_cc.txt");
+pub const PREFIX_CC: &str = include_str!("./prefix_cc.txt");
 
 /// One defined prefix, maps prefix name to URL.
 #[derive(Debug, Clone)]
@@ -111,81 +111,6 @@ pub fn is_local_name(local: &str) -> bool {
     !local.ends_with('.')
 }
 
-#[cfg(test)]
-mod shorten_tests {
-    use super::*;
-
-    fn prefixes(decls: &[(&str, &str)]) -> Prefixes {
-        Prefixes(
-            decls
-                .iter()
-                .map(|(p, u)| Prefix {
-                    prefix: p.to_string(),
-                    url: crate::lsp_types::Url::parse(u).unwrap(),
-                })
-                .collect(),
-            crate::lsp_types::Url::parse("file:///doc.ttl").unwrap(),
-        )
-    }
-
-    #[test]
-    fn local_names() {
-        for ok in [
-            "",
-            "name",
-            "Name_1",
-            "a.b",
-            "1abc",
-            "a:b",
-            "caf\u{e9}",
-            "a%20b",
-            "a-b",
-        ] {
-            assert!(is_local_name(ok), "{ok:?} should be valid");
-        }
-        for bad in [
-            "a/b", "a#b", "a.", "-a", ".a", "a b", "a?b", "a%2", "a~b", "a,b",
-        ] {
-            assert!(!is_local_name(bad), "{bad:?} should be invalid");
-        }
-    }
-
-    #[test]
-    fn shorten_only_to_valid_prefixed_names() {
-        let p = prefixes(&[("rml", "http://w3id.org/rml/")]);
-        assert_eq!(
-            p.shorten("http://w3id.org/rml/TriplesMap").as_deref(),
-            Some("rml:TriplesMap")
-        );
-        assert_eq!(p.shorten("http://w3id.org/rml/shapes/X"), None);
-        assert_eq!(
-            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
-            Some("rml:shapes/X")
-        );
-        assert_eq!(p.shorten("http://other.test/x"), None);
-    }
-
-    #[test]
-    fn longest_namespace_wins() {
-        let p = prefixes(&[
-            ("rml", "http://w3id.org/rml/"),
-            ("rmlsh", "http://w3id.org/rml/shapes/"),
-        ]);
-        assert_eq!(
-            p.shorten("http://w3id.org/rml/shapes/X").as_deref(),
-            Some("rmlsh:X")
-        );
-        assert_eq!(
-            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
-            Some("rmlsh:X")
-        );
-        assert_eq!(
-            p.shorten("http://w3id.org/rml/source").as_deref(),
-            Some("rml:source")
-        );
-    }
-}
-
 enum PrefixLike<'a> {
     Prefix(&'a Prefix),
     Local(&'a LocalPrefix),
@@ -215,7 +140,7 @@ impl PrefixLike<'_> {
         let nt = format!("{}:$0", name);
         let mut completion = SimpleCompletion::new(
             CompletionItemKind::MODULE,
-            format!("{}", name),
+            name.to_string(),
             crate::lsp_types::TextEdit {
                 new_text: lang.quote(&nt),
                 range,
@@ -257,7 +182,7 @@ impl PrefixLike<'_> {
 
 pub fn prefix_completion_helper<'a>(
     word: &TokenComponent,
-    prefixes: &Prefixes,
+    prefixes: &'a Prefixes,
     completions: &mut Vec<SimpleCompletion>,
     mut extra_edits: impl FnMut(&str, &str) -> Option<Vec<TextEdit>>,
     lovs: impl Iterator<Item = &'a LocalPrefix>,
@@ -269,8 +194,8 @@ pub fn prefix_completion_helper<'a>(
     tracing::debug!("completion helper {:?}", word);
 
     completions.extend(
-        lovs.map(|x| PrefixLike::Local(&x))
-            .chain(prefix_cc.map(|x| PrefixLike::Entry(x)))
+        lovs.map(PrefixLike::Local)
+            .chain(prefix_cc.map(PrefixLike::Entry))
             .chain(prefixes.iter().map(PrefixLike::Prefix))
             .filter(|p| p.name().starts_with(text))
             .filter(|p| p.namespace().ends_with('#') || p.namespace().ends_with('/'))
@@ -279,11 +204,8 @@ pub fn prefix_completion_helper<'a>(
                     return None;
                 }
 
-                let completion = lov.as_completion(
-                    lang,
-                    word.range.clone(),
-                    extra_edits(&lov.name(), &lov.namespace()),
-                );
+                let completion =
+                    lov.as_completion(lang, word.range, extra_edits(lov.name(), lov.namespace()));
 
                 suggested.insert(lov.name().to_string());
                 Some(completion)
@@ -405,6 +327,81 @@ pub fn rdf_lov_undefined_prefix_completion(
             lovs.iter(),
             prefix_cc.iter(),
             lang,
+        );
+    }
+}
+
+#[cfg(test)]
+mod shorten_tests {
+    use super::*;
+
+    fn prefixes(decls: &[(&str, &str)]) -> Prefixes {
+        Prefixes(
+            decls
+                .iter()
+                .map(|(p, u)| Prefix {
+                    prefix: p.to_string(),
+                    url: crate::lsp_types::Url::parse(u).unwrap(),
+                })
+                .collect(),
+            crate::lsp_types::Url::parse("file:///doc.ttl").unwrap(),
+        )
+    }
+
+    #[test]
+    fn local_names() {
+        for ok in [
+            "",
+            "name",
+            "Name_1",
+            "a.b",
+            "1abc",
+            "a:b",
+            "caf\u{e9}",
+            "a%20b",
+            "a-b",
+        ] {
+            assert!(is_local_name(ok), "{ok:?} should be valid");
+        }
+        for bad in [
+            "a/b", "a#b", "a.", "-a", ".a", "a b", "a?b", "a%2", "a~b", "a,b",
+        ] {
+            assert!(!is_local_name(bad), "{bad:?} should be invalid");
+        }
+    }
+
+    #[test]
+    fn shorten_only_to_valid_prefixed_names() {
+        let p = prefixes(&[("rml", "http://w3id.org/rml/")]);
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/TriplesMap").as_deref(),
+            Some("rml:TriplesMap")
+        );
+        assert_eq!(p.shorten("http://w3id.org/rml/shapes/X"), None);
+        assert_eq!(
+            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rml:shapes/X")
+        );
+        assert_eq!(p.shorten("http://other.test/x"), None);
+    }
+
+    #[test]
+    fn longest_namespace_wins() {
+        let p = prefixes(&[
+            ("rml", "http://w3id.org/rml/"),
+            ("rmlsh", "http://w3id.org/rml/shapes/"),
+        ]);
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rmlsh:X")
+        );
+        assert_eq!(
+            p.shorten_compact("http://w3id.org/rml/shapes/X").as_deref(),
+            Some("rmlsh:X")
+        );
+        assert_eq!(
+            p.shorten("http://w3id.org/rml/source").as_deref(),
+            Some("rml:source")
         );
     }
 }

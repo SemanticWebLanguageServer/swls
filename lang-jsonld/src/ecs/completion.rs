@@ -210,14 +210,14 @@ pub fn add_to_context(
 
 // ── prefix completion ─────────────────────────────────────────────────────────
 
-/// JSON-LD prefix completion from LOV / prefix.cc.
-///
-/// Suggests prefixes that are not yet declared in the document's `@context` and
-/// produces an additional [`TextEdit`] via [`add_to_context`] that inserts the
-/// new prefix declaration into the `@context` value.
-///
-/// Uses [`DynLang::quote`] so the inserted predicate text is correctly wrapped
-/// in JSON string quotes (e.g. `"foaf:"`).
+// JSON-LD prefix completion from LOV / prefix.cc.
+//
+// Suggests prefixes that are not yet declared in the document's `@context` and
+// produces an additional `TextEdit` via `add_to_context` that inserts the
+// new prefix declaration into the `@context` value.
+//
+// Uses `DynLang::quote` so the inserted predicate text is correctly wrapped
+// in JSON string quotes (e.g. `"foaf:"`).
 // #[instrument(skip(query, lovs, prefix_cc, config))]
 // pub fn jsonld_lov_undefined_prefix_completion(
 //     mut query: Query<
@@ -418,7 +418,7 @@ pub fn jsonld_property_completion(
                     CompletionItemKind::FIELD,
                     compact.clone(),
                     TextEdit {
-                        range: token.range.clone(),
+                        range: token.range,
                         new_text: format!("\"{}\"", compact),
                     },
                 );

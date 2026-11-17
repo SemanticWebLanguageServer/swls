@@ -9,5 +9,7 @@ use swls_core::prelude::MyQuad;
 /// The implementation must be in a crate that owns either this trait or the element type.
 pub trait IntoTriples {
     type Error: Debug;
+    // Public API used across crates; renaming it is out of scope for lint cleanup.
+    #[allow(clippy::wrong_self_convention)]
     fn into_triples(&self) -> Result<Vec<MyQuad<'static>>, Self::Error>;
 }

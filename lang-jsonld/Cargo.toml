@@ -29,3 +29,6 @@ oxigraph               = { version = "0.5.3", features = ["rdf-12"], default-fea
 [dev-dependencies]
 test-log        = { version = "0.2.19", features = ["trace"] }
 swls-test-utils = { path = "../test-utils/" }
+
+[lints]
+workspace = true

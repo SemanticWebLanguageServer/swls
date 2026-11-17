@@ -95,6 +95,12 @@ impl TermMatcher for LocalMatcher<'_> {
     }
 }
 
+impl Default for OntologyExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OntologyExtractor {
     pub fn new() -> Self {
         Self {
@@ -110,18 +116,18 @@ impl OntologyExtractor {
         }
     }
 
-    pub fn properties<'a>(&'a self) -> &'a [MyTerm<'static>] {
+    pub fn properties(&self) -> &[MyTerm<'static>] {
         &self.properties[..]
     }
 
-    pub fn classes<'a>(&'a self) -> &'a [MyTerm<'static>] {
+    pub fn classes(&self) -> &[MyTerm<'static>] {
         &self.classes[..]
     }
 
     fn extract_step(quads: &Vec<MyQuad<'static>>, items: &mut Vec<MyTerm<'static>>) -> bool {
         let new_items: Vec<_> = quads
             .quads_matching(
-                LocalMatcher { properties: &items },
+                LocalMatcher { properties: items },
                 [rdfs::subClassOf],
                 &items[..],
                 Any,

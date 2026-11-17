@@ -131,7 +131,7 @@ pub fn prefix_diagnostic_helper<'a>(
         let mut diags_by_prefix: HashMap<&str, Vec<Diagnostic>> = HashMap::new();
         for (prefix_name, range) in &undefined_occurrences {
             let diag = Diagnostic {
-                range: range.clone(),
+                range: *range,
                 severity: Some(DiagnosticSeverity::ERROR),
                 message: format!("Undefined prefix \"{}\"", prefix_name),
                 ..Default::default()
