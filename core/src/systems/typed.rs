@@ -18,7 +18,9 @@ pub struct TypeId(pub usize);
 pub fn extract_type_hierarchy(
     query: Query<&Triples, (Changed<Triples>, Without<Dirty>)>,
     mut hierarchy: ResMut<TypeHierarchy>,
+    mut revisions: ResMut<Revisions>,
 ) {
+    let before = hierarchy.size();
     for triples in &query {
         let class_terms = triples
             .quads_matching(Any, [rdf::type_], [rdfs::Class], Any)
@@ -52,14 +54,32 @@ pub fn extract_type_hierarchy(
             }
         }
     }
+    if hierarchy.size() != before {
+        revisions.hierarchy += 1;
+    }
 }
 
+/// Infer the types of the subjects of open documents, from `rdf:type` and the
+/// domains and ranges of the properties they use.
+///
+/// Reruns for a document when its triples change, and for every open document
+/// when the ontologies or the class hierarchy change (see [`Revisions`]).
 pub fn infer_types(
-    mut query: Query<(&Triples, &mut Types), (Changed<Triples>, With<Open>)>,
+    mut query: Query<(Ref<Triples>, &mut Types), With<Open>>,
     hierarchy: Res<TypeHierarchy>,
     ontologies: Res<Ontologies>,
+    revisions: Res<Revisions>,
+    mut seen_ontologies: Local<Seen>,
+    mut seen_hierarchy: Local<Seen>,
 ) {
+    let ontologies_changed = seen_ontologies.update(revisions.ontologies);
+    let hierarchy_changed = seen_hierarchy.update(revisions.hierarchy);
+    let all = ontologies_changed || hierarchy_changed;
     for (triples, mut types) in &mut query {
+        if !all && !triples.is_changed() {
+            continue;
+        }
+        let triples: &Triples = &triples;
         types.clear();
 
         for t in triples

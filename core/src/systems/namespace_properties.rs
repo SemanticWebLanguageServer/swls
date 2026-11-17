@@ -72,12 +72,19 @@ fn unknown_namespace_properties(
 
 /// ECS system (ParseLabel): publish warnings for predicates in closed namespaces
 /// that are not defined in any known ontology.
+///
+/// Runs for open documents whose triples changed, and for every open document
+/// when the known ontologies ([`Revisions::ontologies`]) or the configuration
+/// changed.
 pub fn validate_namespace_properties(
-    query: Query<(&Triples, &RopeC, &Wrapped<TextDocumentItem>), With<Open>>,
+    query: Query<(Ref<Triples>, &RopeC, &Wrapped<TextDocumentItem>), With<Open>>,
     ontologies: Res<Ontologies>,
     config: Res<ServerConfig>,
+    revisions: Res<Revisions>,
+    mut seen: Local<Seen>,
     mut client: ResMut<DiagnosticPublisher>,
 ) {
+    let all = seen.update(revisions.ontologies) || config.is_changed();
     let closed = &config.config.local.closed_namespaces;
     let allowed = &config.config.local.allowed_properties;
     let disabled = config
@@ -86,8 +93,11 @@ pub fn validate_namespace_properties(
         .is_disabled(Disabled::NamespaceProperties);
 
     for (triples, rope, item) in &query {
+        if !all && !triples.is_changed() {
+            continue;
+        }
         let violations =
-            unknown_namespace_properties(triples, rope, &ontologies, closed, allowed, disabled);
+            unknown_namespace_properties(&triples, rope, &ontologies, closed, allowed, disabled);
 
         let diagnostics: Vec<Diagnostic> = violations
             .into_iter()

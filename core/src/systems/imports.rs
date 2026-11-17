@@ -14,7 +14,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use bevy_ecs::{prelude::*, world::CommandQueue};
+use bevy_ecs::prelude::*;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad as _,
@@ -22,7 +22,6 @@ use sophia_api::{
 };
 
 use crate::{
-    feature::save::Label as SaveLabel,
     lsp_types::Url,
     prelude::*,
     systems::spawn_document,
@@ -150,13 +149,9 @@ pub fn open_imports<C: Client + Resource>(
                 };
                 tracing::debug!("Loaded import {} as {}", iri, label);
                 let language = import_language(&label);
+                // Spawning parses the document; shapes and ontologies it
+                // brings in reach open documents through `Revisions`.
                 spawn_document(label, content, language, &sender.0, |_, _| {});
-
-                let mut command_queue = CommandQueue::default();
-                command_queue.push(move |world: &mut World| {
-                    world.run_schedule(SaveLabel);
-                });
-                let _ = sender.unbounded_send(command_queue);
             });
         }
     }

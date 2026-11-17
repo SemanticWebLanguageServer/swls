@@ -35,17 +35,29 @@ fn shacl_schema_from_data<RDF: FocusRDF + std::fmt::Debug>(
     ShaclParser::new(rdf_data).parse().ok()
 }
 
+/// Compile the SHACL shapes of every document whose triples changed. Bumps
+/// [`Revisions::shapes`] when a document gains, changes or loses shapes.
 pub fn derive_shapes(
-    query: Query<(Entity, &Label, &Triples), (Changed<Triples>, Without<Dirty>)>,
+    query: Query<
+        (Entity, &Label, &Triples, Option<&ShaclShapes>),
+        (Changed<Triples>, Without<Dirty>),
+    >,
     mut commands: Commands,
     res: Res<ServerConfig>,
+    mut revisions: ResMut<Revisions>,
 ) {
     if res.config.local.disabled.contains(&Disabled::Shapes) {
         return;
     }
-    for (e, label, data) in &query {
+    for (e, label, data, previous) in &query {
         let _entered = info_span!("derive_shape", label = label.as_str()).entered();
         commands.entity(e).remove::<ShaclShapes>();
+        // Every document compiles to a (usually empty) set of shapes; only a
+        // document that has or had actual shapes changes what others see.
+        let had_shapes = previous.is_some_and(|s| s.ir().iter().next().is_some());
+        if had_shapes {
+            revisions.shapes += 1;
+        }
 
         let rdf = Rdf::new(data);
 
@@ -58,6 +70,9 @@ pub fn derive_shapes(
         };
         tracing::debug!("Found shacl ir with {} shapes", shacl_ir.iter().count());
 
+        if !had_shapes && shacl_ir.iter().next().is_some() {
+            revisions.shapes += 1;
+        }
         commands.entity(e).insert(ShaclShapes::new(shacl_ir));
     }
 }
@@ -65,9 +80,10 @@ pub fn derive_shapes(
 /// System evaluates linked shapes
 ///
 /// Validates open documents whose triples changed, and every open document when
-/// shapes were added or changed: shapes usually arrive in the background (LOV,
-/// `owl:imports`, configured shapes), after the document was opened.
-#[instrument(skip(query, other, changed_shapes, client, res))]
+/// shapes changed ([`Revisions::shapes`]): shapes usually arrive in the
+/// background (LOV, `owl:imports`, configured shapes), after the document was
+/// opened.
+#[instrument(skip(query, other, revisions, seen, client, res))]
 pub fn validate_shapes(
     query: Query<
         (
@@ -82,14 +98,15 @@ pub fn validate_shapes(
         With<Open>,
     >,
     other: Query<(&Label, &ShaclShapes, Option<&Global>, &Triples)>,
-    changed_shapes: Query<(), Changed<ShaclShapes>>,
+    revisions: Res<Revisions>,
+    mut seen: Local<Seen>,
     mut client: ResMut<DiagnosticPublisher>,
     res: Res<ServerConfig>,
 ) {
+    let shapes_changed = seen.update(revisions.shapes);
     if res.config.local.disabled.contains(&Disabled::Shapes) {
         return;
     }
-    let shapes_changed = !changed_shapes.is_empty();
 
     for (rope, label, links, item, prefixes, triples, lang) in &query {
         if !shapes_changed && !triples.is_changed() {

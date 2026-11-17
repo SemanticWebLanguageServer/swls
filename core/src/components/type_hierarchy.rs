@@ -73,6 +73,12 @@ pub struct TypeHierarchy {
 }
 
 impl TypeHierarchy {
+    /// Number of classes plus subclass edges. Grows whenever the hierarchy
+    /// learns something, so producers can tell whether it changed.
+    pub fn size(&self) -> usize {
+        self.nodes.len() + self.subclass.iter().map(|s| s.len()).sum::<usize>()
+    }
+
     pub fn get_id(&mut self, class: &str) -> TypeId {
         if let Some(id) = self.numbers.get(class) {
             *id
