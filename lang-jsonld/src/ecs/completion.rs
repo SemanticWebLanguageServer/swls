@@ -388,14 +388,16 @@ pub fn jsonld_property_completion(
             .filter_map(|(term, def)| def.iri.as_deref().map(|iri| (iri, term.as_str())))
             .collect();
 
-        let subclasses: HashSet<_> = type_ids
+        // The component's types and their superclasses: parameters are
+        // inherited from superclass components.
+        let ancestors: HashSet<_> = type_ids
             .iter()
-            .flat_map(|t| hierarchy.iter_subclass(*t))
+            .flat_map(|t| hierarchy.iter_ancestors(*t))
             .collect();
 
         let mut seen_params: HashSet<String> = HashSet::new();
 
-        for type_iri in &subclasses {
+        for type_iri in &ancestors {
             let Some(component) = registry.0.components.get(type_iri.as_ref()) else {
                 continue;
             };
