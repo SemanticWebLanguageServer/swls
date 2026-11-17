@@ -50,6 +50,18 @@ pub trait LangHelper: std::fmt::Debug {
     fn default_position(&self) -> TripleTarget {
         TripleTarget::Subject
     }
+    /// `iri` as written with the document's prefixes in this language, or
+    /// `None` when it must be written in full. Turtle-family syntaxes only
+    /// accept valid prefixed names (see [`Prefixes::shorten`]).
+    fn shorten(&self, prefixes: &crate::prelude::Prefixes, iri: &str) -> Option<String> {
+        prefixes.shorten(iri)
+    }
+    /// `iri` as written in this language: a prefixed name when possible,
+    /// else the full IRI (`<…>` in Turtle-family syntaxes).
+    fn write_iri(&self, prefixes: &crate::prelude::Prefixes, iri: &str) -> String {
+        self.shorten(prefixes, iri)
+            .unwrap_or_else(|| format!("<{}>", iri))
+    }
     fn unquote<'a>(&self, inp: &'a str) -> &'a str {
         inp
     }
