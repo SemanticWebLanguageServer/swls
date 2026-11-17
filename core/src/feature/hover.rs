@@ -37,6 +37,7 @@ pub fn setup_schedule(world: &mut World) {
             .after(infer_types),
         hover_class.after(get_current_prefix),
         hover_property.after(get_current_prefix),
+        crate::systems::hover_shape_property.after(hover_property),
         hover_excluded_property.after(get_current_prefix),
     ));
     world.add_schedule(hover);

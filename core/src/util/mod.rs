@@ -13,6 +13,7 @@ const ENCODING: PositionEncoding = PositionEncoding::Utf16;
 
 pub mod cache;
 pub mod fs;
+pub mod lang_text;
 /// Commonly used RDF prefixes
 pub mod ns;
 pub mod token;
