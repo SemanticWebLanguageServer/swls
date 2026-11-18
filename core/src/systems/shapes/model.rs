@@ -14,7 +14,10 @@
 //! Used by shape templates ([`super::template`]) and by hover and completion
 //! documentation for predicates ([`super::describe`]).
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use sophia_api::term::{Term as _, TermKind};
 
@@ -63,64 +66,71 @@ impl Node<'_> {
 
 /// The triples of every shape document visible to a document, indexed by
 /// subject.
-pub struct ShapeGraph<'a> {
-    /// Subject key → (predicate, object) pairs. See [`Node::key`].
-    index: HashMap<(usize, String), Vec<(&'a str, Node<'a>)>>,
-    node_shapes: Vec<Node<'a>>,
+///
+/// Owns (shared) references to the documents' triples, so it can be kept in
+/// [`ShapeCache`] between requests; [`Node`]s borrow from the graph.
+pub struct ShapeGraph {
+    docs: Vec<Arc<Vec<MyQuad<'static>>>>,
+    /// Subject key → positions (document, triple) of its triples.
+    /// See [`Node::key`].
+    index: HashMap<(usize, String), Vec<(usize, usize)>>,
+    /// Positions of triples whose subject is a node shape.
+    node_shapes: Vec<(usize, usize)>,
 }
 
-impl<'a> ShapeGraph<'a> {
-    pub fn new(docs: Vec<&'a [MyQuad<'static>]>) -> Self {
-        let mut index: HashMap<(usize, String), Vec<(&'a str, Node<'a>)>> = HashMap::new();
-        for (doc, triples) in docs.iter().enumerate() {
-            for t in triples.iter() {
-                let subject = Node {
-                    doc,
-                    term: &t.subject,
-                };
-                let object = Node {
-                    doc,
-                    term: &t.object,
-                };
-                index
-                    .entry(subject.key())
-                    .or_default()
-                    .push((t.predicate.value.as_ref(), object));
-            }
-        }
+impl ShapeGraph {
+    pub fn new(docs: Vec<Arc<Vec<MyQuad<'static>>>>) -> Self {
         let mut graph = Self {
-            index,
+            docs,
+            index: HashMap::new(),
             node_shapes: Vec::new(),
         };
-        graph.node_shapes = graph.find_node_shapes(&docs);
+        for (doc, triples) in graph.docs.iter().enumerate() {
+            for (i, t) in triples.iter().enumerate() {
+                let key = Node {
+                    doc,
+                    term: &t.subject,
+                }
+                .key();
+                graph.index.entry(key).or_default().push((doc, i));
+            }
+        }
+        graph.node_shapes = graph.find_node_shapes();
         graph
     }
 
-    pub(crate) fn objects(&self, node: Node<'a>, predicate: &str) -> Vec<Node<'a>> {
+    fn triple(&self, (doc, i): (usize, usize)) -> &MyQuad<'static> {
+        &self.docs[doc][i]
+    }
+
+    pub(crate) fn objects<'a>(&'a self, node: Node<'a>, predicate: &str) -> Vec<Node<'a>> {
         self.index
             .get(&node.key())
-            .map(|pairs| {
-                pairs
+            .map(|positions| {
+                positions
                     .iter()
-                    .filter(|(p, _)| *p == predicate)
-                    .map(|(_, o)| *o)
+                    .filter(|&&pos| self.triple(pos).predicate.value == predicate)
+                    .map(|&pos| Node {
+                        doc: pos.0,
+                        term: &self.triple(pos).object,
+                    })
                     .collect()
             })
             .unwrap_or_default()
     }
 
-    pub(crate) fn object(&self, node: Node<'a>, predicate: &str) -> Option<Node<'a>> {
+    pub(crate) fn object<'a>(&'a self, node: Node<'a>, predicate: &str) -> Option<Node<'a>> {
         self.objects(node, predicate).into_iter().next()
     }
 
-    pub(crate) fn has(&self, node: Node<'a>, predicate: &str, object: &str) -> bool {
+    pub(crate) fn has<'a>(&'a self, node: Node<'a>, predicate: &str, object: &str) -> bool {
         self.objects(node, predicate)
             .iter()
             .any(|o| o.term.value == object)
     }
 
     /// Members of the RDF list starting at `head`.
-    pub(crate) fn list(&self, head: Node<'a>) -> Vec<Node<'a>> {
+    pub(crate) fn list<'a>(&'a self, head: Node<'a>) -> Vec<Node<'a>> {
         let mut out = Vec::new();
         let mut seen = HashSet::new();
         let mut current = Some(head);
@@ -135,7 +145,7 @@ impl<'a> ShapeGraph<'a> {
     }
 
     /// Node shapes: subjects that declare shape-level things but no `sh:path`.
-    pub(crate) fn find_node_shapes(&self, docs: &[&'a [MyQuad<'static>]]) -> Vec<Node<'a>> {
+    fn find_node_shapes(&self) -> Vec<(usize, usize)> {
         let markers = [
             sh("property"),
             sh("targetClass"),
@@ -145,8 +155,8 @@ impl<'a> ShapeGraph<'a> {
         ];
         let mut seen = HashSet::new();
         let mut out = Vec::new();
-        for (doc, triples) in docs.iter().enumerate() {
-            for t in triples.iter() {
+        for (doc, triples) in self.docs.iter().enumerate() {
+            for (i, t) in triples.iter().enumerate() {
                 let is_marker = markers.iter().any(|m| t.predicate.value == m.as_str())
                     || (t.predicate.value == RDF_TYPE && t.object.value == sh("NodeShape"));
                 if !is_marker {
@@ -160,29 +170,34 @@ impl<'a> ShapeGraph<'a> {
                     continue;
                 }
                 if seen.insert(node.key()) {
-                    out.push(node);
+                    out.push((doc, i));
                 }
             }
         }
         out
     }
 
-    pub(crate) fn node_shapes(&self) -> &[Node<'a>] {
-        &self.node_shapes
+    pub(crate) fn node_shapes(&self) -> Vec<Node<'_>> {
+        self.node_shapes
+            .iter()
+            .map(|&pos| Node {
+                doc: pos.0,
+                term: &self.triple(pos).subject,
+            })
+            .collect()
     }
 
     /// Active node shapes with a `target` (e.g. `sh:targetClass`) of `value`.
-    pub(crate) fn targeting(&self, target: &str, value: &str) -> Vec<Node<'a>> {
+    pub(crate) fn targeting(&self, target: &str, value: &str) -> Vec<Node<'_>> {
         let target = sh(target);
-        self.node_shapes
-            .iter()
-            .copied()
+        self.node_shapes()
+            .into_iter()
             .filter(|&s| self.has(s, &target, value) && !self.has(s, &sh("deactivated"), "true"))
             .collect()
     }
 
     /// Literal values of `predicate` on `node`, with their languages.
-    pub(crate) fn texts(&self, node: Node<'a>, predicate: &str) -> LangTexts {
+    pub(crate) fn texts<'a>(&'a self, node: Node<'a>, predicate: &str) -> LangTexts {
         self.objects(node, predicate)
             .into_iter()
             .map(|o| o.term)
@@ -190,7 +205,7 @@ impl<'a> ShapeGraph<'a> {
     }
 
     /// The first of `predicates` that has a literal, in the preferred language.
-    pub(crate) fn literal(&self, node: Node<'a>, predicates: &[&str]) -> Option<String> {
+    pub(crate) fn literal<'a>(&'a self, node: Node<'a>, predicates: &[&str]) -> Option<String> {
         predicates.iter().find_map(|p| {
             self.texts(node, p)
                 .first()
@@ -198,8 +213,34 @@ impl<'a> ShapeGraph<'a> {
         })
     }
 
-    pub(crate) fn number(&self, node: Node<'a>, predicate: &str) -> Option<f64> {
+    pub(crate) fn number<'a>(&'a self, node: Node<'a>, predicate: &str) -> Option<f64> {
         self.object(node, predicate)?.term.value.trim().parse().ok()
+    }
+}
+
+/// The [`ShapeGraph`] of the last request, reused while the visible shape
+/// documents and their triples are the same.
+///
+/// Keyed by the triples themselves (`Arc` identity): a document whose triples
+/// changed, or a different set of visible documents, builds a new graph.
+#[derive(bevy_ecs::prelude::Resource, Default)]
+pub struct ShapeCache {
+    key: Vec<usize>,
+    graph: Option<Arc<ShapeGraph>>,
+}
+
+impl ShapeCache {
+    pub fn graph(&mut self, docs: Vec<Arc<Vec<MyQuad<'static>>>>) -> Arc<ShapeGraph> {
+        let key: Vec<usize> = docs.iter().map(|d| Arc::as_ptr(d) as usize).collect();
+        match &self.graph {
+            Some(graph) if self.key == key => graph.clone(),
+            _ => {
+                let graph = Arc::new(ShapeGraph::new(docs));
+                self.key = key;
+                self.graph = Some(graph.clone());
+                graph
+            }
+        }
     }
 }
 
@@ -313,7 +354,7 @@ impl Property {
 }
 
 /// The node shapes that apply to `focus`.
-pub(crate) fn applicable_shapes<'a>(graph: &ShapeGraph<'a>, focus: &Focus<'_>) -> Vec<Node<'a>> {
+pub(crate) fn applicable_shapes<'a>(graph: &'a ShapeGraph, focus: &Focus<'_>) -> Vec<Node<'a>> {
     graph
         .node_shapes()
         .iter()
@@ -340,7 +381,7 @@ pub(crate) fn applicable_shapes<'a>(graph: &ShapeGraph<'a>, focus: &Focus<'_>) -
 /// Properties declared by `shape` and the shapes it includes (`sh:node`,
 /// `sh:and`), merged by path.
 pub(crate) fn shape_properties<'a>(
-    graph: &ShapeGraph<'a>,
+    graph: &'a ShapeGraph,
     shape: Node<'a>,
     depth: usize,
     visiting: &mut HashSet<(usize, String)>,
@@ -440,7 +481,7 @@ pub(crate) fn to_term(node: Node<'_>) -> Term {
 }
 
 pub(crate) fn property<'a>(
-    graph: &ShapeGraph<'a>,
+    graph: &'a ShapeGraph,
     prop: Node<'a>,
     depth: usize,
     visiting: &mut HashSet<(usize, String)>,
@@ -510,7 +551,7 @@ pub(crate) fn property<'a>(
 ///   the value of `rml:subjectMap`,
 /// - shapes with `sh:targetClass` of its `sh:class`.
 pub(crate) fn nested_properties<'a>(
-    graph: &ShapeGraph<'a>,
+    graph: &'a ShapeGraph,
     prop: Node<'a>,
     path: &str,
     depth: usize,
@@ -544,7 +585,7 @@ pub(crate) fn nested_properties<'a>(
 
 /// Properties the shapes applying to `focus` declare and the subject does not
 /// have yet, in template order (`sh:order`, then required first).
-pub fn missing_properties(graph: &ShapeGraph<'_>, focus: &Focus<'_>) -> Vec<Property> {
+pub fn missing_properties(graph: &ShapeGraph, focus: &Focus<'_>) -> Vec<Property> {
     let mut props: Vec<Property> = Vec::new();
     for shape in applicable_shapes(graph, focus) {
         for p in shape_properties(graph, shape, 0, &mut HashSet::new()) {
@@ -567,7 +608,7 @@ pub fn missing_properties(graph: &ShapeGraph<'_>, focus: &Focus<'_>) -> Vec<Prop
 /// The predicates a property shape constrains: its `sh:path`, or every member
 /// of an `sh:alternativePath` (any one of them). `None` for other paths
 /// (inverse, repeated, sequences), which cannot be written as a predicate.
-pub(crate) fn property_paths<'a>(graph: &ShapeGraph<'a>, prop: Node<'a>) -> Option<Vec<String>> {
+pub(crate) fn property_paths<'a>(graph: &'a ShapeGraph, prop: Node<'a>) -> Option<Vec<String>> {
     let path_node = graph.object(prop, &sh("path"))?;
     if path_node.term.kind() == TermKind::Iri {
         return Some(vec![path_node.term.value.to_string()]);
@@ -592,11 +633,11 @@ pub(crate) struct AppliedPropertyShape<'a> {
 
 /// Every active property shape that applies to `focus`, in declaration order.
 pub(crate) fn applied_property_shapes<'a>(
-    graph: &ShapeGraph<'a>,
+    graph: &'a ShapeGraph,
     focus: &Focus<'_>,
 ) -> Vec<AppliedPropertyShape<'a>> {
     fn walk<'a>(
-        graph: &ShapeGraph<'a>,
+        graph: &'a ShapeGraph,
         shape: Node<'a>,
         owner: Node<'a>,
         seen: &mut HashSet<(usize, String)>,
@@ -634,4 +675,31 @@ pub(crate) fn applied_property_shapes<'a>(
     let mut unique = HashSet::new();
     out.retain(|p| unique.insert(p.node.key()));
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    fn doc() -> Arc<Vec<MyQuad<'static>>> {
+        Arc::new(Vec::new())
+    }
+
+    #[test]
+    fn cache_reuses_the_graph_for_the_same_triples() {
+        let (a, b) = (doc(), doc());
+        let mut cache = ShapeCache::default();
+
+        let first = cache.graph(vec![a.clone(), b.clone()]);
+        let again = cache.graph(vec![a.clone(), b.clone()]);
+        assert!(Arc::ptr_eq(&first, &again));
+
+        // Changed triples (a new `Arc`) or another set of documents rebuild it.
+        let changed = cache.graph(vec![a.clone(), doc()]);
+        assert!(!Arc::ptr_eq(&first, &changed));
+        let fewer = cache.graph(vec![a]);
+        assert!(!Arc::ptr_eq(&changed, &fewer));
+    }
 }
