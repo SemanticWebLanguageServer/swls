@@ -573,3 +573,130 @@ fn a_configuration_change_applies_without_a_restart() {
     );
     wait_for_class(&mut server, &project, "ex:Thing", false);
 }
+
+// ─── Document links, symbols, folding, workspace symbols ────────────────────
+
+const NAV: &str = "@prefix ex: <http://ex.test/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+<> owl:imports <./other.ttl> .
+ex:Car a owl:Class ;
+  ex:note \"A vehicle\" .
+ex:wheels a owl:DatatypeProperty .
+ex:myCar a ex:Car ;
+  ex:wheels 4 ;
+  ex:owner [
+    foaf:name \"Ann\"
+  ] .
+";
+
+fn nav_server(name: &str) -> (Server, String) {
+    let (mut server, project) = workspace_server(name, |project| {
+        std::fs::write(project.join("other.ttl"), onto(&["Other"])).unwrap();
+    });
+    let uri = file_uri(&project.join("cars.ttl"));
+    server.open(&uri, NAV);
+    (server, uri)
+}
+
+#[test]
+fn document_links_point_to_ontologies_and_imports() {
+    let (mut server, uri) = nav_server("links");
+    let links = server.request(
+        "textDocument/documentLink",
+        json!({ "textDocument": { "uri": uri } }),
+    );
+    let links = links.as_array().expect("links");
+    let target = |line: u64| {
+        links
+            .iter()
+            .find(|l| l["range"]["start"]["line"] == line)
+            .map(|l| l["target"].as_str().unwrap().to_string())
+    };
+    assert!(
+        target(1).unwrap().ends_with("/swls/lov/foaf.ttl"),
+        "{links:?}"
+    );
+    assert!(
+        target(3).unwrap().ends_with("/project/other.ttl"),
+        "{links:?}"
+    );
+}
+
+#[test]
+fn document_symbols_outline_the_subjects() {
+    let (mut server, uri) = nav_server("symbols");
+    let symbols = server.request(
+        "textDocument/documentSymbol",
+        json!({ "textDocument": { "uri": uri } }),
+    );
+    let symbols = symbols.as_array().expect("symbols");
+    let find = |name: &str| symbols.iter().find(|s| s["name"] == name).cloned();
+
+    let car = find("ex:Car").expect("ex:Car");
+    assert_eq!(car["kind"], 5, "class"); // SymbolKind::CLASS
+    assert_eq!(car["detail"], "owl:Class");
+    assert_eq!(find("ex:wheels").expect("ex:wheels")["kind"], 7, "property");
+
+    let my_car = find("ex:myCar").expect("ex:myCar");
+    assert_eq!(my_car["detail"], "ex:Car");
+    let children: Vec<_> = my_car["children"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["name"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(children, ["ex:wheels", "ex:owner"]);
+}
+
+#[test]
+fn folding_ranges_cover_blocks_prefixes_and_blank_nodes() {
+    let (mut server, uri) = nav_server("folding");
+    let ranges = server.request(
+        "textDocument/foldingRange",
+        json!({ "textDocument": { "uri": uri } }),
+    );
+    let ranges: Vec<(u64, u64, String)> = ranges
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            (
+                r["startLine"].as_u64().unwrap(),
+                r["endLine"].as_u64().unwrap(),
+                r["kind"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect();
+    assert!(ranges.contains(&(0, 2, "imports".into())), "{ranges:?}");
+    assert!(ranges.contains(&(4, 5, "region".into())), "{ranges:?}");
+    assert!(ranges.contains(&(7, 11, "region".into())), "{ranges:?}");
+    assert!(ranges.contains(&(9, 11, "region".into())), "{ranges:?}");
+}
+
+#[test]
+fn workspace_symbols_search_all_known_documents() {
+    let (mut server, _uri) = nav_server("workspace-symbols");
+    let found = server.request_until("workspace/symbol", json!({ "query": "oTHer" }), |r| {
+        r.as_array().is_some_and(|a| !a.is_empty())
+    });
+    let names: Vec<_> = found
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["name"].as_str().unwrap().to_string())
+        .collect();
+    assert!(names.contains(&"ex:Other".to_string()), "{names:?}");
+
+    let cars = server.request("workspace/symbol", json!({ "query": "car" }));
+    let names: Vec<_> = cars
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["name"].as_str().unwrap().to_string())
+        .collect();
+    assert!(
+        names.contains(&"ex:Car".to_string()) && names.contains(&"ex:myCar".to_string()),
+        "{names:?}"
+    );
+}

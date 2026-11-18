@@ -301,6 +301,18 @@ impl<C: Client> Backend<C> {
                         work_done_progress_options: Default::default(),
                     },
                 )),
+                document_link_provider: is_enabled(Disabled::DocumentLink).then_some(
+                    DocumentLinkOptions {
+                        resolve_provider: Some(false),
+                        work_done_progress_options: Default::default(),
+                    },
+                ),
+                document_symbol_provider: is_enabled(Disabled::DocumentSymbol)
+                    .then_some(OneOf::Left(true)),
+                folding_range_provider: is_enabled(Disabled::FoldingRange)
+                    .then_some(FoldingRangeProviderCapability::Simple(true)),
+                workspace_symbol_provider: is_enabled(Disabled::WorkspaceSymbol)
+                    .then_some(OneOf::Left(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![crate::systems::ALLOW_PROPERTY_COMMAND.to_string()],
                     work_done_progress_options: Default::default(),
@@ -975,5 +987,62 @@ impl<C: Client> Backend<C> {
             });
 
         Ok(completions.map(CompletionResponse::Array))
+    }
+
+    /// `textDocument/documentLink`.
+    pub async fn document_link(
+        &self,
+        params: DocumentLinkParams,
+    ) -> Result<Option<Vec<DocumentLink>>> {
+        if self.is_disabled(Disabled::DocumentLink).await {
+            return Ok(None);
+        }
+        let url = params.text_document.uri;
+        Ok(self
+            .run(move |world| crate::navigation::document_links(world, &url))
+            .await)
+    }
+
+    /// `textDocument/documentSymbol`.
+    pub async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
+        if self.is_disabled(Disabled::DocumentSymbol).await {
+            return Ok(None);
+        }
+        let url = params.text_document.uri;
+        Ok(self
+            .run(move |world| crate::navigation::document_symbols(world, &url))
+            .await
+            .map(DocumentSymbolResponse::Nested))
+    }
+
+    /// `textDocument/foldingRange`.
+    pub async fn folding_range(
+        &self,
+        params: FoldingRangeParams,
+    ) -> Result<Option<Vec<FoldingRange>>> {
+        if self.is_disabled(Disabled::FoldingRange).await {
+            return Ok(None);
+        }
+        let url = params.text_document.uri;
+        Ok(self
+            .run(move |world| crate::navigation::folding_ranges(world, &url))
+            .await)
+    }
+
+    /// `workspace/symbol`.
+    pub async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<Vec<SymbolInformation>>> {
+        if self.is_disabled(Disabled::WorkspaceSymbol).await {
+            return Ok(None);
+        }
+        let query = params.query;
+        Ok(self
+            .run(move |world| crate::navigation::workspace_symbols(world, &query))
+            .await)
     }
 }

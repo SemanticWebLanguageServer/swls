@@ -96,6 +96,8 @@ pub mod backend;
 
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
+/// Document links, symbols, folding ranges and workspace symbols.
+pub mod navigation;
 pub mod revisions;
 pub mod store;
 /// Minimal text indexing for LSP position math (replaces ropey).
