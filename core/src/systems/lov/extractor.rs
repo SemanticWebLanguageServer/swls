@@ -53,6 +53,7 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
         commands.queue(move |world: &mut World| {
             debug!("spawned ontology entity");
             spawn(world);
+            world.run_schedule(ParseLabel);
         });
     }
 }

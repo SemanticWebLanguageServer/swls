@@ -75,8 +75,17 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
 
     let c = client.clone();
     tokio::spawn(async move {
-        while let Some(x) = rx.next().await {
-            c.publish_diagnostics(x.uri, x.diagnostics, x.version).await;
+        while let Some(first) = rx.next().await {
+            // One parse pass publishes a document once per reason; let the pass
+            // finish, then send each document's latest set once.
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            let mut batch = vec![first];
+            while let Ok(item) = rx.try_recv() {
+                batch.push(item);
+            }
+            for x in swls_core::feature::diagnostics::coalesce(batch) {
+                c.publish_diagnostics(x.uri, x.diagnostics, x.version).await;
+            }
         }
     });
 

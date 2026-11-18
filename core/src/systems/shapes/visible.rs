@@ -8,6 +8,8 @@
 //! - **linked**: the document links to it, through a prefix it declares or an
 //!   `owl:imports` ([`DocumentLinks`]).
 
+use std::sync::Arc;
+
 use bevy_ecs::prelude::*;
 
 use crate::{prelude::*, systems::shapes::ShaclShapes};
@@ -35,12 +37,12 @@ pub fn visible_shapes<'a>(
     shapes: &'a ShapeDocs,
     doc: &Label,
     links: &DocumentLinks,
-) -> (Vec<&'a [MyQuad<'static>]>, Vec<&'a Prefixes>) {
+) -> (Vec<Arc<Vec<MyQuad<'static>>>>, Vec<&'a Prefixes>) {
     let mut triples = Vec::new();
     let mut prefixes = Vec::new();
     for (label, t, global, p) in shapes.iter() {
         if shapes_apply(label, global.is_some(), doc, links) {
-            triples.push(t.0.as_slice());
+            triples.push(t.0.clone());
             prefixes.extend(p);
         }
     }

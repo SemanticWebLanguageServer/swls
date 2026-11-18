@@ -76,17 +76,13 @@ fn shape_name(names: &Names<'_>, node: Node<'_>) -> String {
     }
 }
 
-fn number(graph: &ShapeGraph<'_>, node: Node<'_>, local: &str) -> Option<String> {
+fn number(graph: &ShapeGraph, node: Node<'_>, local: &str) -> Option<String> {
     let v = graph.object(node, &sh(local))?;
     Some(v.term.value.trim().to_string())
 }
 
 /// One-line summary of the constraints of property shape `prop`.
-pub(crate) fn constraints(
-    graph: &ShapeGraph<'_>,
-    prop: Node<'_>,
-    names: &Names<'_>,
-) -> Vec<String> {
+pub(crate) fn constraints(graph: &ShapeGraph, prop: Node<'_>, names: &Names<'_>) -> Vec<String> {
     let mut out = Vec::new();
     let list = |local: &str| -> Vec<String> {
         graph
@@ -203,7 +199,7 @@ pub(crate) fn constraints(
 
 /// Markdown documenting property shape `applied` for a hover or completion.
 pub(crate) fn describe(
-    graph: &ShapeGraph<'_>,
+    graph: &ShapeGraph,
     applied: AppliedPropertyShape<'_>,
     names: &Names<'_>,
 ) -> String {
@@ -298,7 +294,7 @@ struct ShapePredicate {
 /// Documentation of every property shape that applies to `focus`, per
 /// predicate, with how much the shapes still need it.
 fn docs_per_predicate(
-    graph: &ShapeGraph<'_>,
+    graph: &ShapeGraph,
     focus: &Focus<'_>,
     names: &Names<'_>,
 ) -> Vec<ShapePredicate> {
@@ -344,6 +340,7 @@ pub fn hover_shape_property(
         &mut HoverRequest,
     )>,
     shapes: ShapeDocs,
+    mut cache: Local<ShapeCache>,
     hierarchy: Res<TypeHierarchy>,
     config: Res<ServerConfig>,
 ) {
@@ -363,7 +360,7 @@ pub fn hover_shape_property(
         if docs.is_empty() {
             continue;
         }
-        let graph = ShapeGraph::new(docs);
+        let graph = cache.graph(docs);
         let names = Names::new(prefixes, shape_prefixes);
         let focus = Focus::new(&triple.triple.subject, &triples.0, &hierarchy);
         for applied in applied_property_shapes(&graph, &focus) {
@@ -391,6 +388,7 @@ pub fn shape_property_completions(
         &mut CompletionRequest,
     )>,
     shapes: ShapeDocs,
+    mut cache: Local<ShapeCache>,
     hierarchy: Res<TypeHierarchy>,
     config: Res<ServerConfig>,
 ) {
@@ -409,7 +407,7 @@ pub fn shape_property_completions(
         if docs.is_empty() {
             continue;
         }
-        let graph = ShapeGraph::new(docs);
+        let graph = cache.graph(docs);
         let names = Names::new(prefixes, shape_prefixes);
         let focus = Focus::new(subject, &triples.0, &hierarchy);
         let per_predicate = docs_per_predicate(&graph, &focus, &names);

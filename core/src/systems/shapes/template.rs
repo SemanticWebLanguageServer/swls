@@ -268,6 +268,7 @@ pub fn complete_shape_templates(
         &mut CompletionRequest,
     )>,
     shapes: ShapeDocs,
+    mut cache: Local<ShapeCache>,
     hierarchy: Res<TypeHierarchy>,
     config: Res<ServerConfig>,
 ) {
@@ -288,7 +289,7 @@ pub fn complete_shape_templates(
         if docs.is_empty() {
             continue;
         }
-        let graph = ShapeGraph::new(docs);
+        let graph = cache.graph(docs);
         let focus = Focus::new(subject, &triples.0, &hierarchy);
         let all = missing_properties(&graph, &focus);
         if all.is_empty() {

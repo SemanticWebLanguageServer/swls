@@ -89,6 +89,23 @@ pub struct DiagnosticSender {
     tx: mpsc::UnboundedSender<Vec<SimpleDiagnostic>>,
 }
 
+/// Keep only the latest diagnostics per document, in the order documents
+/// first appear.
+///
+/// [`DiagnosticPublisher`] sends a document's full, merged set on every
+/// publish, once per reason (syntax, prefixes, shapes, …). A front-end drains
+/// what is queued and sends each document once, instead of once per reason.
+pub fn coalesce(items: impl IntoIterator<Item = DiagnosticItem>) -> Vec<DiagnosticItem> {
+    let mut out: Vec<DiagnosticItem> = Vec::new();
+    for item in items {
+        match out.iter_mut().find(|x| x.uri == item.uri) {
+            Some(existing) => *existing = item,
+            None => out.push(item),
+        }
+    }
+    out
+}
+
 #[derive(Debug)]
 pub struct DiagnosticItem {
     pub diagnostics: Vec<Diagnostic>,
@@ -147,5 +164,33 @@ pub fn publish_diagnostics<L: Lang>(
             .collect();
 
         let _ = client.publish(&params.0, diagnostics, "syntax");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(uri: &str, n: usize) -> DiagnosticItem {
+        DiagnosticItem {
+            diagnostics: vec![Diagnostic::default(); n],
+            uri: Url::parse(uri).unwrap(),
+            version: None,
+        }
+    }
+
+    #[test]
+    fn coalesce_keeps_the_latest_set_per_document() {
+        let out = coalesce([
+            item("file:///a.ttl", 1),
+            item("file:///b.ttl", 1),
+            item("file:///a.ttl", 3),
+            item("file:///a.ttl", 2),
+        ]);
+        let summary: Vec<_> = out
+            .iter()
+            .map(|i| (i.uri.path().to_string(), i.diagnostics.len()))
+            .collect();
+        assert_eq!(summary, [("/a.ttl".into(), 2), ("/b.ttl".into(), 1)]);
     }
 }
