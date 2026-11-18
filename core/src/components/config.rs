@@ -82,6 +82,20 @@ pub enum Disabled {
     /// their classes, properties and shapes are known without opening them.
     #[serde(alias = "WORKSPACE_INDEX", alias = "workspace_index")]
     WorkspaceIndex,
+
+    /// `textDocument/documentLink`: prefix and `owl:imports` IRIs link to
+    /// the documents they refer to.
+    #[serde(alias = "DOCUMENT_LINK", alias = "document_link")]
+    DocumentLink,
+    /// `textDocument/documentSymbol`: the outline of a document.
+    #[serde(alias = "DOCUMENT_SYMBOL", alias = "document_symbol")]
+    DocumentSymbol,
+    /// `textDocument/foldingRange`.
+    #[serde(alias = "FOLDING_RANGE", alias = "folding_range")]
+    FoldingRange,
+    /// `workspace/symbol`: subjects across all known documents.
+    #[serde(alias = "WORKSPACE_SYMBOL", alias = "workspace_symbol")]
+    WorkspaceSymbol,
     /// Hover explanation shown for a property that is only accepted because it
     /// is in the user's `allowed_properties` allow-list.
     #[serde(alias = "HOVER_EXCLUDED_PROPERTY", alias = "hover_excluded_property")]

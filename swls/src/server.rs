@@ -60,6 +60,28 @@ impl LanguageServer for LspBackend {
         self.backend.did_change_workspace_folders(params).await;
     }
 
+    async fn document_link(&self, params: DocumentLinkParams) -> Result<Option<Vec<DocumentLink>>> {
+        lift(self.backend.document_link(params).await)
+    }
+
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
+        lift(self.backend.document_symbol(params).await)
+    }
+
+    async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
+        lift(self.backend.folding_range(params).await)
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<Vec<SymbolInformation>>> {
+        lift(self.backend.symbol(params).await)
+    }
+
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
         self.backend.did_change_watched_files(params).await;
     }
