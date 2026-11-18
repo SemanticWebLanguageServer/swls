@@ -200,18 +200,61 @@ impl FsTrait for BinFs {
     }
 }
 
+/// Read the file at a `file:` URL. `to_file_path` decodes percent-escapes
+/// (`%20` → space), unlike `Url::path`.
+async fn read_file_url(url: &Url) -> Result<String, String> {
+    let path = url
+        .to_file_path()
+        .map_err(|_| format!("Not a file path {}", url))?;
+    read_to_string(&path)
+        .await
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))
+}
+
 #[derive(Resource, Clone)]
 pub struct TowerClient {
     client: tower_lsp::Client,
     sender: UnboundedSender<Job>,
     handle: tokio::runtime::Handle,
+    /// One HTTP client for all fetches: it pools connections and carries the
+    /// timeouts.
+    http: ::reqwest::Client,
 }
+
+/// Time allowed to connect to a host.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+/// Time allowed for a whole request, body included. Ontologies are fetched in
+/// the background, but a host that never answers must not keep a load pending
+/// forever.
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// The HTTP client used for all fetches.
+pub fn http_client() -> ::reqwest::Client {
+    http_client_with(CONNECT_TIMEOUT, REQUEST_TIMEOUT)
+}
+
+fn http_client_with(
+    connect: std::time::Duration,
+    request: std::time::Duration,
+) -> ::reqwest::Client {
+    ::reqwest::Client::builder()
+        .connect_timeout(connect)
+        .timeout(request)
+        .user_agent(concat!("swls/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .unwrap_or_else(|e| {
+            tracing::warn!("Could not configure the HTTP client ({e}), using defaults");
+            ::reqwest::Client::new()
+        })
+}
+
 impl TowerClient {
     pub fn new(client: tower_lsp::Client, sender: UnboundedSender<Job>) -> Self {
         Self {
             client,
             sender,
             handle: tokio::runtime::Handle::current(),
+            http: http_client(),
         }
     }
 }
@@ -226,14 +269,12 @@ impl ClientSync for TowerClient {
         url: &str,
         headers: &HashMap<String, String>,
     ) -> Pin<Box<dyn Send + std::future::Future<Output = Result<Resp, String>>>> {
-        use tokio::{fs::File, io::AsyncReadExt};
         use tracing::error;
         debug!("fetching resource {}", url);
 
         let m_url = reqwest::Url::parse(url);
 
-        let client = ::reqwest::Client::new();
-        let builder = client.get(url);
+        let builder = self.http.get(url);
         let builder = headers
             .iter()
             .fold(builder, |builder, (k, v)| builder.header(k, v));
@@ -241,19 +282,11 @@ impl ClientSync for TowerClient {
         async {
             let url = m_url.map_err(|_| String::from("invalid url!"))?;
             if url.scheme() == "file" {
-                let mut file = File::open(url.path())
-                    .await
-                    .map_err(|_| format!("File not found {}", url.path()))?;
-                let mut body = String::new();
-                file.read_to_string(&mut body)
-                    .await
-                    .map_err(|_| "Failed to read file".to_string())?;
-                let status = 200;
-                let headers = Vec::new();
+                let body = read_file_url(&url).await?;
                 return Ok(Resp {
-                    headers,
+                    headers: Vec::new(),
                     body,
-                    status,
+                    status: 200,
                 });
             }
 
@@ -277,7 +310,13 @@ impl ClientSync for TowerClient {
                     }
                 })
                 .collect();
-            let body = resp.text().await.unwrap();
+            let body = match resp.text().await {
+                Ok(body) => body,
+                Err(e) => {
+                    error!("Reading the response of {} failed: {}", url, e);
+                    return Err(e.to_string());
+                }
+            };
 
             Ok(Resp {
                 headers,
@@ -331,6 +370,41 @@ mod tests {
 
     fn fs_in(dir: &std::path::Path) -> BinFs {
         BinFs(dir.to_path_buf())
+    }
+
+    #[tokio::test]
+    async fn a_host_that_never_answers_times_out() {
+        // Accepts connections but never responds.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Ok((socket, _)) = listener.accept().await {
+                held.push(socket);
+            }
+        });
+
+        let client = http_client_with(
+            std::time::Duration::from_secs(1),
+            std::time::Duration::from_millis(500),
+        );
+        let started = std::time::Instant::now();
+        let result = client.get(format!("http://{addr}/onto.ttl")).send().await;
+        assert!(result.is_err(), "the request must time out");
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    async fn file_urls_with_escaped_characters_are_read() {
+        let dir = std::env::temp_dir().join(format!("swls file urls {}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("my onto.ttl");
+        std::fs::write(&path, "<a> <b> <c> .").unwrap();
+        let url = Url::from_file_path(&path).unwrap();
+        assert!(url.as_str().contains("%20"), "{url}");
+
+        assert_eq!(read_file_url(&url).await.unwrap(), "<a> <b> <c> .");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[tokio::test]
