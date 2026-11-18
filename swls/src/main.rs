@@ -99,8 +99,19 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
 
     tokio::task::spawn_local(async move {
         while let Some(mut x) = rx.next().await {
-            world.commands().append(&mut x);
-            world.flush();
+            // A panic inside a system leaves the world without the schedule it
+            // was running (Bevy re-inserts a schedule only after it finishes),
+            // and would end this task, so every later request would hang.
+            // Exit instead: editors restart a crashed language server and show
+            // its stderr.
+            let applied = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                world.commands().append(&mut x);
+                world.flush();
+            }));
+            if applied.is_err() {
+                eprintln!("swls: internal error while handling a request, exiting so the editor restarts the server");
+                std::process::exit(101);
+            }
         }
     });
 
