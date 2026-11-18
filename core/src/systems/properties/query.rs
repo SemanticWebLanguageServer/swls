@@ -21,7 +21,9 @@ pub fn find_classes(
             .ok()?
     {
         for solution in solutions.flatten() {
-            let class = solution.get("class").unwrap();
+            let Some(class) = solution.get("class") else {
+                continue;
+            };
             let title = solution.get("title");
             let description = solution.get("description");
 
@@ -66,7 +68,9 @@ pub fn find_properties(store: &oxigraph::store::Store) -> Option<HashMap<String,
             .ok()?
     {
         for solution in solutions.flatten() {
-            let class = solution.get("property").unwrap();
+            let Some(class) = solution.get("property") else {
+                continue;
+            };
             let title = solution.get("title");
             let description = solution.get("description");
 

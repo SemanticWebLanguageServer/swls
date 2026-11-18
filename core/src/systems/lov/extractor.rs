@@ -23,7 +23,10 @@ pub fn init_ontology_extractor(mut commands: Commands, fs: Res<Fs>) {
         .iter()
         .filter(|x| ["rdf", "rdfs", "owl"].iter().any(|y| *y == x.name))
     {
-        let url = fs.0.lov_url(&local.location, &local.name).unwrap();
+        let Some(url) = fs.0.lov_url(&local.location, &local.name) else {
+            debug!("No location for built-in ontology {}", local.name);
+            continue;
+        };
         debug!("Virtual url {}", url.to_string());
 
         let item = TextDocumentItem {

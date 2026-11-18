@@ -164,14 +164,17 @@ impl<C: Client> Backend<C> {
 
         let mut server_config = ServerConfig { config, workspaces };
 
-        let fs = self.run(|w| w.resource::<Fs>().clone()).await.unwrap();
-        if let Some(global) = LocalConfig::global(&fs).await {
-            server_config.config.local.combine(global);
-        }
+        // Without a file system (the world is gone) there are no config files to
+        // read; continue with the options the client sent.
+        if let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await {
+            if let Some(global) = LocalConfig::global(&fs).await {
+                server_config.config.local.combine(global);
+            }
 
-        if let Some(root) = init.root_uri.as_ref() {
-            if let Some(local) = LocalConfig::local(&fs, root).await {
-                server_config.config.local.combine(local);
+            if let Some(root) = init.root_uri.as_ref() {
+                if let Some(local) = LocalConfig::local(&fs, root).await {
+                    server_config.config.local.combine(local);
+                }
             }
         }
 
