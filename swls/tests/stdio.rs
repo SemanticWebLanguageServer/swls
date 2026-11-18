@@ -489,6 +489,34 @@ fn workspace_files_are_indexed_without_opening_them() {
 }
 
 #[test]
+fn git_ignored_files_are_not_indexed() {
+    let (mut server, project) = workspace_server("gitignore", |project| {
+        std::fs::write(project.join(".gitignore"), "build/\n").unwrap();
+        std::fs::write(project.join("vocab.ttl"), onto(&["Kept"])).unwrap();
+        std::fs::create_dir_all(project.join("build")).unwrap();
+        std::fs::write(project.join("build").join("out.ttl"), onto(&["Built"])).unwrap();
+    });
+    open_user(&mut server, &project);
+    wait_for_class(&mut server, &project, "ex:Kept", true);
+    assert!(!ex_classes(&mut server, &project).contains(&"ex:Built".to_string()));
+
+    // Files created later follow the same rule.
+    let ignored = project.join("build").join("later.ttl");
+    std::fs::write(&ignored, onto(&["Later"])).unwrap();
+    let kept = project.join("later.ttl");
+    std::fs::write(&kept, onto(&["AlsoLater"])).unwrap();
+    server.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({ "changes": [
+            { "uri": file_uri(&ignored), "type": 1 },
+            { "uri": file_uri(&kept), "type": 1 }
+        ] }),
+    );
+    wait_for_class(&mut server, &project, "ex:AlsoLater", true);
+    assert!(!ex_classes(&mut server, &project).contains(&"ex:Later".to_string()));
+}
+
+#[test]
 fn the_server_registers_file_watchers() {
     let (mut server, _project) = workspace_server("watchers", |_| {});
     let registration = server.wait_for("a watcher registration", |m| {

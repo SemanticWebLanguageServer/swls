@@ -2,7 +2,9 @@
 //!
 //! At startup ([`index_workspace`]) every RDF file in the workspace folders is
 //! loaded as a [`Background`] document, so its classes, properties and shapes
-//! are known without opening it. File changes keep them current (see
+//! are known without opening it. Files git ignores (`.gitignore`, excludes,
+//! `.ignore`), hidden folders, `node_modules` and `target` are skipped, also
+//! for files created later. File changes keep them current (see
 //! [`crate::document`]). Disable with `"disabled": ["workspace_index"]`.
 
 use bevy_ecs::prelude::*;
@@ -30,14 +32,18 @@ pub fn is_workspace_file(url: &Url) -> bool {
         .any(|ext| url.path().ends_with(ext))
 }
 
-/// Whether `url` is inside one of the workspace folders.
-pub fn in_workspace(config: &ServerConfig, url: &Url) -> bool {
-    config.workspaces.iter().any(|w| {
-        let root = w.uri.as_str().trim_end_matches('/');
-        url.as_str()
-            .strip_prefix(root)
-            .is_some_and(|rest| rest.starts_with('/'))
-    })
+/// The workspace folder `url` is inside, if any.
+pub fn workspace_root(config: &ServerConfig, url: &Url) -> Option<Url> {
+    config
+        .workspaces
+        .iter()
+        .find(|w| {
+            let root = w.uri.as_str().trim_end_matches('/');
+            url.as_str()
+                .strip_prefix(root)
+                .is_some_and(|rest| rest.starts_with('/'))
+        })
+        .map(|w| w.uri.clone())
 }
 
 /// Load a workspace file from disk as a background document (unless it is
