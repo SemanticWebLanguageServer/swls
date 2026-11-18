@@ -347,7 +347,8 @@ impl<C: Client> Backend<C> {
     pub async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
         enum Action {
             Reload(Entity),
-            Load,
+            /// Index a new file of the workspace folder (its root).
+            Load(Url),
             Nothing,
         }
         let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await else {
@@ -368,13 +369,13 @@ impl<C: Client> Backend<C> {
                     Some(e) => Action::Reload(e),
                     None => {
                         let config = world.resource::<ServerConfig>();
-                        let index = !config.config.local.is_disabled(Disabled::WorkspaceIndex)
-                            && crate::workspace::is_workspace_file(&url)
-                            && crate::workspace::in_workspace(config, &url);
-                        if index {
-                            Action::Load
-                        } else {
-                            Action::Nothing
+                        let root = (!config.config.local.is_disabled(Disabled::WorkspaceIndex)
+                            && crate::workspace::is_workspace_file(&url))
+                        .then(|| crate::workspace::workspace_root(config, &url))
+                        .flatten();
+                        match root {
+                            Some(root) => Action::Load(root),
+                            None => Action::Nothing,
                         }
                     }
                 })
@@ -390,8 +391,11 @@ impl<C: Client> Backend<C> {
                         .await;
                     }
                 }
-                Action::Load => {
-                    crate::workspace::load_workspace_file(&fs, url, &self.sender).await;
+                Action::Load(root) => {
+                    // The same files the startup walk skips (git-ignored, …).
+                    if !fs.0.is_ignored(&root, &url).await {
+                        crate::workspace::load_workspace_file(&fs, url, &self.sender).await;
+                    }
                 }
                 Action::Nothing => {}
             }

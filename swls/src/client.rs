@@ -115,6 +115,13 @@ impl FsTrait for BinFs {
         .unwrap_or_default()
     }
 
+    async fn is_ignored(&self, root: &Url, file: &Url) -> bool {
+        match (root.to_file_path(), file.to_file_path()) {
+            (Ok(root), Ok(file)) => swls_core::util::fs::is_ignored(&root, &file),
+            _ => false,
+        }
+    }
+
     async fn cache_age(&self, url: &Url) -> Option<std::time::Duration> {
         let fp = url.to_file_path().ok()?;
         let modified = fs::metadata(fp).await.ok()?.modified().ok()?;
