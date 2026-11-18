@@ -98,4 +98,52 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
     async fn is_dir(&self, path: &crate::lsp_types::Url) -> bool;
 
     async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>>;
+
+    /// Files under `root` whose name ends with one of `extensions`, at most
+    /// `max`. Skips hidden folders, `node_modules` and `target`. The default
+    /// finds nothing (no file system to walk).
+    async fn walk(&self, _root: &Url, _extensions: &[&str], _max: usize) -> Vec<Url> {
+        Vec::new()
+    }
+}
+
+/// Folders a workspace walk does not descend into.
+pub fn skip_folder(name: &str) -> bool {
+    name.starts_with('.') || name == "node_modules" || name == "target"
+}
+
+/// Walk `root` on the local file system (see [`FsTrait::walk`]), breadth
+/// first so shallow files come first when `max` cuts the walk short.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn walk_dir(
+    root: &std::path::Path,
+    extensions: &[&str],
+    max: usize,
+) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let mut queue = std::collections::VecDeque::from([root.to_path_buf()]);
+    while let Some(dir) = queue.pop_front() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut entries: Vec<_> = entries.flatten().collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in entries {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            if kind.is_dir() {
+                if !skip_folder(&name) {
+                    queue.push_back(entry.path());
+                }
+            } else if kind.is_file() && extensions.iter().any(|ext| name.ends_with(ext)) {
+                out.push(entry.path());
+                if out.len() >= max {
+                    return out;
+                }
+            }
+        }
+    }
+    out
 }

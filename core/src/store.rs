@@ -20,6 +20,23 @@ impl Store {
             .map(oxigraph::model::GraphName::NamedNode)
     }
 
+    /// Replace the triples loaded for `label` with `triples`.
+    pub fn load_document(&self, label: &Label, triples: &Triples) {
+        self.remove_document(label);
+        let Some(graph) = Self::graph_name(label) else {
+            return;
+        };
+        let mut loader = self.0.bulk_loader();
+        let _ = loader.load_quads(
+            triples
+                .0
+                .iter()
+                .flat_map(|x| x.into_oxi(Some(graph.clone()))),
+        );
+        let _ = loader.commit();
+        debug!("Loaded {} triples from {}", triples.len(), label.as_str());
+    }
+
     /// Drop every triple that was loaded for `label`.
     pub fn remove_document(&self, label: &Label) {
         if let Some(graph) = Self::graph_name(label) {
@@ -51,13 +68,6 @@ pub fn load_store(
         revisions.store += 1;
     }
     for (t, label) in &query {
-        store.remove_document(label);
-        let Some(graph) = Store::graph_name(label) else {
-            continue;
-        };
-        let mut loader = store.0.bulk_loader();
-        let _ = loader.load_quads(t.0.iter().flat_map(|x| x.into_oxi(Some(graph.clone()))));
-        let _ = loader.commit();
-        debug!("Loaded {} triples from {}", t.len(), label.as_str());
+        store.load_document(label, t);
     }
 }

@@ -222,6 +222,16 @@ impl FsTrait for TestFs {
         Url::from_directory_path(&self.0).ok()
     }
 
+    async fn walk(&self, root: &Url, extensions: &[&str], max: usize) -> Vec<Url> {
+        let Ok(root) = root.to_file_path() else {
+            return Vec::new();
+        };
+        swls_core::util::fs::walk_dir(&root, extensions, max)
+            .into_iter()
+            .flat_map(Url::from_file_path)
+            .collect()
+    }
+
     async fn cache_age(&self, url: &Url) -> Option<std::time::Duration> {
         let modified = std::fs::metadata(url.to_file_path().ok()?)
             .ok()?

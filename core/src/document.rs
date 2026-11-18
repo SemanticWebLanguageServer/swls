@@ -134,6 +134,62 @@ pub fn close_document(world: &mut World, url: &Url) -> Closed {
 
 /// Give a closed background document the server's `content` back and reparse
 /// it, which reloads its triples in the store.
+/// A background document's file was deleted: drop its triples and shapes, and
+/// the document itself, unless the editor has it open.
+pub fn remove_background(world: &mut World, url: &Url) {
+    let Some(entity) = find_document(world, url) else {
+        return;
+    };
+    let e = world.entity(entity);
+    if e.contains::<Open>() || !e.contains::<Background>() {
+        return;
+    }
+    let had_shapes = e.contains::<crate::systems::ShaclShapes>();
+    if let Some(label) = e.get::<Label>() {
+        world
+            .resource::<crate::store::Store>()
+            .remove_document(label);
+    }
+    world.despawn(entity);
+    let mut revisions = world.resource_mut::<Revisions>();
+    revisions.store += 1;
+    if had_shapes {
+        revisions.shapes += 1;
+    }
+    world.run_schedule(ParseLabel);
+    world.flush();
+}
+
+/// The editor saved `url`. For one of the user's own background documents
+/// (not a cache file), the saved content now feeds the shared store, so other
+/// documents see its classes and properties. Unsaved edits never do.
+pub fn save_document(world: &mut World, url: &Url) {
+    let Some(entity) = find_document(world, url) else {
+        return;
+    };
+    let is_cache = world
+        .get_resource::<Fs>()
+        .is_some_and(|fs| fs.0.is_cache_url(url));
+    let e = world.entity(entity);
+    if is_cache || !e.contains::<Background>() || !e.contains::<Open>() {
+        return;
+    }
+    let (Some(label), Some(triples)) = (e.get::<Label>(), e.get::<Triples>()) else {
+        return;
+    };
+    world
+        .resource::<crate::store::Store>()
+        .load_document(label, triples);
+    // Closing the document restores this saved version.
+    let saved = e.get::<Source>().map(|s| Snapshot(s.0.clone()));
+    if let Some(saved) = saved {
+        world.entity_mut(entity).insert(saved);
+    }
+    world.resource_mut::<Revisions>().store += 1;
+    world.run_schedule(ParseLabel);
+    world.flush();
+}
+
 pub fn restore_background(world: &mut World, entity: Entity, content: String) {
     if world.get_entity(entity).is_err() {
         return;

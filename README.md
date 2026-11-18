@@ -33,6 +33,7 @@ Details and caveats for each editor are in [Installation](#installation) below.
 | **Code actions** | Add missing prefix declaration · allow-list an unknown property · organize/sort `@prefix` imports (Turtle) · extract/inline a blank node |
 | **Formatting** | Document formatting for Turtle, TriG, SPARQL, N3 and JSON-LD · auto-insert the prefix declaration while typing |
 | **Highlighting** | Semantic syntax highlighting |
+| **Workspace** | RDF files in the workspace are loaded in the background, so their classes, properties and shapes are known without opening them · changes on disk, saved edits and settings changes apply without a restart |
 | **Inlay hints** | Inferred type shown inline next to subjects missing an explicit `rdf:type` |
 
 Every diagnostic and almost every feature above can be **individually enabled or disabled** —

@@ -105,6 +105,8 @@ pub mod text;
 /// Includes range transformations between [`std::ops::Range`] and [`swls_core::lsp_types::Range`].
 /// And commonly used [`Spanned`].
 pub mod util;
+/// The workspace's RDF files, loaded in the background.
+pub mod workspace;
 
 /// Defines all common [`Component`]s and [`Resource`]s
 ///
@@ -159,7 +161,11 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     ));
 
     world.add_schedule(schedule);
-    world.add_schedule(Schedule::new(Started));
+    world.add_schedule(Schedule::new(ConfigChanged));
+
+    let mut started = Schedule::new(Started);
+    started.add_systems(workspace::index_workspace::<C>);
+    world.add_schedule(started);
 }
 
 /// Event triggers when a document is opened
@@ -230,3 +236,9 @@ pub struct Startup;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Started;
+
+/// Runs after `workspace/didChangeConfiguration` replaced the
+/// [`ServerConfig`](crate::prelude::ServerConfig): systems that load what the
+/// configuration names (ontologies, shapes) add themselves here.
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct ConfigChanged;

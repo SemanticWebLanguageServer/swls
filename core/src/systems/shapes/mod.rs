@@ -22,6 +22,7 @@ use crate::{
 };
 
 mod data;
+pub use data::ShaclShapes;
 use data::*;
 mod describe;
 pub(crate) mod model;

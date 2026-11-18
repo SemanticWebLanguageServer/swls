@@ -77,6 +77,11 @@ pub enum Disabled {
     /// comment and constraints) that apply to a predicate of the subject.
     #[serde(alias = "HOVER_SHAPE_PROPERTY", alias = "hover_shape_property")]
     HoverShapeProperty,
+
+    /// Loading the workspace's RDF files in the background at startup, so
+    /// their classes, properties and shapes are known without opening them.
+    #[serde(alias = "WORKSPACE_INDEX", alias = "workspace_index")]
+    WorkspaceIndex,
     /// Hover explanation shown for a property that is only accepted because it
     /// is in the user's `allowed_properties` allow-list.
     #[serde(alias = "HOVER_EXCLUDED_PROPERTY", alias = "hover_excluded_property")]

@@ -99,6 +99,22 @@ impl FsTrait for BinFs {
         }
     }
 
+    async fn walk(&self, root: &Url, extensions: &[&str], max: usize) -> Vec<Url> {
+        let Ok(root) = root.to_file_path() else {
+            return Vec::new();
+        };
+        let extensions: Vec<String> = extensions.iter().map(|e| e.to_string()).collect();
+        tokio::task::spawn_blocking(move || {
+            let extensions: Vec<&str> = extensions.iter().map(String::as_str).collect();
+            swls_core::util::fs::walk_dir(&root, &extensions, max)
+                .into_iter()
+                .flat_map(Url::from_file_path)
+                .collect()
+        })
+        .await
+        .unwrap_or_default()
+    }
+
     async fn cache_age(&self, url: &Url) -> Option<std::time::Duration> {
         let fp = url.to_file_path().ok()?;
         let modified = fs::metadata(fp).await.ok()?.modified().ok()?;

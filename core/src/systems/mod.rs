@@ -9,7 +9,7 @@ mod typed;
 pub use typed::*;
 mod links;
 pub use links::*;
-mod imports;
+pub(crate) mod imports;
 pub use imports::{import_url, open_imports};
 pub mod prefix;
 mod prefix_diagnostics;

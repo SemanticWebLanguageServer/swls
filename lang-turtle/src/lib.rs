@@ -52,6 +52,13 @@ pub fn setup_world<C: Client + ClientSync + Resource + Clone>(world: &mut World)
             extract_known_shapes_from_config::<C>,
         ));
     });
+    // A changed configuration may name new ontologies and shapes.
+    world.schedule_scope(swls_core::ConfigChanged, |_, schedule| {
+        schedule.add_systems((
+            extract_known_prefixes_from_config::<C>,
+            extract_known_shapes_from_config::<C>,
+        ));
+    });
 
     setup_parsing(world);
     setup_completion(world);

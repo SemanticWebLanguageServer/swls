@@ -29,6 +29,12 @@ struct Server {
 
 impl Server {
     fn start(name: &str) -> Self {
+        Self::start_with(name, |_| (json!(null), json!({})))
+    }
+
+    /// Start with a workspace root and client capabilities, chosen from the
+    /// server's private directory.
+    fn start_with(name: &str, init: impl FnOnce(&std::path::Path) -> (Value, Value)) -> Self {
         let dir = std::env::temp_dir().join(format!("swls-stdio-{}-{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
@@ -75,6 +81,7 @@ impl Server {
             }
         });
 
+        let (root, capabilities) = init(&dir);
         let mut server = Self {
             child,
             stdin,
@@ -85,7 +92,7 @@ impl Server {
         };
         server.request(
             "initialize",
-            json!({ "processId": null, "rootUri": null, "capabilities": {} }),
+            json!({ "processId": null, "rootUri": root, "capabilities": capabilities }),
         );
         server.notify("initialized", json!({}));
         server
@@ -101,18 +108,17 @@ impl Server {
         self.send(json!({ "jsonrpc": "2.0", "method": method, "params": params }));
     }
 
-    /// Next message from the server, answering its own requests on the way.
+    /// Next message from the server. Requests from the server are answered.
     fn next_message(&mut self, deadline: Instant) -> Option<Value> {
-        loop {
-            let left = deadline.checked_duration_since(Instant::now())?;
-            let message = self.messages.recv_timeout(left).ok()?;
-            if message.get("method").is_some() && message.get("id").is_some() {
-                let id = message["id"].clone();
-                self.send(json!({ "jsonrpc": "2.0", "id": id, "result": null }));
-                continue;
-            }
-            return Some(message);
+        let left = deadline.checked_duration_since(Instant::now())?;
+        let message = self.messages.recv_timeout(left).ok()?;
+        if message.get("method").is_some() && message.get("id").is_some() {
+            // A request from the server: answer it, and pass it on so tests can
+            // check it.
+            let id = message["id"].clone();
+            self.send(json!({ "jsonrpc": "2.0", "id": id, "result": null }));
         }
+        Some(message)
     }
 
     fn request(&mut self, method: &str, params: Value) -> Value {
@@ -390,4 +396,180 @@ fn an_edit_publishes_diagnostics_once() {
         }
     }
     assert_eq!(published, 1, "diagnostics messages for one edit");
+}
+
+// ─── Workspace, file changes and configuration ──────────────────────────────
+
+const ONTO_PREFIXES: &str =
+    "@prefix ex: <http://ex.test/>.\n@prefix owl: <http://www.w3.org/2002/07/owl#>.\n";
+
+fn onto(classes: &[&str]) -> String {
+    let mut s = String::from(ONTO_PREFIXES);
+    for c in classes {
+        s.push_str(&format!("ex:{c} a owl:Class .\n"));
+    }
+    s
+}
+
+fn file_uri(path: &std::path::Path) -> String {
+    format!("file://{}", path.display())
+}
+
+/// A server whose workspace is `<dir>/project`, prepared by `setup`, with a
+/// client that supports registering file watchers.
+fn workspace_server(name: &str, setup: impl FnOnce(&std::path::Path)) -> (Server, PathBuf) {
+    let mut project = PathBuf::new();
+    let server = Server::start_with(name, |dir| {
+        project = dir.join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        setup(&project);
+        (
+            json!(file_uri(&project)),
+            json!({ "workspace": { "didChangeWatchedFiles": { "dynamicRegistration": true } } }),
+        )
+    });
+    (server, project)
+}
+
+const USER: &str = "@prefix ex: <http://ex.test/>.\n<x> a ex:";
+
+/// Class completions in a fresh document using `ex:`.
+fn ex_classes(server: &mut Server, project: &std::path::Path) -> Vec<String> {
+    let uri = file_uri(&project.join("user.ttl"));
+    server.request("textDocument/completion", at(&uri, 1, 9));
+    labels(&server.request("textDocument/completion", at(&uri, 1, 9)))
+        .into_iter()
+        .filter(|l| l.starts_with("ex:"))
+        .collect()
+}
+
+fn open_user(server: &mut Server, project: &std::path::Path) {
+    server.open(&file_uri(&project.join("user.ttl")), USER);
+}
+
+fn wait_for_class(server: &mut Server, project: &std::path::Path, class: &str, present: bool) {
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let classes = ex_classes(server, project);
+        if classes.iter().any(|c| c == class) == present {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "{class} {} in {classes:?}",
+            if present {
+                "never appeared"
+            } else {
+                "never went away"
+            }
+        );
+        std::thread::sleep(Duration::from_millis(200));
+    }
+}
+
+fn file_changed(server: &mut Server, path: &std::path::Path, typ: u32) {
+    server.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({ "changes": [{ "uri": file_uri(path), "type": typ }] }),
+    );
+}
+
+#[test]
+fn workspace_files_are_indexed_without_opening_them() {
+    let (mut server, project) = workspace_server("index", |project| {
+        std::fs::write(project.join("vocab.ttl"), onto(&["Indexed"])).unwrap();
+        for skipped in ["node_modules", ".hidden"] {
+            std::fs::create_dir_all(project.join(skipped)).unwrap();
+            std::fs::write(project.join(skipped).join("x.ttl"), onto(&["Skipped"])).unwrap();
+        }
+    });
+    open_user(&mut server, &project);
+    wait_for_class(&mut server, &project, "ex:Indexed", true);
+    assert!(!ex_classes(&mut server, &project).contains(&"ex:Skipped".to_string()));
+}
+
+#[test]
+fn the_server_registers_file_watchers() {
+    let (mut server, _project) = workspace_server("watchers", |_| {});
+    let registration = server.wait_for("a watcher registration", |m| {
+        m["method"] == "client/registerCapability"
+    });
+    let reg = &registration["params"]["registrations"][0];
+    assert_eq!(reg["method"], "workspace/didChangeWatchedFiles");
+    assert!(reg["registerOptions"]["watchers"][0]["globPattern"]
+        .as_str()
+        .unwrap()
+        .contains("ttl"));
+}
+
+#[test]
+fn changed_deleted_and_created_files_update_what_is_known() {
+    let (mut server, project) = workspace_server("watched", |project| {
+        std::fs::write(project.join("vocab.ttl"), onto(&["Old"])).unwrap();
+    });
+    let vocab = project.join("vocab.ttl");
+    open_user(&mut server, &project);
+    wait_for_class(&mut server, &project, "ex:Old", true);
+
+    // Changed on disk.
+    std::fs::write(&vocab, onto(&["New"])).unwrap();
+    file_changed(&mut server, &vocab, 2);
+    wait_for_class(&mut server, &project, "ex:New", true);
+    wait_for_class(&mut server, &project, "ex:Old", false);
+
+    // Deleted.
+    std::fs::remove_file(&vocab).unwrap();
+    file_changed(&mut server, &vocab, 3);
+    wait_for_class(&mut server, &project, "ex:New", false);
+
+    // Created.
+    let created = project.join("more.ttl");
+    std::fs::write(&created, onto(&["Created"])).unwrap();
+    file_changed(&mut server, &created, 1);
+    wait_for_class(&mut server, &project, "ex:Created", true);
+}
+
+#[test]
+fn saving_a_workspace_file_makes_its_changes_known() {
+    let (mut server, project) = workspace_server("save", |project| {
+        std::fs::write(project.join("vocab.ttl"), onto(&["Old"])).unwrap();
+    });
+    let vocab = project.join("vocab.ttl");
+    open_user(&mut server, &project);
+    wait_for_class(&mut server, &project, "ex:Old", true);
+
+    // Edit the vocabulary in the editor: not known until saved.
+    let uri = file_uri(&vocab);
+    server.open(&uri, &onto(&["Old"]));
+    server.notify(
+        "textDocument/didChange",
+        json!({
+            "textDocument": { "uri": uri, "version": 2 },
+            "contentChanges": [{ "text": onto(&["Old", "Saved"]) }]
+        }),
+    );
+    std::thread::sleep(Duration::from_millis(500));
+    assert!(!ex_classes(&mut server, &project).contains(&"ex:Saved".to_string()));
+
+    std::fs::write(&vocab, onto(&["Old", "Saved"])).unwrap();
+    server.notify(
+        "textDocument/didSave",
+        json!({ "textDocument": { "uri": uri } }),
+    );
+    wait_for_class(&mut server, &project, "ex:Saved", true);
+}
+
+#[test]
+fn a_configuration_change_applies_without_a_restart() {
+    let (mut server, project) = workspace_server("config", |project| {
+        std::fs::write(project.join("vocab.ttl"), onto(&["Thing"])).unwrap();
+    });
+    open_user(&mut server, &project);
+    wait_for_class(&mut server, &project, "ex:Thing", true);
+
+    server.notify(
+        "workspace/didChangeConfiguration",
+        json!({ "settings": { "swls": { "disabled": ["completion_class"] } } }),
+    );
+    wait_for_class(&mut server, &project, "ex:Thing", false);
 }
