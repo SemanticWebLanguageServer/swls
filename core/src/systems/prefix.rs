@@ -189,6 +189,17 @@ impl PrefixLike<'_> {
     }
 }
 
+/// How many undeclared prefixes (from the built-in vocabularies and
+/// prefix.cc) are suggested at most.
+pub const MAX_UNDECLARED_PREFIXES: usize = 30;
+
+/// Prefix suggestions for the word at the cursor.
+///
+/// Prefixes the document declares are always suggested. Undeclared prefixes
+/// (built-in vocabularies, then prefix.cc in popularity order) only once
+/// something was typed, and at most [`MAX_UNDECLARED_PREFIXES`]: with an empty
+/// word every one of the ~3,400 known prefixes would match, burying everything
+/// else.
 pub fn prefix_completion_helper<'a>(
     word: &TokenComponent,
     prefixes: &'a Prefixes,
@@ -202,90 +213,29 @@ pub fn prefix_completion_helper<'a>(
     let text = lang.unquote(&word.text);
     tracing::debug!("completion helper {:?}", word);
 
-    completions.extend(
-        lovs.map(PrefixLike::Local)
-            .chain(prefix_cc.map(PrefixLike::Entry))
-            .chain(prefixes.iter().map(PrefixLike::Prefix))
-            .filter(|p| p.name().starts_with(text))
-            .filter(|p| p.namespace().ends_with('#') || p.namespace().ends_with('/'))
-            .flat_map(|lov| {
-                if suggested.contains(lov.name()) {
-                    return None;
-                }
-
-                let completion =
-                    lov.as_completion(lang, word.range, extra_edits(lov.name(), lov.namespace()));
-
-                suggested.insert(lov.name().to_string());
-                Some(completion)
-            }),
-    );
-
-    // completions.extend(
-    //     lovs.filter(|lov| lov.name.starts_with(text))
-    //         .flat_map(|lov| {
-    //             if suggested.contains(&lov.namespace) {
-    //                 tracing::info!("suggested contains it {:?}", lov);
-    //                 return None;
-    //             }
-    //
-    //             let completion = PrefixLike::Local(lov).as_completion(
-    //                 lang,
-    //                 word.range.clone(),
-    //                 extra_edits(&lov.name, &lov.namespace),
-    //             );
-    //
-    //             suggested.insert(&lov.namespace);
-    //             Some(completion)
-    //         }),
-    // );
-    //
-    // completions.extend(
-    //     prefix_cc
-    //         .filter(|pref| pref.name.starts_with(text))
-    //         // .filter(|pref| !defined.contains(pref.namespace.as_ref()))
-    //         // .filter(|lov| {
-    //         //     !config
-    //         //         .prefix_disabled
-    //         //         .iter()
-    //         //         .any(|x| lov.name.starts_with(x.as_str()))
-    //         // })
-    //         .flat_map(|lov| {
-    //             if suggested.contains(&lov.namespace) {
-    //                 return None;
-    //             }
-    //             let mut new_text = format!("{}:", lov.name);
-    //             let filter_text = new_text.clone();
-    //             if new_text != text {
-    //                 new_text += "$0";
-    //                 let extra_edit = extra_edits(&lov.name, &lov.namespace);
-    //                 let completion = SimpleCompletion::new(
-    //                     CompletionItemKind::MODULE,
-    //                     format!("{}", lov.name),
-    //                     crate::lsp_types::TextEdit {
-    //                         new_text: lang.quote(&new_text),
-    //                         range: word.range.clone(),
-    //                     },
-    //                 )
-    //                 .documentation(lov.namespace.as_ref())
-    //                 .filter_text(filter_text)
-    //                 .as_snippet();
-    //
-    //                 let completion = extra_edit
-    //                     .into_iter()
-    //                     .flatten()
-    //                     .fold(completion, |completion: SimpleCompletion, edit| {
-    //                         completion.text_edit(edit)
-    //                     });
-    //
-    //                 suggested.insert(&lov.namespace);
-    //                 Some(completion)
-    //             } else {
-    //                 tracing::info!("new_text is word.text");
-    //                 None
-    //             }
-    //         }),
-    // );
+    let mut undeclared = 0;
+    let candidates = prefixes
+        .iter()
+        .map(PrefixLike::Prefix)
+        .chain(lovs.map(PrefixLike::Local))
+        .chain(prefix_cc.map(PrefixLike::Entry));
+    for prefix in candidates {
+        let declared = matches!(prefix, PrefixLike::Prefix(_));
+        if !declared && (text.is_empty() || undeclared >= MAX_UNDECLARED_PREFIXES) {
+            continue;
+        }
+        if !prefix.name().starts_with(text)
+            || !(prefix.namespace().ends_with('#') || prefix.namespace().ends_with('/'))
+            || !suggested.insert(prefix.name().to_string())
+        {
+            continue;
+        }
+        if !declared {
+            undeclared += 1;
+        }
+        let edits = extra_edits(prefix.name(), prefix.namespace());
+        completions.push(prefix.as_completion(lang, word.range, edits));
+    }
 }
 
 /// Generic prefix completion for the text RDF languages (Turtle / TriG / SPARQL).
