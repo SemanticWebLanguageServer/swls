@@ -793,12 +793,11 @@ impl<C: Client> Backend<C> {
                 (CompletionRequest(vec![]), PositionComponent(pos)),
             )
             .await
-            .map(|x| x.0.into_iter().map(|x| x.into()).collect());
+            .map(|mut x| {
+                crate::feature::completion::sort_completions(&mut x.0);
+                x.0.into_iter().map(|x| x.into()).collect()
+            });
 
-        Ok(completions.map(|mut c| {
-            c.sort_by(|a, b| a.sort_text.cmp(&b.sort_text));
-
-            CompletionResponse::Array(c)
-        }))
+        Ok(completions.map(CompletionResponse::Array))
     }
 }

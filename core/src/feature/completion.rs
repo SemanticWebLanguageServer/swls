@@ -187,6 +187,12 @@ impl SimpleCompletion {
     }
 
     pub fn label_description(mut self, description: impl Into<String>) -> Self {
+        self.set_label_description(description);
+        self
+    }
+
+    /// Set the description shown next to the label of an existing item.
+    pub fn set_label_description(&mut self, description: impl Into<String>) {
         if let Some(ref mut t) = self._label_details {
             t.description = Some(description.into());
         } else {
@@ -195,7 +201,6 @@ impl SimpleCompletion {
                 detail: None,
             });
         }
-        self
     }
 
     pub fn text_edit(mut self, edit: TextEdit) -> Self {
@@ -227,6 +232,16 @@ impl SimpleCompletion {
         self._commit_char = Some(commit_char.into());
         self
     }
+}
+
+/// Order completions the way LSP clients do: by sort text, or by label when an
+/// item has none. (Comparing `Option`s would put every item without a sort
+/// text first.)
+pub fn sort_completions(items: &mut [SimpleCompletion]) {
+    items.sort_by(|a, b| {
+        let key = |c: &SimpleCompletion| c._sort_text.clone().unwrap_or_else(|| c.label.clone());
+        key(a).cmp(&key(b))
+    });
 }
 
 impl From<SimpleCompletion> for CompletionItem {

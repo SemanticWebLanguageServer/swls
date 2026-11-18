@@ -255,27 +255,77 @@ pub(crate) fn describe(
 }
 
 /// Documentation of every property shape that applies to `focus`, per predicate.
+/// How much the shapes need a predicate on the subject, ordered from least to
+/// most urgent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Need {
+    /// Allowed, or already present often enough.
+    Optional,
+    /// One of the alternatives of a required `sh:alternativePath`, none of
+    /// which the subject has yet.
+    OneOfRequired,
+    /// Required (`sh:minCount >= 1`) and the subject does not have it yet.
+    Required,
+}
+
+impl Need {
+    /// Sort key prefix: required predicates come before every other
+    /// suggestion (`!` sorts before digits, letters and `@`).
+    fn sort_prefix(self) -> Option<&'static str> {
+        match self {
+            Need::Required => Some("!0"),
+            Need::OneOfRequired => Some("!1"),
+            Need::Optional => None,
+        }
+    }
+
+    fn label(self) -> Option<&'static str> {
+        match self {
+            Need::Required => Some("required by shape"),
+            Need::OneOfRequired => Some("one of required by shape"),
+            Need::Optional => None,
+        }
+    }
+}
+
+/// A predicate the shapes describe for the subject.
+struct ShapePredicate {
+    path: String,
+    docs: Vec<String>,
+    need: Need,
+}
+
+/// Documentation of every property shape that applies to `focus`, per
+/// predicate, with how much the shapes still need it.
 fn docs_per_predicate(
     graph: &ShapeGraph<'_>,
     focus: &Focus<'_>,
     names: &Names<'_>,
-) -> Vec<(String, Vec<String>, bool)> {
-    let mut out: Vec<(String, Vec<String>, bool)> = Vec::new();
+) -> Vec<ShapePredicate> {
+    let mut out: Vec<ShapePredicate> = Vec::new();
     for applied in applied_property_shapes(graph, focus) {
         let Some(paths) = property_paths(graph, applied.node) else {
             continue;
         };
-        // An alternative path does not make any single predicate required.
-        let required =
-            paths.len() == 1 && graph.number(applied.node, &sh("minCount")).unwrap_or(0.0) >= 1.0;
+        let min = graph.number(applied.node, &sh("minCount")).unwrap_or(0.0);
+        let missing = !paths.iter().any(|p| focus.has_predicate(p));
+        let need = match (min >= 1.0 && missing, paths.len()) {
+            (false, _) => Need::Optional,
+            (true, 1) => Need::Required,
+            (true, _) => Need::OneOfRequired,
+        };
         let doc = describe(graph, applied, names);
         for path in paths {
-            match out.iter_mut().find(|(p, _, _)| *p == path) {
-                Some((_, docs, req)) => {
-                    docs.push(doc.clone());
-                    *req |= required;
+            match out.iter_mut().find(|p| p.path == path) {
+                Some(p) => {
+                    p.docs.push(doc.clone());
+                    p.need = p.need.max(need);
                 }
-                None => out.push((path, vec![doc.clone()], required)),
+                None => out.push(ShapePredicate {
+                    path,
+                    docs: vec![doc.clone()],
+                    need,
+                }),
             }
         }
     }
@@ -370,15 +420,16 @@ pub fn shape_property_completions(
         let shortened: HashMap<String, usize> = per_predicate
             .iter()
             .enumerate()
-            .flat_map(|(i, (path, _, _))| [(path.clone(), i), (names.iri(path), i)])
+            .flat_map(|(i, p)| [(p.path.clone(), i), (names.iri(&p.path), i)])
             .chain(
                 per_predicate
                     .iter()
                     .enumerate()
-                    .flat_map(|(i, (path, _, _))| prefixes.shorten(path).map(|s| (s, i))),
+                    .flat_map(|(i, p)| prefixes.shorten(&p.path).map(|s| (s, i))),
             )
             .collect();
 
+        // Document (and rank) the property suggestions that already exist.
         let mut documented = vec![false; per_predicate.len()];
         for item in request.0.iter_mut() {
             if item.kind != CompletionItemKind::FIELD
@@ -390,23 +441,40 @@ pub fn shape_property_completions(
                 continue;
             };
             documented[i] = true;
-            let shape_docs = per_predicate[i].1.join("\n\n---\n\n");
+            let predicate = &per_predicate[i];
+            let shape_docs = predicate.docs.join("\n\n---\n\n");
             item._documentation = Some(match item._documentation.take() {
                 Some(d) if !d.is_empty() => format!("{d}\n\n---\n\n{shape_docs}"),
                 _ => shape_docs,
             });
+            if let (Some(sort), Some(need)) = (predicate.need.sort_prefix(), predicate.need.label())
+            {
+                item._sort_text = Some(format!("{}{}", sort, item.label));
+                let title = item
+                    ._label_details
+                    .as_ref()
+                    .and_then(|d| d.description.clone())
+                    .filter(|t| !t.is_empty());
+                let description = match title {
+                    Some(title) => format!("{need} · {title}"),
+                    None => need.to_string(),
+                };
+                item.set_label_description(description);
+                item.kind = CompletionItemKind::FIELD;
+            }
         }
 
         // Predicates only the shapes know about.
         let typed = lang.unquote(&cursor.typed);
-        for (i, (path, docs, required)) in per_predicate.iter().enumerate() {
-            if documented[i] || focus_has(subject, &triples.0, path) {
+        for (i, predicate) in per_predicate.iter().enumerate() {
+            if documented[i] || focus_has(subject, &triples.0, &predicate.path) {
                 continue;
             }
-            let short = lang.write_iri(prefixes, path);
+            let short = lang.write_iri(prefixes, &predicate.path);
             if !short.starts_with(typed) {
                 continue;
             }
+            let sort = predicate.need.sort_prefix().unwrap_or("0");
             let mut item = SimpleCompletion::new(
                 CompletionItemKind::FIELD,
                 short.clone(),
@@ -415,10 +483,10 @@ pub fn shape_property_completions(
                     new_text: cursor.spaced(&lang.quote(&short)),
                 },
             )
-            .documentation(docs.join("\n\n---\n\n"))
-            .sort_text(format!("0{}", short));
-            if *required {
-                item = item.label_description("required by shape");
+            .documentation(predicate.docs.join("\n\n---\n\n"))
+            .sort_text(format!("{}{}", sort, short));
+            if let Some(need) = predicate.need.label() {
+                item = item.label_description(need);
             }
             request.0.push(item);
         }
