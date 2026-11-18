@@ -9,7 +9,6 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-homepage.workspace = true
 
 [dependencies]
 bevy_ecs.workspace = true

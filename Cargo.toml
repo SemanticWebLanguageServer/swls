@@ -4,7 +4,6 @@ edition = "2021"
 authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
 license = "MIT"
 repository = "https://github.com/semanticweblanguageserver/swls"
-homepage = "https://github.com/semanticweblanguageserver/swls"
 
 [workspace.dependencies]
 async-trait = "0.1.89"
