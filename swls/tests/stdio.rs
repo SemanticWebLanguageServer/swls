@@ -359,3 +359,35 @@ fn required_property_is_suggested_first_in_trig() {
 fn required_property_is_suggested_first_at_the_end_of_an_unfinished_file() {
     required_property_is_suggested_first("turtle", "");
 }
+
+/// One edit reaches the client as one diagnostics message for the document,
+/// not one per kind of diagnostic.
+#[test]
+fn an_edit_publishes_diagnostics_once() {
+    let mut server = Server::start("publish-once");
+    let uri = "file:///project/broken.ttl";
+    server.open(uri, "@prefix ex: <http://ex.test/>.\n<a> <b> .");
+    server.wait_for("initial diagnostics", |m| {
+        m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == uri
+    });
+    // Let the initial load settle, then forget what arrived so far.
+    std::thread::sleep(Duration::from_millis(500));
+    while server.messages.try_recv().is_ok() {}
+    server.notifications.clear();
+
+    server.notify(
+        "textDocument/didChange",
+        json!({
+            "textDocument": { "uri": uri, "version": 2 },
+            "contentChanges": [{ "text": "@prefix ex: <http://ex.test/>.\n<a> <c> ." }]
+        }),
+    );
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut published = 0;
+    while let Some(m) = server.next_message(deadline) {
+        if m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == uri {
+            published += 1;
+        }
+    }
+    assert_eq!(published, 1, "diagnostics messages for one edit");
+}
