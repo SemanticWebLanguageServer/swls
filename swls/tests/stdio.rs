@@ -275,3 +275,87 @@ fn url_path(uri: &str) -> PathBuf {
     let path = uri.strip_prefix("file://").unwrap();
     PathBuf::from(path.replace("%20", " "))
 }
+
+/// Shapes imported with a relative `owl:imports`, as in a real project.
+const SHAPES: &str = r#"@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+<SomeShape> a sh:NodeShape;
+  sh:targetClass foaf:Person;
+  sh:property [ a sh:PropertyShape;
+    sh:path foaf:name;
+    sh:minCount 1;
+    sh:maxCount 1;
+    sh:name "Your Name";
+    sh:description "Your name is required";
+  ], [
+    sh:path foaf:name22;
+    sh:minCount 1;
+    sh:maxCount 1;
+    sh:name "Your Second Name";
+    sh:description "Your Second name is also required";
+  ].
+"#;
+
+const MAPPING_HEAD: &str = "@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix rml: <http://w3id.org/rml/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+<> a owl:Ontology; owl:imports <./shape.ttl>.
+
+<myPerson> a foaf:Person, owl:Thing, rml:ExpressionMap;
+  foaf:name \"Arthur\";
+  ";
+
+/// Completion on the empty line after `foaf:name "Arthur";` offers the missing
+/// required `foaf:name22` first, then the template that adds it.
+fn required_property_is_suggested_first(language: &str, rest_of_file: &str) {
+    let mut server = Server::start(&format!("required-{language}-{}", rest_of_file.len()));
+    let project = server.dir.join("project");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(project.join("shape.ttl"), SHAPES).unwrap();
+    let mapping = project.join("mapping.ttl");
+    let text = format!("{MAPPING_HEAD}{rest_of_file}");
+    std::fs::write(&mapping, &text).unwrap();
+    let uri = format!("file://{}", mapping.display());
+
+    server.notify(
+        "textDocument/didOpen",
+        json!({ "textDocument": {
+            "uri": uri, "languageId": language, "version": 1, "text": text
+        }}),
+    );
+    let result = server.request_until("textDocument/completion", at(&uri, 8, 2), |r| {
+        labels(r).iter().any(|l| l == "foaf:name22")
+    });
+
+    let items = result.as_array().unwrap();
+    assert_eq!(
+        items[0]["label"],
+        "foaf:name22",
+        "{:?}",
+        &labels(&result)[..5]
+    );
+    assert_eq!(items[0]["labelDetails"]["description"], "required by shape");
+    assert_eq!(items[1]["label"], "shape template: required properties");
+    // `foaf:name` is already there, so it is not suggested as required.
+    assert!(items
+        .iter()
+        .filter(|i| i["label"] == "foaf:name")
+        .all(|i| i["sortText"].as_str().is_none_or(|s| !s.starts_with('!'))));
+}
+
+#[test]
+fn required_property_is_suggested_first_in_turtle() {
+    required_property_is_suggested_first("turtle", "\n  rml:template \"Testing\".\n");
+}
+
+#[test]
+fn required_property_is_suggested_first_in_trig() {
+    required_property_is_suggested_first("trig", "\n  rml:template \"Testing\".\n");
+}
+
+#[test]
+fn required_property_is_suggested_first_at_the_end_of_an_unfinished_file() {
+    required_property_is_suggested_first("turtle", "");
+}
