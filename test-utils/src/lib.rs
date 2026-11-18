@@ -317,18 +317,20 @@ pub fn create_file(
         text: String::new(),
     };
 
-    spawn_or_insert(
+    let entity = spawn_or_insert(
         url.clone(),
         (
             Source(content.to_string()),
             RopeC(LineIndex::new(content)),
-            Label(url), // this might crash
+            Label(url),
             Wrapped(item),
             Types(HashMap::new()),
         ),
         Some(lang.into()),
         bundle,
-    )(world)
+    )(world);
+    world.run_schedule(swls_core::feature::parse::Label);
+    entity
 }
 
 pub fn debug_world(world: &mut World) {

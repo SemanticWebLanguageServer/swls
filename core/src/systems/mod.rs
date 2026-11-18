@@ -63,8 +63,9 @@ pub fn spawn_or_insert(
             world.entity_mut(out).insert(DocumentLinks(Vec::new()));
         }
 
+        // Callers parse once they have added everything (`ParseLabel`); parsing
+        // here as well made every new document parse twice.
         world.flush();
-        world.run_schedule(ParseLabel);
         out
     }
 }
