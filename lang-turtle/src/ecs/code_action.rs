@@ -95,7 +95,7 @@ pub fn organize_imports(
 
 #[cfg(test)]
 mod tests {
-    use swls_core::{feature::code_action::Label as CodeActionLabel, prelude::*};
+    use swls_core::feature::code_action::Label as CodeActionLabel;
     use swls_test_utils::{create_file, setup_world, TestClient};
 
     use super::*;
