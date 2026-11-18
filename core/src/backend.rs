@@ -4,6 +4,8 @@ use crate::text::LineIndex;
 use bevy_ecs::{
     bundle::Bundle,
     component::Component,
+    entity::Entity,
+    query::With,
     schedule::ScheduleLabel,
     world::{CommandQueue, World},
 };
@@ -45,7 +47,13 @@ pub struct Backend<C> {
     sender: CommandSender,
     client: C,
     semantic_tokens: Vec<SemanticTokenType>,
+    /// Whether the client lets the server register file watchers.
+    watch_files: std::sync::atomic::AtomicBool,
 }
+
+/// Files the server asks the client to watch: the RDF files it may have
+/// loaded in the background (workspace index, `owl:imports`, configuration).
+const WATCHED_FILES: &str = "**/*.{ttl,nt,owl,trig,n3}";
 
 impl<C> std::fmt::Debug for Backend<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -61,7 +69,25 @@ impl<C: Client> Backend<C> {
             sender,
             client,
             semantic_tokens: tokens,
+            watch_files: std::sync::atomic::AtomicBool::new(false),
         }
+    }
+
+    /// `config` combined with the global and the workspace config files.
+    async fn with_config_files(&self, mut config: Config, root: Option<&Url>) -> Config {
+        // Without a file system (the world is gone) there are no config files
+        // to read; keep the options the client sent.
+        if let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await {
+            if let Some(global) = LocalConfig::global(&fs).await {
+                config.local.combine(global);
+            }
+            if let Some(root) = root {
+                if let Some(local) = LocalConfig::local(&fs, root).await {
+                    config.local.combine(local);
+                }
+            }
+        }
+        config
     }
 
     async fn run<T: Send + Sync + 'static>(
@@ -146,7 +172,20 @@ impl<C: Client> Backend<C> {
     pub async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
 
-        let workspaces = init.workspace_folders.clone().unwrap_or_default();
+        // Clients that only send a root get that root as their workspace.
+        let workspaces = init
+            .workspace_folders
+            .clone()
+            .filter(|w| !w.is_empty())
+            .or_else(|| {
+                init.root_uri.clone().map(|uri| {
+                    vec![WorkspaceFolder {
+                        name: uri.path().to_string(),
+                        uri,
+                    }]
+                })
+            })
+            .unwrap_or_default();
         let config: Config = match init.initialization_options.clone() {
             None | Some(serde_json::Value::Null) => Config::default(),
             Some(options) => match serde_json::from_value(options) {
@@ -162,21 +201,18 @@ impl<C: Client> Backend<C> {
             },
         };
 
-        let mut server_config = ServerConfig { config, workspaces };
+        let config = self.with_config_files(config, init.root_uri.as_ref()).await;
+        let server_config = ServerConfig { config, workspaces };
 
-        // Without a file system (the world is gone) there are no config files to
-        // read; continue with the options the client sent.
-        if let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await {
-            if let Some(global) = LocalConfig::global(&fs).await {
-                server_config.config.local.combine(global);
-            }
-
-            if let Some(root) = init.root_uri.as_ref() {
-                if let Some(local) = LocalConfig::local(&fs, root).await {
-                    server_config.config.local.combine(local);
-                }
-            }
-        }
+        let watch_files = init
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|w| w.did_change_watched_files.as_ref())
+            .and_then(|w| w.dynamic_registration)
+            .unwrap_or(false);
+        self.watch_files
+            .store(watch_files, std::sync::atomic::Ordering::Relaxed);
 
         info!("Initialize {:?}", server_config);
         let document_selectors: Vec<_> = [
@@ -278,6 +314,145 @@ impl<C: Client> Backend<C> {
         self.run(|world| {
             tracing::info!("initialized");
             world.run_schedule(Started);
+        })
+        .await;
+
+        // Ask the client to report changes to RDF files on disk, so background
+        // documents (workspace files, imports) stay current.
+        if self.watch_files.load(std::sync::atomic::Ordering::Relaxed) {
+            let options = DidChangeWatchedFilesRegistrationOptions {
+                watchers: vec![FileSystemWatcher {
+                    glob_pattern: GlobPattern::String(WATCHED_FILES.to_string()),
+                    kind: None,
+                }],
+            };
+            let registration = Registration {
+                id: String::from("swls-watched-files"),
+                method: String::from("workspace/didChangeWatchedFiles"),
+                register_options: serde_json::to_value(options).ok(),
+            };
+            let _ = self
+                .client
+                .send_request::<request::RegisterCapability>(RegistrationParams {
+                    registrations: vec![registration],
+                })
+                .await;
+        }
+    }
+
+    /// Files changed on disk. Background documents are reloaded (or dropped
+    /// when deleted), and new RDF files in the workspace are indexed. A file
+    /// open in the editor keeps the editor's text.
+    #[instrument(skip(self, params))]
+    pub async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        enum Action {
+            Reload(Entity),
+            /// Index a new file of the workspace folder (its root).
+            Load(Url),
+            Nothing,
+        }
+        let Some(fs) = self.run(|w| w.resource::<Fs>().clone()).await else {
+            return;
+        };
+        for change in params.changes {
+            let url = change.uri;
+            if change.typ == FileChangeType::DELETED {
+                let url = url.clone();
+                self.run(move |world| crate::document::remove_background(world, &url))
+                    .await;
+                continue;
+            }
+            let action = {
+                let url = url.clone();
+                self.run(move |world| match find_document(world, &url) {
+                    Some(e) if world.entity(e).contains::<Open>() => Action::Nothing,
+                    Some(e) => Action::Reload(e),
+                    None => {
+                        let config = world.resource::<ServerConfig>();
+                        let root = (!config.config.local.is_disabled(Disabled::WorkspaceIndex)
+                            && crate::workspace::is_workspace_file(&url))
+                        .then(|| crate::workspace::workspace_root(config, &url))
+                        .flatten();
+                        match root {
+                            Some(root) => Action::Load(root),
+                            None => Action::Nothing,
+                        }
+                    }
+                })
+                .await
+                .unwrap_or(Action::Nothing)
+            };
+            match action {
+                Action::Reload(entity) => {
+                    if let Some(content) = fs.0.read_file(&url).await {
+                        self.run(move |world| {
+                            crate::document::restore_background(world, entity, content)
+                        })
+                        .await;
+                    }
+                }
+                Action::Load(root) => {
+                    // The same files the startup walk skips (git-ignored, …).
+                    if !fs.0.is_ignored(&root, &url).await {
+                        crate::workspace::load_workspace_file(&fs, url, &self.sender).await;
+                    }
+                }
+                Action::Nothing => {}
+            }
+        }
+    }
+
+    /// The client's settings changed: apply them like `initializationOptions`
+    /// (combined with the config files), load newly configured ontologies and
+    /// shapes, and re-check open documents. Capabilities announced at
+    /// `initialize` cannot change.
+    #[instrument(skip(self, params))]
+    pub async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        // Clients send either the settings themselves or `{ "swls": … }`.
+        let settings = match params.settings {
+            serde_json::Value::Object(mut map) if map.contains_key("swls") => {
+                map.remove("swls").unwrap_or_default()
+            }
+            other => other,
+        };
+        if settings.is_null() {
+            return;
+        }
+        let config: Config = match serde_json::from_value(settings) {
+            Ok(config) => config,
+            Err(e) => {
+                let msg = format!("Invalid swls settings, keeping the current ones: {e}");
+                warn!("{msg}");
+                self.client.log_message(MessageType::WARNING, msg).await;
+                return;
+            }
+        };
+        let root = self
+            .run(|w| {
+                w.resource::<ServerConfig>()
+                    .workspaces
+                    .first()
+                    .map(|w| w.uri.clone())
+            })
+            .await
+            .flatten();
+        let config = self.with_config_files(config, root.as_ref()).await;
+
+        self.run(move |world| {
+            world.resource_mut::<ServerConfig>().config = config;
+            world.run_schedule(crate::ConfigChanged);
+            // Re-check every open document with the new settings.
+            let open: Vec<Entity> = world
+                .query_filtered::<Entity, With<Open>>()
+                .iter(world)
+                .collect();
+            for e in open {
+                if let Some(mut source) = world.get_mut::<Source>(e) {
+                    bevy_ecs::change_detection::DetectChangesMut::set_changed(&mut source);
+                }
+            }
+            world.run_schedule(ParseLabel);
+            world.flush();
         })
         .await;
     }
@@ -613,9 +788,11 @@ impl<C: Client> Backend<C> {
 
     #[instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     pub async fn did_save(&self, params: DidSaveTextDocumentParams) {
-        let _ = params;
+        let url = params.text_document.uri;
 
         self.run(move |world| {
+            // A saved workspace file now feeds the other documents.
+            crate::document::save_document(world, &url);
             world.run_schedule(SaveLabel);
 
             debug!("Ran OnSave Schedule");

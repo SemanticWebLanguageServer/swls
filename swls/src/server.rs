@@ -60,6 +60,14 @@ impl LanguageServer for LspBackend {
         self.backend.did_change_workspace_folders(params).await;
     }
 
+    async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        self.backend.did_change_watched_files(params).await;
+    }
+
+    async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        self.backend.did_change_configuration(params).await;
+    }
+
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         self.backend.did_open(params).await;
     }

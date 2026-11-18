@@ -38,6 +38,10 @@ rudof_rdf = { version= "=0.2.9", default-features = false }
 shacl_ast = "=0.2.9"
 prefixmap = "=0.2.9"
 shacl_validation = { version = "=0.2.9", default-features = false, features = [] }
+
+# Walking the workspace like git does (`.gitignore`, excludes, `.ignore`).
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ignore = "0.4"
 iri_s = "=0.2.9"
 
 # Pin transitive versions of shacl_validation's sparql_service → mie to the

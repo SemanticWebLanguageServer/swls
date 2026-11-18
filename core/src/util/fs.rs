@@ -98,4 +98,219 @@ pub trait FsTrait: Send + Sync + 'static + std::fmt::Debug {
     async fn is_dir(&self, path: &crate::lsp_types::Url) -> bool;
 
     async fn glob(&self, base: &Url, pattern: &str) -> Option<Vec<FsDirEntry>>;
+
+    /// Files under `root` whose name ends with one of `extensions`, at most
+    /// `max`. Skips hidden folders, `node_modules` and `target`. The default
+    /// finds nothing (no file system to walk).
+    async fn walk(&self, _root: &Url, _extensions: &[&str], _max: usize) -> Vec<Url> {
+        Vec::new()
+    }
+
+    /// Whether [`walk`](Self::walk) would skip `file` inside `root` (ignored
+    /// by git, hidden, …). The default ignores nothing.
+    async fn is_ignored(&self, _root: &Url, _file: &Url) -> bool {
+        false
+    }
+}
+
+/// Folders a workspace walk does not descend into, even outside a git
+/// repository or when nothing ignores them.
+pub fn skip_folder(name: &str) -> bool {
+    name.starts_with('.') || name == "node_modules" || name == "target"
+}
+
+/// Walk `root` on the local file system (see [`FsTrait::walk`]).
+///
+/// Skips what git would ignore: `.gitignore` files at every level,
+/// `.git/info/exclude`, the global git excludes, and `.ignore` files, also
+/// outside a git repository. Hidden entries and [`skip_folder`]s are always
+/// skipped. Entries are visited in name order.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn walk_dir(
+    root: &std::path::Path,
+    extensions: &[&str],
+    max: usize,
+) -> Vec<std::path::PathBuf> {
+    let walker = ignore::WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(true)
+        .git_exclude(true)
+        .git_global(true)
+        .ignore(true)
+        .parents(true)
+        .require_git(false)
+        .sort_by_file_name(|a, b| a.cmp(b))
+        .filter_entry(|e| {
+            let is_dir = e.file_type().is_some_and(|t| t.is_dir());
+            e.depth() == 0 || !is_dir || !skip_folder(&e.file_name().to_string_lossy())
+        })
+        .build();
+    let mut out = Vec::new();
+    for entry in walker.flatten() {
+        let is_file = entry.file_type().is_some_and(|t| t.is_file());
+        let name = entry.file_name().to_string_lossy();
+        if is_file && extensions.iter().any(|ext| name.ends_with(ext)) {
+            out.push(entry.into_path());
+            if out.len() >= max {
+                break;
+            }
+        }
+    }
+    out
+}
+
+/// Whether `file`, inside workspace folder `root`, is one that
+/// [`walk_dir`] would skip: in a hidden or [`skip_folder`], or ignored by a
+/// `.gitignore` / `.ignore` file between `root` and the file, or by
+/// `.git/info/exclude`. Used for files created after the workspace was
+/// indexed. (The global git excludes are only applied by [`walk_dir`].)
+#[cfg(not(target_arch = "wasm32"))]
+pub fn is_ignored(root: &std::path::Path, file: &std::path::Path) -> bool {
+    use ignore::{gitignore::GitignoreBuilder, Match};
+
+    let Ok(relative) = file.strip_prefix(root) else {
+        return true;
+    };
+    let components: Vec<_> = relative.components().collect();
+    let folders = components.len().saturating_sub(1);
+    let hidden_or_skipped = components.iter().enumerate().any(|(i, c)| {
+        let name = c.as_os_str().to_string_lossy();
+        name.starts_with('.') || (i < folders && skip_folder(&name))
+    });
+    if hidden_or_skipped {
+        return true;
+    }
+
+    // Ignore files of `root` and every folder on the way to `file`; deeper
+    // files take precedence, as in git.
+    let mut dirs = vec![root.to_path_buf()];
+    for c in &components[..folders] {
+        let next = dirs.last().unwrap().join(c);
+        dirs.push(next);
+    }
+    let is_dir = file.is_dir();
+    for (i, dir) in dirs.iter().enumerate().rev() {
+        let mut builder = GitignoreBuilder::new(dir);
+        let mut any = false;
+        for name in [".gitignore", ".ignore"] {
+            let path = dir.join(name);
+            if path.is_file() {
+                any |= builder.add(path).is_none();
+            }
+        }
+        if i == 0 {
+            let exclude = dir.join(".git").join("info").join("exclude");
+            if exclude.is_file() {
+                any |= builder.add(exclude).is_none();
+            }
+        }
+        if !any {
+            continue;
+        }
+        let Ok(matcher) = builder.build() else {
+            continue;
+        };
+        match matcher.matched_path_or_any_parents(file, is_dir) {
+            Match::Ignore(_) => return true,
+            Match::Whitelist(_) => return false,
+            Match::None => {}
+        }
+    }
+    false
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    fn tree(files: &[(&str, &str)]) -> std::path::PathBuf {
+        static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!("swls-walk-{}-{n}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for (path, content) in files {
+            let path = root.join(path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, content).unwrap();
+        }
+        root
+    }
+
+    fn walked(root: &std::path::Path) -> Vec<String> {
+        let mut out: Vec<String> = walk_dir(root, &[".ttl"], 100)
+            .into_iter()
+            .map(|p| {
+                p.strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    const FILES: &[(&str, &str)] = &[
+        (
+            ".gitignore",
+            "build/\n*.generated.ttl\n!keep.generated.ttl\n",
+        ),
+        ("vocab.ttl", ""),
+        ("a.generated.ttl", ""),
+        ("keep.generated.ttl", ""),
+        ("build/out.ttl", ""),
+        ("node_modules/pkg/x.ttl", ""),
+        (".hidden/x.ttl", ""),
+        ("sub/.gitignore", "local.ttl\n"),
+        ("sub/local.ttl", ""),
+        ("sub/shared.ttl", ""),
+        ("notes.md", ""),
+    ];
+
+    #[test]
+    fn walk_skips_what_git_ignores_even_outside_a_repository() {
+        let root = tree(FILES);
+        assert_eq!(
+            walked(&root),
+            ["keep.generated.ttl", "sub/shared.ttl", "vocab.ttl"]
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn is_ignored_matches_the_walk() {
+        let root = tree(FILES);
+        let ignored = |p: &str| is_ignored(&root, &root.join(p));
+        for p in [
+            "build/out.ttl",
+            "a.generated.ttl",
+            "sub/local.ttl",
+            "node_modules/pkg/x.ttl",
+            ".hidden/x.ttl",
+        ] {
+            assert!(ignored(p), "{p} should be ignored");
+        }
+        for p in [
+            "vocab.ttl",
+            "keep.generated.ttl",
+            "sub/shared.ttl",
+            "sub/new.ttl",
+        ] {
+            assert!(!ignored(p), "{p} should not be ignored");
+        }
+        assert!(is_ignored(&root, std::path::Path::new("/elsewhere/x.ttl")));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn git_info_exclude_is_respected() {
+        let root = tree(&[
+            (".git/info/exclude", "private.ttl\n"),
+            ("private.ttl", ""),
+            ("public.ttl", ""),
+        ]);
+        assert_eq!(walked(&root), ["public.ttl"]);
+        assert!(is_ignored(&root, &root.join("private.ttl")));
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

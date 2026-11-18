@@ -108,8 +108,16 @@ pub fn extract_known_prefixes_from_config<C: Client + ClientSync + Resource + Cl
                 };
 
                 queue.push(move |world: &mut World| {
-                    world.spawn((lov, ConfiguredOntology));
-                    world.resource_mut::<Revisions>().sources += 1;
+                    // Loading the configuration again (it changed) must not
+                    // add an ontology twice.
+                    let known = world
+                        .query_filtered::<&swls_lov::LocalPrefix, bevy_ecs::query::With<ConfiguredOntology>>()
+                        .iter(world)
+                        .any(|l| l.location == lov.location);
+                    if !known {
+                        world.spawn((lov, ConfiguredOntology));
+                        world.resource_mut::<Revisions>().sources += 1;
+                    }
                 });
             }
 

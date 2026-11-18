@@ -57,7 +57,7 @@ const ACCEPT: &str = "text/turtle, application/n-triples;q=0.9, text/plain;q=0.1
 
 /// Whether `content` looks like a syntax swls cannot parse: RDF/XML (common
 /// for `.owl` files) or an HTML page served instead of RDF.
-fn unsupported_syntax(content: &str) -> Option<&'static str> {
+pub(crate) fn unsupported_syntax(content: &str) -> Option<&'static str> {
     let start = content.trim_start();
     if start.starts_with("<?xml") || start.starts_with("<rdf:RDF") {
         Some("RDF/XML")
