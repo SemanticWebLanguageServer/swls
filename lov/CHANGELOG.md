@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.4 (2026-11-18)
+
+### Chore
+
+ - <csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/> fix clippy warnings and configure workspace lints
+   Makes `cargo clippy --workspace --all-targets -- -D warnings` pass.
+   
+   - Workspace lints (`[workspace.lints.clippy]`, inherited by every crate):
+     `type_complexity` and `too_many_arguments` are allowed, because Bevy
+     systems take their data as parameters and nested `Query` types.
+   - `cargo clippy --fix` for the mechanical lints (needless borrows, redundant
+     closures and returns, `'static` on constants, …).
+   - By hand:
+     - `Option::is_none_or` (Rust 1.82) replaced in components-rs, whose MSRV
+       is 1.75;
+     - `try_next` (deprecated) replaced by `try_recv` on the command and
+       diagnostic channels;
+     - `MyQuad::into_oxi(_graph)` return `Option` instead of `Result<_, ()>`;
+     - `PartialOrd` for `MyTerm` delegates to `Ord`;
+     - `assert!(false, …)` → `panic!` in the conformance tests;
+     - a few `sort_by_key`, `while let`, `is_err()` and merged `if` branches;
+     - `TestFs: Default`;
+     - kept the needed clone in the config loaders (clippy's suggestion does
+       not compile, the value moves into a spawned future);
+     - pinned a lifetime in `prefix_completion_helper` that the elided form
+       could not express.
+   - `wrong_self_convention` is allowed on the two public `into_triples` trait
+     methods rather than renaming them across crates.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
+</details>
+
 ## v0.1.3 (2026-10-14)
 
 ### Documentation
@@ -19,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 17 commits contributed to the release.
+ - 18 commits contributed to the release.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -30,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`8e33bcd`](https://github.com/SemanticWebLanguageServer/swls/commit/8e33bcd501862e31fb5edefbce63909abf26feff))
     - Adjusting changelogs prior to release of swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`3e999f2`](https://github.com/SemanticWebLanguageServer/swls/commit/3e999f28fe47eadd3d7eaa7067d2d68025365485))
     - Release swls-lov v0.1.2, swls-core v0.1.2, swls-lang-rdf-base v0.1.2, swls-lang-turtle v0.1.3, swls-lang-jsonld v0.1.3, swls-lang-sparql v0.1.3, swls-lang-trig v0.1.2, swls v0.2.0 ([`bfde48f`](https://github.com/SemanticWebLanguageServer/swls/commit/bfde48f836e70a9b3f08230e2d84c957eb5a72b0))
     - Release swls-lov v0.1.2, swls-core v0.1.2, swls-lang-rdf-base v0.1.2, swls-lang-turtle v0.1.3, swls-lang-jsonld v0.1.3, swls-lang-sparql v0.1.3, swls-lang-trig v0.1.2, swls v0.2.0 ([`eb52296`](https://github.com/SemanticWebLanguageServer/swls/commit/eb52296d24ca7c04061acc584a3423b4213cb2ee))

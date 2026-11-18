@@ -5,7 +5,121 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.0 (2026-11-18)
+
+### Chore
+
+ - <csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/> fix clippy warnings and configure workspace lints
+   Makes `cargo clippy --workspace --all-targets -- -D warnings` pass.
+   
+   - Workspace lints (`[workspace.lints.clippy]`, inherited by every crate):
+     `type_complexity` and `too_many_arguments` are allowed, because Bevy
+     systems take their data as parameters and nested `Query` types.
+   - `cargo clippy --fix` for the mechanical lints (needless borrows, redundant
+     closures and returns, `'static` on constants, …).
+   - By hand:
+     - `Option::is_none_or` (Rust 1.82) replaced in components-rs, whose MSRV
+       is 1.75;
+     - `try_next` (deprecated) replaced by `try_recv` on the command and
+       diagnostic channels;
+     - `MyQuad::into_oxi(_graph)` return `Option` instead of `Result<_, ()>`;
+     - `PartialOrd` for `MyTerm` delegates to `Ord`;
+     - `assert!(false, …)` → `panic!` in the conformance tests;
+     - a few `sort_by_key`, `while let`, `is_err()` and merged `if` branches;
+     - `TestFs: Default`;
+     - kept the needed clone in the config loaders (clippy's suggestion does
+       not compile, the value moves into a spawned future);
+     - pinned a lifetime in `prefix_completion_helper` that the elided form
+       could not express.
+   - `wrong_self_convention` is allowed on the two public `into_triples` trait
+     methods rather than renaming them across crates.
+
+### New Features
+
+ - <csr-id-945c7d3136db2c20ac1a90ee1dcb84c56cf0569a/> persistent read-only ontology cache, didClose and cached-copy rules
+   Replace the per-process `/tmp/swls/<n>` folder with one cache in the user's
+   cache directory (`~/.cache/swls`, `~/Library/Caches/swls`,
+   `%LOCALAPPDATA%\swls`):
+   
+   - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
+   - Files are written atomically (temp file + rename), so servers running at
+     the same time can share the cache, and are marked read-only on disk so
+     editors warn before they are edited.
+   - Entries are reused across restarts and refreshed after 7 days
+     (`util::cache`). When a refresh fails the stale copy is used, so the
+     server works offline with what it fetched before. Configured remote
+     ontologies and shapes go through the cache too, and a non-200 response
+     is no longer treated as an ontology.
+   
+   The LSP cannot make a document read-only, so the server enforces the
+   snapshot semantics itself (`core::document`):
+   
+   - Documents the server loads itself are marked `Background`. When the
+     editor opens one, its text is kept as a `Snapshot`, edits never reach
+     the store, and a cache file shows an information notice.
+   - Implement `textDocument/didClose`: drop `Open`, clear the document's
+     diagnostics, and give a background document the server's copy back
+     (from disk, else the snapshot).
+   
+   Tests get an isolated cache directory per instance instead of a shared
+   `/tmp/swls/test` that each test deleted.
+ - <csr-id-4e5fd5eae67472a6e1f2d240408aae549b409156/> persistent read-only ontology cache, didClose and cached-copy rules
+   Replace the per-process `/tmp/swls/<n>` folder with one cache in the user's
+   cache directory (`~/.cache/swls`, `~/Library/Caches/swls`,
+   `%LOCALAPPDATA%\swls`):
+   
+   - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
+   - Files are written atomically (temp file + rename), so servers running at
+     the same time can share the cache, and are marked read-only on disk so
+     editors warn before they are edited.
+   - Entries are reused across restarts and refreshed after 7 days
+     (`util::cache`). When a refresh fails the stale copy is used, so the
+     server works offline with what it fetched before. Configured remote
+     ontologies and shapes go through the cache too, and a non-200 response
+     is no longer treated as an ontology.
+   
+   The LSP cannot make a document read-only, so the server enforces the
+   snapshot semantics itself (`core::document`):
+   
+   - Documents the server loads itself are marked `Background`. When the
+     editor opens one, its text is kept as a `Snapshot`, edits never reach
+     the store, and a cache file shows an information notice.
+   - Implement `textDocument/didClose`: drop `Open`, clear the document's
+     diagnostics, and give a background document the server's copy back
+     (from disk, else the snapshot).
+   
+   Tests get an isolated cache directory per instance instead of a shared
+   `/tmp/swls/test` that each test deleted.
+
+### Style
+
+ - <csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/> cargo fmt --all
+   Formatting only, no code changes. Listed in .git-blame-ignore-revs.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release.
+ - 4 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
+    - Cargo fmt --all ([`8160444`](https://github.com/SemanticWebLanguageServer/swls/commit/8160444de14ceb8c86d3b22412e95a6b62974d46))
+    - Persistent read-only ontology cache, didClose and cached-copy rules ([`945c7d3`](https://github.com/SemanticWebLanguageServer/swls/commit/945c7d3136db2c20ac1a90ee1dcb84c56cf0569a))
+    - Persistent read-only ontology cache, didClose and cached-copy rules ([`4e5fd5e`](https://github.com/SemanticWebLanguageServer/swls/commit/4e5fd5eae67472a6e1f2d240408aae549b409156))
+</details>
+
 ## 0.5.2 (2026-10-14)
+
+<csr-id-d8cbc023cf6459d6c60d25301151200910dd479a/>
 
 ### Chore
 
@@ -19,7 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 1 commit contributed to the release.
+ - 2 commits contributed to the release.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -30,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls v0.5.2 ([`5513334`](https://github.com/SemanticWebLanguageServer/swls/commit/551333455366b835a2288f0d5546e010189ab5fb))
     - Bump rdf-parsers to 0.2.2 ([`d8cbc02`](https://github.com/SemanticWebLanguageServer/swls/commit/d8cbc023cf6459d6c60d25301151200910dd479a))
 </details>
 

@@ -5,7 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.3 (2026-11-18)
+
+### Chore
+
+ - <csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/> fix clippy warnings and configure workspace lints
+   Makes `cargo clippy --workspace --all-targets -- -D warnings` pass.
+   
+   - Workspace lints (`[workspace.lints.clippy]`, inherited by every crate):
+     `type_complexity` and `too_many_arguments` are allowed, because Bevy
+     systems take their data as parameters and nested `Query` types.
+   - `cargo clippy --fix` for the mechanical lints (needless borrows, redundant
+     closures and returns, `'static` on constants, …).
+   - By hand:
+     - `Option::is_none_or` (Rust 1.82) replaced in components-rs, whose MSRV
+       is 1.75;
+     - `try_next` (deprecated) replaced by `try_recv` on the command and
+       diagnostic channels;
+     - `MyQuad::into_oxi(_graph)` return `Option` instead of `Result<_, ()>`;
+     - `PartialOrd` for `MyTerm` delegates to `Ord`;
+     - `assert!(false, …)` → `panic!` in the conformance tests;
+     - a few `sort_by_key`, `while let`, `is_err()` and merged `if` branches;
+     - `TestFs: Default`;
+     - kept the needed clone in the config loaders (clippy's suggestion does
+       not compile, the value moves into a spawned future);
+     - pinned a lifetime in `prefix_completion_helper` that the elided form
+       could not express.
+   - `wrong_self_convention` is allowed on the two public `into_triples` trait
+     methods rather than renaming them across crates.
+
+### Style
+
+ - <csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/> cargo fmt --all
+   Formatting only, no code changes. Listed in .git-blame-ignore-revs.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
+    - Cargo fmt --all ([`8160444`](https://github.com/SemanticWebLanguageServer/swls/commit/8160444de14ceb8c86d3b22412e95a6b62974d46))
+</details>
+
 ## 0.2.2 (2026-10-14)
+
+<csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/>
+<csr-id-ce696b31e10c73e7a42c4427bc984876241a7a1b/>
+<csr-id-e25ab809dad46b143491636b715326c355b06d10/>
 
 ### Chore
 
@@ -65,7 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 37 commits contributed to the release over the course of 187 calendar days.
+ - 38 commits contributed to the release over the course of 187 calendar days.
  - 22 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)
 
@@ -78,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)**
     - Refactor/replace ropey lineindex ([`81148b6`](https://github.com/SemanticWebLanguageServer/swls/commit/81148b64d51d9399a6d8d76b8f6c5114b90450af))
  * **Uncategorized**
+    - Release swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`8e33bcd`](https://github.com/SemanticWebLanguageServer/swls/commit/8e33bcd501862e31fb5edefbce63909abf26feff))
     - Adjusting changelogs prior to release of swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`3e999f2`](https://github.com/SemanticWebLanguageServer/swls/commit/3e999f28fe47eadd3d7eaa7067d2d68025365485))
     - Format TriG by default ([`caa7a76`](https://github.com/SemanticWebLanguageServer/swls/commit/caa7a763f47817d920f5d2b99af882c9172da443))
     - Use the rdf-parsers formatters for Turtle, TriG and SPARQL ([`adedb53`](https://github.com/SemanticWebLanguageServer/swls/commit/adedb5370c73559f7ae91bf335eed2e12d98c2fb))

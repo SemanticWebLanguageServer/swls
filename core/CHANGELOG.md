@@ -5,7 +5,394 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.3 (2026-11-18)
+
+### Chore
+
+ - <csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/> fix clippy warnings and configure workspace lints
+   Makes `cargo clippy --workspace --all-targets -- -D warnings` pass.
+   
+   - Workspace lints (`[workspace.lints.clippy]`, inherited by every crate):
+     `type_complexity` and `too_many_arguments` are allowed, because Bevy
+     systems take their data as parameters and nested `Query` types.
+   - `cargo clippy --fix` for the mechanical lints (needless borrows, redundant
+     closures and returns, `'static` on constants, …).
+   - By hand:
+     - `Option::is_none_or` (Rust 1.82) replaced in components-rs, whose MSRV
+       is 1.75;
+     - `try_next` (deprecated) replaced by `try_recv` on the command and
+       diagnostic channels;
+     - `MyQuad::into_oxi(_graph)` return `Option` instead of `Result<_, ()>`;
+     - `PartialOrd` for `MyTerm` delegates to `Ord`;
+     - `assert!(false, …)` → `panic!` in the conformance tests;
+     - a few `sort_by_key`, `while let`, `is_err()` and merged `if` branches;
+     - `TestFs: Default`;
+     - kept the needed clone in the config loaders (clippy's suggestion does
+       not compile, the value moves into a spawned future);
+     - pinned a lifetime in `prefix_completion_helper` that the elided form
+       could not express.
+   - `wrong_self_convention` is allowed on the two public `into_triples` trait
+     methods rather than renaming them across crates.
+
+### New Features
+
+ - <csr-id-a1dc471597db6b8c6b6ddc7d4971fa9f1c0e6a4e/> suggest predicates that shapes require first
+   At a predicate position, a predicate that a SHACL property shape requires
+   (`sh:minCount >= 1`) and that the subject does not have yet is now the first
+   suggestion, followed by the alternatives of a required `sh:alternativePath`
+   none of which the subject has. This holds whether the suggestion comes from
+   the shapes or from an ontology. Such items are marked "required by shape" or
+   "one of required by shape"; an ontology suggestion keeps its title after the
+   marker. Predicates the subject already has are not promoted.
+   
+   Before, required predicates only got a "required by shape" label and were
+   sorted alphabetically among the domain-matching properties, and required
+   predicates that an ontology also defined were not ranked at all.
+   
+   Completions are now sorted the way LSP clients sort them, by sort text or
+   else by label (`completion::sort_completions`, used by the server). Sorting
+   by `Option<sort_text>` put every item without a sort text, such as prefix
+   suggestions, first.
+ - <csr-id-4ac42a280cbb4c56d40f8ad336cdb979eddd2680/> document predicates with SHACL property shapes, prefer one language
+   Hover on a predicate now also shows every SHACL property shape that
+   applies to it for this subject:
+   
+   - `sh:name` and `sh:description`, and also the property shape's
+     `rdfs:label` and `rdfs:comment` (unless they repeat the SHACL text),
+   - the alternatives of an `sh:alternativePath`,
+   - a constraint summary: cardinality, node kind, datatype, class, `sh:in`,
+     `sh:hasValue`, `sh:node` and `sh:or` / `sh:xone` shapes, pattern,
+     lengths and ranges, languages, and a non-default severity.
+   
+   Shapes apply by the same targets as the shape templates. That code moved
+   to `shapes::model`, so hover, completion and templates agree. Property
+   completions get the same documentation, and predicates only the shapes
+   declare are offered too, marked when a shape requires them. IRIs in this
+   documentation fall back to the shape documents' prefixes and are only
+   shortened to valid prefixed names. The hover can be disabled with
+   `hover_shape_property`.
+   
+   Wherever text is shown, one language is chosen: untagged text, then
+   English (`en`, `en-*`), then the first language (`util::lang_text`).
+   This now applies to ontology class and property titles and
+   descriptions (previously every language, in random order), SHACL
+   validation messages (`sh:message`, else `rdfs:comment`), shape template
+   placeholders and the new shape documentation.
+   
+   Fixes found on the way:
+   - `MyTerm`'s sophia `Term` impl reported no datatype or language for
+     literals, so every literal entered the store as a plain string. It now
+     reports `xsd:string`, `rdf:langString` or the literal's datatype, and
+     its language tag.
+   - The conversions to oxigraph checked the datatype before the language,
+     which would turn a language-tagged literal into an `rdf:langString`
+     typed literal without a language.
+   - Removed imports `open_imports` left behind in `lov::fetch`.
+ - <csr-id-0bb608f3d344b59f4820c4ee2b3bffd43a783d41/> SHACL shape templates in completion
+   At a predicate position, offer two snippet completions built from the
+   SHACL shapes that apply to the subject:
+   
+   - "shape template: required properties": every property with
+     `sh:minCount >= 1`,
+   - "shape template: all properties": every property the shapes declare.
+   
+   Properties the subject already has are left out.
+   
+   Shapes apply through `sh:targetClass` (including superclasses from the
+   ontologies, and implicit class targets), `sh:targetSubjectsOf`,
+   `sh:targetObjectsOf` (so blank nodes such as RML predicate-object maps get
+   templates) and `sh:targetNode`. A shape's properties include those of the
+   shapes and property shapes it lists in `sh:node` / `sh:and`.
+   
+   Values are snippet placeholders shaped by the constraints:
+   - `sh:hasValue` is filled in, and `sh:in` becomes a choice.
+   - `sh:alternativePath` becomes a choice of predicates. Optional
+     declarations it covers are folded into it, and it is satisfied by any
+     one of its paths.
+   - A nested value (`sh:node`, the first `sh:or` / `sh:xone` branch with a
+     node shape, shapes targeting the objects of the predicate, or shapes
+     for its `sh:class`) expands to `[ … ]` with its required properties,
+     up to two levels deep.
+   - `sh:nodeKind` / `sh:datatype` choose between `<…>`, `"…"`, typed
+     literals and plain placeholders.
+   
+   The template is inserted at the cursor without eating a following `.` or
+   `]`, replaces a partially typed predicate, and continuation lines follow
+   the indentation. Templates are offered for Turtle-family languages with
+   shape validation (`LangHelper::shape_templates`) and can be disabled with
+   `completion_shape_template`.
+ - <csr-id-3a5907c5cf5078ad1dc0cd7c13cdaf8fcff68292/> resolve ontologies by the namespace's preferred prefix name
+   Ontologies were fetched and cached by the prefix name typed in the
+   document. `@prefix f: <http://xmlns.com/foaf/0.1/>` fetched whatever
+   vocabulary LOV calls `f` into `lov/f.ttl`, and documents using different
+   names for one namespace each loaded their own copy.
+   
+   - `PreferredPrefixes` maps every known namespace to its preferred name:
+     the built-in LOV vocabularies first, then prefix.cc, which lists the
+     most popular name first. It is built once at startup.
+   - `namespace_sources` uses that name for the cache file
+     (`lov/<preferred>.ttl`) and the LOV lookup, so fetching, links and
+     goto-definition agree and every document shares one ontology document.
+     The typed name is only used for namespaces that are not known.
+   - A vocabulary fetched from LOV by name must mention the namespace it is
+     loaded for (either scheme). Otherwise it is ignored and not cached, so
+     a guessed name can no longer load an unrelated vocabulary.
+ - <csr-id-18f6bde08999c3f6bb77f64ce2f4e0a19a6ac20a/> load remote owl:imports and make imported documents navigable
+   `open_imports` read every import through `Fs::read_file`, which only
+   handles `file:` URLs, so remote imports never loaded. Import handling now
+   lives in `systems::imports`:
+   
+   - `http(s):` imports are fetched with content negotiation (Turtle,
+     N-Triples) and go through the ontology cache at
+     `sources/<host>/<path>`, like configured remote ontologies.
+     `file:` imports keep their own URL.
+   - RDF/XML and HTML responses (common for `.owl` files and for IRIs that
+     serve a web page) are skipped with a warning instead of being parsed
+     as Turtle, and are not cached.
+   - An import's language follows its file extension. Forcing `turtle`
+     gave e.g. a `.jsonld` import both the Turtle and the JSON-LD language.
+   - `import_url` is the single mapping from an imported IRI to its
+     document, used for loading, document links and goto-definition, so
+     goto-definition on an `owl:imports` IRI opens the imported document.
+   - Imports are followed transitively, each IRI at most once.
+   
+   Related fixes:
+   
+   - `validate_shapes` also revalidates every open document when shapes
+     change. Shapes usually arrive after the document was opened (imports,
+     LOV, configuration), so before this their violations only appeared
+     after the next edit.
+   - Shape links are matched exactly instead of by prefix: a link to
+     `http://x/ont2` matched a document labelled `http://x/ont`.
+   - `spawn_or_insert` always creates `DocumentLinks`. When it was missing,
+     the prefix and import link systems each inserted their own in the same
+     pass and one overwrote the other.
+ - <csr-id-945c7d3136db2c20ac1a90ee1dcb84c56cf0569a/> persistent read-only ontology cache, didClose and cached-copy rules
+   Replace the per-process `/tmp/swls/<n>` folder with one cache in the user's
+   cache directory (`~/.cache/swls`, `~/Library/Caches/swls`,
+   `%LOCALAPPDATA%\swls`):
+   
+   - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
+   - Files are written atomically (temp file + rename), so servers running at
+     the same time can share the cache, and are marked read-only on disk so
+     editors warn before they are edited.
+   - Entries are reused across restarts and refreshed after 7 days
+     (`util::cache`). When a refresh fails the stale copy is used, so the
+     server works offline with what it fetched before. Configured remote
+     ontologies and shapes go through the cache too, and a non-200 response
+     is no longer treated as an ontology.
+   
+   The LSP cannot make a document read-only, so the server enforces the
+   snapshot semantics itself (`core::document`):
+   
+   - Documents the server loads itself are marked `Background`. When the
+     editor opens one, its text is kept as a `Snapshot`, edits never reach
+     the store, and a cache file shows an information notice.
+   - Implement `textDocument/didClose`: drop `Open`, clear the document's
+     diagnostics, and give a background document the server's copy back
+     (from disk, else the snapshot).
+   
+   Tests get an isolated cache directory per instance instead of a shared
+   `/tmp/swls/test` that each test deleted.
+ - <csr-id-4e5fd5eae67472a6e1f2d240408aae549b409156/> persistent read-only ontology cache, didClose and cached-copy rules
+   Replace the per-process `/tmp/swls/<n>` folder with one cache in the user's
+   cache directory (`~/.cache/swls`, `~/Library/Caches/swls`,
+   `%LOCALAPPDATA%\swls`):
+   
+   - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
+   - Files are written atomically (temp file + rename), so servers running at
+     the same time can share the cache, and are marked read-only on disk so
+     editors warn before they are edited.
+   - Entries are reused across restarts and refreshed after 7 days
+     (`util::cache`). When a refresh fails the stale copy is used, so the
+     server works offline with what it fetched before. Configured remote
+     ontologies and shapes go through the cache too, and a non-200 response
+     is no longer treated as an ontology.
+   
+   The LSP cannot make a document read-only, so the server enforces the
+   snapshot semantics itself (`core::document`):
+   
+   - Documents the server loads itself are marked `Background`. When the
+     editor opens one, its text is kept as a `Snapshot`, edits never reach
+     the store, and a cache file shows an information notice.
+   - Implement `textDocument/didClose`: drop `Open`, clear the document's
+     diagnostics, and give a background document the server's copy back
+     (from disk, else the snapshot).
+   
+   Tests get an isolated cache directory per instance instead of a shared
+   `/tmp/swls/test` that each test deleted.
+
+### Bug Fixes
+
+ - <csr-id-250fb5e5ba6737d3c773fc53281782f33d9b2b47/> only shorten IRIs to valid prefixed names, longest prefix first
+ - <csr-id-f45bd539cf78d85895b56e6f5b1780d5ae4b25ed/> give each ontology document its own identity
+   Configured ontologies that describe the same namespace (e.g. the RML
+   modules, all `http://w3id.org/rml/`) were all labelled
+   `<cache>/<prefix>.ttl`, so they collapsed onto one entity: each load
+   replaced the previous one, and since the store only loaded `Added<Triples>`
+   only the first module's classes and properties ever became known.
+   
+   - Resolve the documents for a namespace in one place
+     (`namespace_sources`), used by fetching, document links and prefix
+     goto-definition. Configured ontologies are identified by their location:
+     local files keep their own URL, remote files are cached at
+     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+     the built-in / LOV ontology for that namespace.
+   - Load every background document into its own named graph and reload it
+     when its triples change, so replaced or edited documents no longer leave
+     stale triples; queries use the union of all graphs.
+   - Re-resolve open documents when configured ontologies arrive after the
+     document was opened.
+   - `spawn_background`: background loads (LOV, owl:imports, configured
+     shapes) no longer overwrite the text of a document open in the editor.
+   - Only write cache files for cache locations, never over a user's file.
+ - <csr-id-2f8a0661a463c8666bad9b81ccd6c8dff9066069/> give each ontology document its own identity
+   Configured ontologies that describe the same namespace (e.g. the RML
+   modules, all `http://w3id.org/rml/`) were all labelled
+   `<cache>/<prefix>.ttl`, so they collapsed onto one entity: each load
+   replaced the previous one, and since the store only loaded `Added<Triples>`
+   only the first module's classes and properties ever became known.
+   
+   - Resolve the documents for a namespace in one place
+     (`namespace_sources`), used by fetching, document links and prefix
+     goto-definition. Configured ontologies are identified by their location:
+     local files keep their own URL, remote files are cached at
+     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+     the built-in / LOV ontology for that namespace.
+   - Load every background document into its own named graph and reload it
+     when its triples change, so replaced or edited documents no longer leave
+     stale triples; queries use the union of all graphs.
+   - Re-resolve open documents when configured ontologies arrive after the
+     document was opened.
+   - `spawn_background`: background loads (LOV, owl:imports, configured
+     shapes) no longer overwrite the text of a document open in the editor.
+   - Only write cache files for cache locations, never over a user's file.
+
+### Refactor
+
+ - <csr-id-f0d9f31379a47547d665ee36ee7eb5a3704b5187/> name type hierarchy walks by what they return
+ - <csr-id-8f28aa0b47d503e5ea2a06a276f238850d737166/> cursor semantics, a completion context, one shape visibility rule
+   Positions
+   - The token at a cursor is resolved with cursor semantics
+     (`token_at_cursor`): a cursor sits between characters, so it belongs to a
+     word it is inside of, else a word ending at it (`ex:fo|;` is `ex:fo`),
+     else punctuation it touches, else no token (whitespace). The triple
+     lookup prefers a term containing the cursor, then one ending at it.
+   - `Backend` no longer shifts positions one character left. The shift made
+     completion at the end of a word work, but hovering the first character of
+     a term resolved the term before it. The server and the test harness now
+     handle positions identically; the harness docs say so.
+   
+   Completion context
+   - `CursorContext`, resolved once per completion request
+     (`get_cursor_context`): the role at the cursor, the subject being
+     described, the typed word, where to insert, and whether a space is needed
+     after `;` / `,` / `[`. Inside `[ … ]`, not on a term, the cursor is at a
+     predicate position of that blank node.
+   - Class, property, shape-template and shape-property completion use it,
+     replacing the templates' private cursor helpers. Property completion
+     inside a blank node now works, with domain-aware ordering for its type.
+   
+   Shape visibility
+   - `shapes::visible`: one rule for which shape documents apply to a document
+     (global, the document itself, or linked), used by validation, templates,
+     hover and completion.
+   - Shape documentation shortens IRIs with all shape documents' prefixes as
+     one set, and `Prefixes::shorten` breaks ties between equally long
+     namespaces by preferring a named prefix, then alphabetical order, so the
+     result no longer depends on the order documents are visited.
+ - <csr-id-ef9b50600ab106ff4b3f6178c5f172269c9d9605/> revision counters for data shared between documents
+   Shared data (the store, known ontologies, the class hierarchy, SHACL
+   shapes, configured sources) usually arrives after the documents that use it
+   were opened. Each consumer had its own trigger: `Changed<Triples>` on
+   background documents, `Changed<ShaclShapes>`, `Added<ConfiguredOntology>`,
+   running the save schedule after an import, or simply rerunning for every
+   open document on every parse.
+   
+   `Revisions` (`core::revisions`) counts changes per kind of shared data.
+   Producers bump a counter when their data changed; consumers keep a
+   `Local<Seen>` and process every open document once after a bump, otherwise
+   only documents whose own triples changed.
+   
+   - `load_store` → `store`; `derive_ontologies` recomputes on `store` and
+     bumps `ontologies`; `extract_type_hierarchy` and `derive_ontologies` bump
+     `hierarchy` when it grew; `derive_shapes` bumps `shapes` only when a
+     document has or had actual shapes; configured ontologies bump `sources`.
+   - `infer_types` now reruns when ontologies or the hierarchy change. Before,
+     types inferred from property domains stayed wrong until the next edit
+     when the ontology arrived after the document was opened. It is ordered
+     after its producers, so the change is seen in the same pass.
+   - `validate_namespace_properties` no longer reruns for every open document
+     on every parse; it runs on edits, ontology changes and config changes.
+   - `validate_shapes`, `derive_prefix_links` and `fetch_lov_properties` use
+     the counters instead of their ad-hoc queries, and imports no longer run
+     the save schedule to force revalidation.
+ - <csr-id-15493a8bfeea01bd5d813e13f68d9d52672081b5/> a document registry instead of scanning labels
+   Documents were found by scanning every `Label` (in `spawn_or_insert`,
+   `spawn_background`, the document lifecycle, the JSON-LD loader and the test
+   harness), while `Backend` kept its own URL → entity map, filled on
+   `didOpen`. The two could disagree, and a request looked up its entity
+   before running, so a document closed in between would make
+   `entity_mut` panic.
+   
+   - `Documents`: a resource mapping URLs to entities, kept up to date by
+     `Label`'s `on_insert` / `on_replace` hooks, so it is correct however a
+     document is spawned, relabelled or despawned. `Label` is now an
+     immutable component, so it cannot change without the hooks running.
+   - `find_document(world, url)` is the one lookup, used everywhere a label
+     scan was. Without the registry (a bare test world) it falls back to a
+     scan.
+   - `Backend` drops its map. Requests carry the URL, and `run_schedule`
+     looks the document up inside the world, in the same step that runs the
+     schedule.
+   - The registry docs describe the kinds of documents: `Open`, `Background`,
+     both, and cached (a background document in the ontology cache).
+
+### Style
+
+ - <csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/> cargo fmt --all
+   Formatting only, no code changes. Listed in .git-blame-ignore-revs.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 17 commits contributed to the release.
+ - 16 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 1 unique issue was worked on: [#30](https://github.com/SemanticWebLanguageServer/swls/issues/30)
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **[#30](https://github.com/SemanticWebLanguageServer/swls/issues/30)**
+    - Give each ontology document its own identity ([`f45bd53`](https://github.com/SemanticWebLanguageServer/swls/commit/f45bd539cf78d85895b56e6f5b1780d5ae4b25ed))
+    - Give each ontology document its own identity ([`2f8a066`](https://github.com/SemanticWebLanguageServer/swls/commit/2f8a0661a463c8666bad9b81ccd6c8dff9066069))
+ * **Uncategorized**
+    - Suggest predicates that shapes require first ([`a1dc471`](https://github.com/SemanticWebLanguageServer/swls/commit/a1dc471597db6b8c6b6ddc7d4971fa9f1c0e6a4e))
+    - Name type hierarchy walks by what they return ([`f0d9f31`](https://github.com/SemanticWebLanguageServer/swls/commit/f0d9f31379a47547d665ee36ee7eb5a3704b5187))
+    - Cursor semantics, a completion context, one shape visibility rule ([`8f28aa0`](https://github.com/SemanticWebLanguageServer/swls/commit/8f28aa0b47d503e5ea2a06a276f238850d737166))
+    - Revision counters for data shared between documents ([`ef9b506`](https://github.com/SemanticWebLanguageServer/swls/commit/ef9b50600ab106ff4b3f6178c5f172269c9d9605))
+    - A document registry instead of scanning labels ([`15493a8`](https://github.com/SemanticWebLanguageServer/swls/commit/15493a8bfeea01bd5d813e13f68d9d52672081b5))
+    - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
+    - Cargo fmt --all ([`8160444`](https://github.com/SemanticWebLanguageServer/swls/commit/8160444de14ceb8c86d3b22412e95a6b62974d46))
+    - Only shorten IRIs to valid prefixed names, longest prefix first ([`250fb5e`](https://github.com/SemanticWebLanguageServer/swls/commit/250fb5e5ba6737d3c773fc53281782f33d9b2b47))
+    - Document predicates with SHACL property shapes, prefer one language ([`4ac42a2`](https://github.com/SemanticWebLanguageServer/swls/commit/4ac42a280cbb4c56d40f8ad336cdb979eddd2680))
+    - SHACL shape templates in completion ([`0bb608f`](https://github.com/SemanticWebLanguageServer/swls/commit/0bb608f3d344b59f4820c4ee2b3bffd43a783d41))
+    - Load remote owl:imports and resolve ontologies by preferred prefix name ([`ee692c8`](https://github.com/SemanticWebLanguageServer/swls/commit/ee692c8307a2c597c158af25eddbdcb919e33bfd))
+    - Resolve ontologies by the namespace's preferred prefix name ([`3a5907c`](https://github.com/SemanticWebLanguageServer/swls/commit/3a5907c5cf5078ad1dc0cd7c13cdaf8fcff68292))
+    - Load remote owl:imports and make imported documents navigable ([`18f6bde`](https://github.com/SemanticWebLanguageServer/swls/commit/18f6bde08999c3f6bb77f64ce2f4e0a19a6ac20a))
+    - Persistent read-only ontology cache, didClose and cached-copy rules ([`945c7d3`](https://github.com/SemanticWebLanguageServer/swls/commit/945c7d3136db2c20ac1a90ee1dcb84c56cf0569a))
+    - Persistent read-only ontology cache, didClose and cached-copy rules ([`4e5fd5e`](https://github.com/SemanticWebLanguageServer/swls/commit/4e5fd5eae67472a6e1f2d240408aae549b409156))
+</details>
+
 ## 0.2.2 (2026-10-14)
+
+<csr-id-53cc4155da52b7054793c81009832fba55c3e2fb/>
+<csr-id-c5042d79e63cac0596075c50ae18c9d15cb5d9cb/>
+<csr-id-4debbca4c3e1839781b7728951f91f2ba729165b/>
 
 ### Chore
 
@@ -45,34 +432,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    Hover / goto-definition on prefixes (new core/src/systems/prefix_hover.rs):
    - get_current_prefix detects a prefix declaration / JSON-LD @context term at the
-     cursor from the parsed model (which, unlike derived triples, carries spans) and
-     drops the wrong nearest-triple fallback so the triple-based hovers no-op.
+   cursor from the parsed model (which, unlike derived triples, carries spans) and
+   drops the wrong nearest-triple fallback so the triple-based hovers no-op.
    - hover_prefix shows the prefix -> namespace mapping (+ LOV title when known).
    - goto_prefix jumps a real namespace to its ontology file; goto_cjs now steps
-     aside for namespaces but still resolves term aliases to their CJS definition.
+   aside for namespaces but still resolves term aliases to their CJS definition.
    - Wired into the Hover and GotoDefinition schedules; new `definition()` e2e
-     harness helper; e2e/tests/prefix_hover.rs.
+   harness helper; e2e/tests/prefix_hover.rs.
    
    JSON-LD prefix diagnostics:
    - supports_prefix_diagnostics() = false for JSON-LD; @context has no prefix/alias
-     distinction and pulls in shared/remote terms, so the span-based detector emitted
-     false positives. e2e/tests/prefix_diagnostics.rs updated to assert the opt-out.
+   distinction and pulls in shared/remote terms, so the span-based detector emitted
+   false positives. e2e/tests/prefix_diagnostics.rs updated to assert the opt-out.
    
    Prefix diagnostics core:
    - Walk the parsed Turtle model instead of the derived triples so prefixes that
-     only appear in a datatype ("5"^^xsd:integer) are detected.
+   only appear in a datatype ("5"^^xsd:integer) are detected.
    
    JSON-LD semantic tokens (model-authoritative):
    - Colour every term from the parsed model: a compact IRI `"ex:obs1"` is the term
-     colour (quotes + local = enumMember) with `prefix:` NAMESPACE on top, applied
-     consistently to @id subjects and nested object references; @context prefix keys
-     are NAMESPACE.
+   colour (quotes + local = enumMember) with `prefix:` NAMESPACE on top, applied
+   consistently to @id subjects and nested object references; @context prefix keys
+   are NAMESPACE.
    - The lexer supplies only what the model can't see: keywords (`@id`, `@type`, …)
-     and the STRING/NUMBER/BOOLEAN base for real literals. Its previous
-     string-followed-by-`:` NAMESPACE guess is removed.
+   and the STRING/NUMBER/BOOLEAN base for real literals. Its previous
+   string-followed-by-`:` NAMESPACE guess is removed.
    - Keep KEYWORD colouring for `@type` even though it is the rdf:type predicate in
-     the model. Adapt to the rdf-parsers Spanned lang/ty API and carry
-     context-computed IRIs. Tests in lang-jsonld/src/ecs/mod.rs pin the byte types.
+   the model. Adapt to the rdf-parsers Spanned lang/ty API and carry
+   context-computed IRIs. Tests in lang-jsonld/src/ecs/mod.rs pin the byte types.
    
    Depends on rdf-parsers 0.1.16.
  - <csr-id-817cc6bfcc92911b6c6be7b491ab1b00b85e13b9/> better turtle formatting + consolidate language specific implementation (removing generic marker)
@@ -83,7 +470,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - parse gate (`parse_n3_system`): `.n3` documents aren't parsed by default.
    - document selector (`backend.rs`): the server no longer advertises handling
-     the `n3` language, so clients don't route `.n3` files to it.
+   the `n3` language, so clients don't route `.n3` files to it.
    
    The n3 unit tests set `config.n3 = Some(true)` so they still exercise the
    parser. Other languages remain enabled by default.
@@ -141,7 +528,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 166 commits contributed to the release.
+ - 167 commits contributed to the release.
  - 51 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)
 
@@ -154,6 +541,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  * **[#32](https://github.com/SemanticWebLanguageServer/swls/issues/32)**
     - Refactor/replace ropey lineindex ([`81148b6`](https://github.com/SemanticWebLanguageServer/swls/commit/81148b64d51d9399a6d8d76b8f6c5114b90450af))
  * **Uncategorized**
+    - Release swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`8e33bcd`](https://github.com/SemanticWebLanguageServer/swls/commit/8e33bcd501862e31fb5edefbce63909abf26feff))
     - Adjusting changelogs prior to release of swls-lov v0.1.3, swls-core v0.2.2, components-rs v0.1.3, swls-lang-rdf-base v0.2.2, swls-lang-turtle v0.2.2, swls-lang-jsonld v0.2.2, swls-lang-n3 v0.1.2, swls-lang-sparql v0.2.2, swls-lang-trig v0.2.2, swls v0.5.0 ([`3e999f2`](https://github.com/SemanticWebLanguageServer/swls/commit/3e999f28fe47eadd3d7eaa7067d2d68025365485))
     - Enable formatting by default for all languages ([`aa05191`](https://github.com/SemanticWebLanguageServer/swls/commit/aa051911290ed08291c2d5738d5217cd10f12aa7))
     - Format TriG by default ([`caa7a76`](https://github.com/SemanticWebLanguageServer/swls/commit/caa7a763f47817d920f5d2b99af882c9172da443))
