@@ -125,18 +125,31 @@ pub fn get_current_triple(
 
         // First try: the narrowest term the cursor is on. A cursor sits between
         // characters, so a term that ends at the cursor counts too (the term being
-        // typed, e.g. `ex:fo|`), after terms that contain it.
+        // typed, e.g. `ex:fo|`). Only a term *starting* at the cursor beats it
+        // (`ex:a|ex:b`); a wider term containing the cursor encloses the typed
+        // one (e.g. the blank node in `[ ex:p 1; sh:| ]`), so narrowest wins.
+        // On equal spans a written term beats a blank node: a collection's list
+        // nodes share the span of their element (`( ex:a ex:| )`).
         if let Some((target, _, t)) = triples
             .iter()
             .flat_map(|t| {
                 [
-                    (TripleTarget::Subject, &t.subject.span, t),
-                    (TripleTarget::Predicate, &t.predicate.span, t),
-                    (TripleTarget::Object, &t.object.span, t),
+                    (TripleTarget::Subject, &t.subject, t),
+                    (TripleTarget::Predicate, &t.predicate, t),
+                    (TripleTarget::Object, &t.object, t),
                 ]
             })
-            .filter(|x| x.1.contains(&offset) || (x.1.end == offset && x.1.start < x.1.end))
-            .min_by_key(|x| (!x.1.contains(&offset), x.1.end - x.1.start))
+            .filter(|(_, term, _)| {
+                let span = &term.span;
+                span.contains(&offset) || (span.end == offset && span.start < span.end)
+            })
+            .min_by_key(|(_, term, _)| {
+                (
+                    term.span.start != offset,
+                    term.span.end - term.span.start,
+                    term.ty == Some(TermKind::BlankNode),
+                )
+            })
         {
             tracing::debug!(
                 "Narrowest triple at {} Component {:?} {} {:?} {} {:?} {} {:?} .",

@@ -645,3 +645,329 @@ foaf:me foaf:friend <#me>.
         );
     }
 }
+
+/// Completion where the term being typed ends at the cursor while a larger
+/// term (a blank node, a collection) also spans the cursor. The typed term must
+/// win, so the cursor lands in the right triple position.
+#[cfg(test)]
+mod cursor_nesting_tests {
+    use completion::CompletionRequest;
+    use futures::executor::block_on;
+    use swls_core::feature::completion::CursorContext;
+    use swls_core::{
+        components::*,
+        prelude::*,
+        util::triple::{TripleComponent, TripleTarget},
+        Tasks,
+    };
+    use swls_test_utils::{create_file, setup_world, TestClient};
+
+    const ONTOLOGY: &str = "@prefix ex: <http://example.org/ns#>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+ex:path a rdf:Property.
+ex:minCount a rdf:Property.
+ex:maxCount a rdf:Property.
+ex:Shape a rdfs:Class.
+ex:PropertyShape a rdfs:Class.
+";
+
+    const PREFIX: &str = "@prefix ex: <http://example.org/ns#>.\n";
+
+    struct Result {
+        target: Option<TripleTarget>,
+        cursor: CursorContext,
+        labels: Vec<String>,
+    }
+
+    impl Result {
+        fn has(&self, label: &str) -> bool {
+            self.labels.iter().any(|l| l == label)
+        }
+    }
+
+    /// Complete at the `|` in `body` (which goes after the `ex:` prefix line).
+    fn complete(body: &str) -> Result {
+        let cursor_at = body.find('|').expect("cursor marker");
+        let text = format!("{}{}{}", PREFIX, &body[..cursor_at], &body[cursor_at + 1..]);
+        let before = &body[..cursor_at];
+        let line = before.matches('\n').count() as u32 + 1;
+        let character = before.rsplit('\n').next().unwrap().chars().count() as u32;
+
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        create_file(&mut world, ONTOLOGY, "http://example.org/ns", "turtle", ());
+        let entity = create_file(&mut world, &text, "http://example.com/doc", "turtle", Open);
+        let c = world.resource::<TestClient>().clone();
+        block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+        world.entity_mut(entity).insert((
+            CompletionRequest(vec![]),
+            PositionComponent(swls_core::lsp_types::Position { line, character }),
+        ));
+        world.run_schedule(CompletionLabel);
+
+        let target = world
+            .entity(entity)
+            .get::<TripleComponent>()
+            .map(|t| t.target);
+        let cursor = world.entity(entity).get::<CursorContext>().unwrap().clone();
+        let labels = world
+            .entity_mut(entity)
+            .take::<CompletionRequest>()
+            .unwrap()
+            .0
+            .into_iter()
+            .map(|c| c.label)
+            .collect();
+        Result {
+            target,
+            cursor,
+            labels,
+        }
+    }
+
+    fn assert_properties(r: &Result) {
+        assert!(r.cursor.at_predicate(), "not at predicate: {:?}", r.cursor);
+        for p in ["ex:path", "ex:minCount", "ex:maxCount"] {
+            assert!(r.has(p), "missing {p} in {:?}", r.labels);
+        }
+    }
+
+    fn assert_classes(r: &Result) {
+        assert_eq!(r.cursor.target, TripleTarget::Object, "{:?}", r.cursor);
+        for p in ["ex:Shape", "ex:PropertyShape"] {
+            assert!(r.has(p), "missing {p} in {:?}", r.labels);
+        }
+    }
+
+    /// Whether the cursor's subject is the blank node opened by the `[` at
+    /// byte `open` of `body`.
+    fn subject_is_bnode_at(r: &Result, body: &str, open: &str) -> bool {
+        let start = PREFIX.len() + body.find(open).unwrap() + open.find('[').unwrap();
+        r.cursor
+            .subject
+            .as_ref()
+            .is_some_and(|s| s.span.start == start && !s.value.starts_with("http"))
+    }
+
+    #[test_log::test]
+    fn predicate_after_semicolon_in_blank_node() {
+        let body = "<s> ex:p [\n  ex:path <n>;\n  ex:minCount 1;\n  ex:|\n].\n";
+        let r = complete(body);
+        assert_eq!(r.target, Some(TripleTarget::Predicate));
+        assert_eq!(r.cursor.typed, "ex:");
+        assert_properties(&r);
+        assert!(subject_is_bnode_at(&r, body, "[\n"));
+    }
+
+    #[test_log::test]
+    fn first_predicate_in_blank_node() {
+        let body = "<s> ex:p [ ex:| ].\n";
+        let r = complete(body);
+        assert_eq!(r.cursor.typed, "ex:");
+        assert_properties(&r);
+        assert!(subject_is_bnode_at(&r, body, "[ ex:"));
+    }
+
+    #[test_log::test]
+    fn predicate_in_nested_blank_node() {
+        let body = "<s> ex:p [ ex:path [ ex:minCount 1; ex:| ] ].\n";
+        let r = complete(body);
+        assert_properties(&r);
+        assert!(
+            subject_is_bnode_at(&r, body, "[ ex:minCount"),
+            "subject should be the inner blank node: {:?}",
+            r.cursor.subject
+        );
+    }
+
+    #[test_log::test]
+    fn predicate_in_unclosed_blank_node() {
+        let body = "<s> ex:p [\n  ex:path <n>;\n  ex:|";
+        let r = complete(body);
+        assert_properties(&r);
+    }
+
+    #[test_log::test]
+    fn partial_predicate_in_blank_node() {
+        let body = "<s> ex:p [ ex:path <n>; ex:min| ].\n";
+        let r = complete(body);
+        assert_eq!(r.cursor.typed, "ex:min");
+        assert!(r.cursor.at_predicate(), "{:?}", r.cursor);
+        assert!(r.has("ex:minCount"), "{:?}", r.labels);
+        assert!(!r.has("ex:path"), "{:?}", r.labels);
+    }
+
+    #[test_log::test]
+    fn class_after_a_in_blank_node() {
+        let r = complete("<s> ex:p [ a ex:| ].\n");
+        assert_eq!(r.cursor.typed, "ex:");
+        assert_classes(&r);
+    }
+
+    #[test_log::test]
+    fn class_after_a_in_nested_blank_node() {
+        let r = complete("<s> ex:p [ ex:path [ a ex:| ] ].\n");
+        assert_classes(&r);
+    }
+
+    #[test_log::test]
+    fn object_in_blank_node() {
+        let r = complete("<s> ex:p [ ex:path ex:| ].\n");
+        assert_eq!(r.target, Some(TripleTarget::Object));
+        assert_eq!(r.cursor.target, TripleTarget::Object);
+        assert_eq!(r.cursor.typed, "ex:");
+    }
+
+    #[test_log::test]
+    fn object_in_collection() {
+        let r = complete("<s> ex:p ( ex:a ex:| ).\n");
+        assert_eq!(r.cursor.target, TripleTarget::Object, "{:?}", r.cursor);
+        assert_eq!(r.cursor.typed, "ex:");
+    }
+
+    #[test_log::test]
+    fn predicate_after_blank_node_object() {
+        let r = complete("<s> ex:p [ ex:path <n> ];\n  ex:|\n.\n");
+        assert_properties(&r);
+        assert_eq!(
+            r.cursor.subject.as_ref().map(|s| s.as_str()),
+            Some("http://example.com/s"),
+            "subject should be <s>"
+        );
+    }
+
+    #[test_log::test]
+    fn predicate_of_blank_node_subject() {
+        let body = "[ ex:path <n>; ex:| ] a ex:Shape.\n";
+        let r = complete(body);
+        assert_properties(&r);
+        assert!(subject_is_bnode_at(&r, body, "[ ex:path"));
+    }
+
+    #[test_log::test]
+    fn predicate_after_blank_node_subject() {
+        let body = "[ ex:path <n> ] ex:|\n";
+        let r = complete(body);
+        assert_properties(&r);
+        assert!(subject_is_bnode_at(&r, body, "[ ex:path"));
+    }
+
+    /// On the boundary of two terms with no whitespace between them, the term
+    /// starting at the cursor wins over the one ending there.
+    #[test_log::test]
+    fn term_starting_at_cursor_wins_over_term_ending_there() {
+        let triple = triple_at("<s> ex:p <a>|<b>.\n");
+        assert_eq!(triple.target, TripleTarget::Object);
+        assert_eq!(triple.triple.object.as_str(), "http://example.com/b");
+    }
+
+    /// The triple at the `|` in `body`, without running completion.
+    fn triple_at(body: &str) -> TripleComponent {
+        let cursor_at = body.find('|').expect("cursor marker");
+        let text = format!("{}{}{}", PREFIX, &body[..cursor_at], &body[cursor_at + 1..]);
+        let before = &body[..cursor_at];
+        let line = before.matches('\n').count() as u32 + 1;
+        let character = before.rsplit('\n').next().unwrap().chars().count() as u32;
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let entity = create_file(&mut world, &text, "http://example.com/doc", "turtle", Open);
+        world.entity_mut(entity).insert((
+            CompletionRequest(vec![]),
+            PositionComponent(swls_core::lsp_types::Position { line, character }),
+        ));
+        world.run_schedule(CompletionLabel);
+        let t = world.entity(entity).get::<TripleComponent>().unwrap();
+        TripleComponent {
+            triple: t.triple.to_owned(),
+            target: t.target,
+        }
+    }
+
+    #[test_log::test]
+    fn collection_element_is_the_object() {
+        let triple = triple_at("<s> ex:p ( <a> <b>| ).\n");
+        assert_eq!(triple.target, TripleTarget::Object);
+        assert_eq!(triple.triple.object.as_str(), "http://example.com/b");
+    }
+
+    /// Right after a `]` in a collection, the term at the cursor is that blank
+    /// node (not the enclosing list or an inner term).
+    #[test_log::test]
+    fn blank_node_in_collection_is_the_term() {
+        let body = "<s> ex:p ( [ ex:path <x> ]| ).\n";
+        let triple = triple_at(body);
+        let term = triple.term().expect("a term at the cursor");
+        let start = PREFIX.len() + body.find('[').unwrap();
+        let end = PREFIX.len() + body.find('|').unwrap();
+        assert_eq!(term.span, start..end, "{:?}", triple);
+    }
+}
+
+#[cfg(test)]
+mod blank_node_tests {
+    use completion::CompletionRequest;
+    use futures::executor::block_on;
+    use swls_core::feature::completion::CursorContext;
+    use swls_core::{
+        components::*,
+        prelude::*,
+        util::triple::{TripleComponent, TripleTarget},
+        Tasks,
+    };
+    use swls_test_utils::{create_file, setup_world, TestClient};
+
+    /// Typing a prefixed name as the next predicate inside `[ … ]`, with the
+    /// cursor right after it, completes properties of the blank node: the
+    /// enclosing blank node (which also contains the cursor) must not win over
+    /// the term being typed.
+    #[test_log::test]
+    fn property_completion_inside_blank_node_at_term_end() {
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let ontology = "@prefix ex: <http://example.org/ns#>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+ex:path a rdf:Property.
+ex:minCount a rdf:Property.
+ex:maxCount a rdf:Property.
+";
+        let t = "@prefix ex: <http://example.org/ns#>.
+<shape> ex:property [
+    ex:path <name>;
+    ex:minCount 1;
+    ex:
+  ].
+";
+        create_file(&mut world, ontology, "http://example.org/ns", "turtle", ());
+        let entity = create_file(&mut world, t, "http://example.com/doc", "turtle", Open);
+        let c = world.resource::<TestClient>().clone();
+        block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+        // line 4: "    ex:"  cursor at char 7, right after the typed `ex:`
+        world.entity_mut(entity).insert((
+            CompletionRequest(vec![]),
+            PositionComponent(swls_core::lsp_types::Position {
+                line: 4,
+                character: 7,
+            }),
+        ));
+        world.run_schedule(CompletionLabel);
+
+        let triple = world.entity(entity).get::<TripleComponent>().unwrap();
+        assert_eq!(triple.target, TripleTarget::Predicate);
+        let cursor = world.entity(entity).get::<CursorContext>().unwrap();
+        assert_eq!(cursor.typed, "ex:");
+        assert!(cursor.at_predicate());
+
+        let completions = world
+            .entity_mut(entity)
+            .take::<CompletionRequest>()
+            .unwrap()
+            .0;
+        let labels: Vec<_> = completions.iter().map(|c| c.label.as_str()).collect();
+        for expected in ["ex:path", "ex:minCount", "ex:maxCount"] {
+            assert!(
+                labels.contains(&expected),
+                "missing {expected} in {labels:?}"
+            );
+        }
+    }
+}
