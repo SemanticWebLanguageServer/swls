@@ -5,7 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Bug Fixes
+
+ - <csr-id-7e93b451c94f4de9ec958c0bafb0974bc2efb136/> complete the term being typed inside blank nodes and collections
+   A term ending at the cursor lost to any wider term containing it, so
+   typing `sh:` inside `[ … ]` resolved to the enclosing blank node in
+   subject position and offered no properties. Now the narrowest term wins
+   unless another term starts exactly at the cursor, and on equal spans a
+   written term beats a collection's list node.
+   
+   Adds regression tests for completion in nested, unclosed and subject
+   blank nodes, collections and adjacent terms.
+ - <csr-id-414a2b449e010ed8cf9d86e69572a463e98c0b95/> resolve relative IRIs without doubling the slash
+   `normalize_path_segments` split the path's leading `/` into an empty
+   segment and then re-added it, so `<s>` in `http://example.com/doc`
+   resolved to `http://example.com//s`. Adds unit tests for `resolve_iri`.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-core v0.2.5, swls-lang-turtle v0.2.5, swls v0.6.2 ([`7c31888`](https://github.com/SemanticWebLanguageServer/swls/commit/7c31888965777417cc8e01ad79b623fdc4f1589a))
+    - Complete the term being typed inside blank nodes and collections ([`7e93b45`](https://github.com/SemanticWebLanguageServer/swls/commit/7e93b451c94f4de9ec958c0bafb0974bc2efb136))
+    - Resolve relative IRIs without doubling the slash ([`414a2b4`](https://github.com/SemanticWebLanguageServer/swls/commit/414a2b449e010ed8cf9d86e69572a463e98c0b95))
+</details>
+
 ## 0.2.4 (2026-11-19)
+
+<csr-id-3abc6c04fab641feadce0524d5ac271ddbada6fa/>
+<csr-id-d0ad03704f3e76071292c0fbbffebea68fee8bba/>
+<csr-id-63fddf143f877a45b1eb2eb75653432da294c879/>
 
 ### Chore
 
@@ -32,15 +74,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    Read-only views of what the server already parsed (`core::navigation`):
    
    - `textDocument/documentLink`: each `owl:imports` IRI links to the imported
-     document, each `@prefix` IRI to the ontology loaded for it (the cached
-     file, a configured ontology, or the namespace itself).
+   document, each `@prefix` IRI to the ontology loaded for it (the cached
+   file, a configured ontology, or the namespace itself).
    - `textDocument/documentSymbol`: one symbol per subject block, with its
-     types as detail and its predicates as children. The kind follows the
-     types: shapes, classes, properties, ontologies, other resources.
+   types as detail and its predicates as children. The kind follows the
+   types: shapes, classes, properties, ontologies, other resources.
    - `textDocument/foldingRange`: multi-line subject blocks, multi-line
-     `[ … ]` blank nodes, and the run of prefix declarations (as imports).
+   `[ … ]` blank nodes, and the run of prefix declarations (as imports).
    - `workspace/symbol`: subjects across every known document (open,
-     imported, cached, workspace), matched case-insensitively, at most 256.
+   imported, cached, workspace), matched case-insensitively, at most 256.
    
    Each can be disabled (`document_link`, `document_symbol`, `folding_range`,
    `workspace_symbol`). Anonymous blank nodes get no symbol of their own.
@@ -49,33 +91,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - <csr-id-78ae1d8e1c867a5bb4343775235f6370f5668936/> workspace index, watched files, saved edits and settings changes
    Workspace index (`core::workspace`)
    - At startup, the RDF files of the workspace folders (`.ttl`, `.nt`,
-     `.owl`, `.trig`, `.n3`) are loaded as background documents, so their
-     classes, properties and shapes are known without opening them. Hidden
-     folders, `node_modules` and `target` are skipped; at most 500 files of
-     at most 5 MB per folder; RDF/XML and HTML are skipped. Clients that send
-     only a `rootUri` get it as their workspace. Disable with
-     `"disabled": ["workspace_index"]`. `FsTrait::walk` provides the bounded
-     walk (nothing for file systems without one).
+   `.owl`, `.trig`, `.n3`) are loaded as background documents, so their
+   classes, properties and shapes are known without opening them. Hidden
+   folders, `node_modules` and `target` are skipped; at most 500 files of
+   at most 5 MB per folder; RDF/XML and HTML are skipped. Clients that send
+   only a `rootUri` get it as their workspace. Disable with
+   `"disabled": ["workspace_index"]`. `FsTrait::walk` provides the bounded
+   walk (nothing for file systems without one).
    
    Files changed on disk (`workspace/didChangeWatchedFiles`)
    - The server registers a watcher for RDF files when the client supports
-     dynamic registration.
+   dynamic registration.
    - A changed background document is reloaded from disk, a deleted one is
-     dropped (its triples and shapes too), and a new RDF file in the
-     workspace is indexed. A file open in the editor keeps the editor's text.
+   dropped (its triples and shapes too), and a new RDF file in the
+   workspace is indexed. A file open in the editor keeps the editor's text.
    
    Saved edits (`textDocument/didSave`)
    - Saving one of the user's own background documents (not a cache file)
-     loads its triples into the shared store, so other documents see the
-     saved classes and properties; closing it restores the saved version.
-     Unsaved edits still never reach the store.
+   loads its triples into the shared store, so other documents see the
+   saved classes and properties; closing it restores the saved version.
+   Unsaved edits still never reach the store.
    
    Settings changes (`workspace/didChangeConfiguration`)
    - The settings (either the settings object or `{ "swls": … }`) are applied
-     like `initializationOptions`, combined with the config files. Newly
-     configured ontologies and shapes are loaded (the new `ConfigChanged`
-     schedule; loading is idempotent), and open documents are re-checked.
-     Invalid settings are reported and the current ones kept.
+   like `initializationOptions`, combined with the config files. Newly
+   configured ontologies and shapes are loaded (the new `ConfigChanged`
+   schedule; loading is idempotent), and open documents are re-checked.
+   Invalid settings are reported and the current ones kept.
    
    Tests over stdio: workspace files are indexed (skipping `node_modules`
    and hidden folders), watchers are registered, changed / deleted / created
@@ -125,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 13 commits contributed to the release.
+ - 14 commits contributed to the release.
+ - 1 day passed between releases.
  - 12 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -136,6 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-lov v0.1.5, swls-core v0.2.4, swls-lang-rdf-base v0.2.4, swls-lang-turtle v0.2.4, swls-lang-jsonld v0.2.4, swls-lang-n3 v0.1.4, swls-lang-sparql v0.2.4, swls-lang-trig v0.2.4, swls v0.6.1 ([`245dbf5`](https://github.com/SemanticWebLanguageServer/swls/commit/245dbf53e0f284922626b48beea71e53355ead23))
     - Document links, outline, folding ranges, workspace symbols (4/4) ([`3a2b949`](https://github.com/SemanticWebLanguageServer/swls/commit/3a2b949554225c4c7f6e8d651b2b46285ab9c053))
     - Workspace index, watched files, saved edits, settings changes (3/4) ([`d72ae65`](https://github.com/SemanticWebLanguageServer/swls/commit/d72ae659eab3fdc89c5e07b21d853ceed1f4c5ec))
     - Merge branch 'claude/correctness' into claude/cheap-features ([`0172a18`](https://github.com/SemanticWebLanguageServer/swls/commit/0172a18c294cedaabab69077e8b0b3967e27c9ae))
@@ -422,14 +466,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Only write cache files for cache locations, never over a user's file.
  - <csr-id-ac42b779da1bb02e382eeefbbabd8057a3a13cba/> time out remote fetches and stop panicking on network and I/O errors
    - One shared HTTP client for all fetches, with a 10 s connect and a 30 s
-     request timeout. Before, every fetch built a new client without timeouts,
-     so a host that never answered kept that load pending forever.
+   request timeout. Before, every fetch built a new client without timeouts,
+   so a host that never answered kept that load pending forever.
    - A response whose body cannot be read is an error instead of a panic
-     (`resp.text().await.unwrap()`).
+   (`resp.text().await.unwrap()`).
    - `file:` URLs are read through `to_file_path`, which decodes
-     percent-escapes; `Url::path` kept them, so a path with a space failed.
+   percent-escapes; `Url::path` kept them, so a path with a space failed.
    - No panic when a built-in ontology has no cache location, when the world
-     does not answer during `initialize`, or on an unbound SPARQL variable.
+   does not answer during `initialize`, or on an unbound SPARQL variable.
 
 ### Refactor
 

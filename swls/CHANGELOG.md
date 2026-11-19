@@ -7,12 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.6.2 (2026-11-19)
 
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 1 commit contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-core v0.2.5, swls-lang-turtle v0.2.5, swls v0.6.2 ([`7c31888`](https://github.com/SemanticWebLanguageServer/swls/commit/7c31888965777417cc8e01ad79b623fdc4f1589a))
+</details>
+
 ## 0.6.1 (2026-11-19)
 
 <csr-id-3abc6c04fab641feadce0524d5ac271ddbada6fa/>
 <csr-id-d0ad03704f3e76071292c0fbbffebea68fee8bba/>
 <csr-id-63fddf143f877a45b1eb2eb75653432da294c879/>
 <csr-id-4f6349d7103029b4d4d9110ff820984293faaadf/>
+<csr-id-2d055b21f8a337d4631a532cd347e6077136974d/>
+<csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/>
+<csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/>
 
 ### Chore
 
@@ -143,23 +164,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -170,23 +191,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -201,14 +222,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    the error in its log. Panics in background fetch tasks are unaffected.
  - <csr-id-ac42b779da1bb02e382eeefbbabd8057a3a13cba/> time out remote fetches and stop panicking on network and I/O errors
    - One shared HTTP client for all fetches, with a 10 s connect and a 30 s
-     request timeout. Before, every fetch built a new client without timeouts,
-     so a host that never answered kept that load pending forever.
+   request timeout. Before, every fetch built a new client without timeouts,
+   so a host that never answered kept that load pending forever.
    - A response whose body cannot be read is an error instead of a panic
-     (`resp.text().await.unwrap()`).
+   (`resp.text().await.unwrap()`).
    - `file:` URLs are read through `to_file_path`, which decodes
-     percent-escapes; `Url::path` kept them, so a path with a space failed.
+   percent-escapes; `Url::path` kept them, so a path with a space failed.
    - No panic when a built-in ontology has no cache location, when the world
-     does not answer during `initialize`, or on an unbound SPARQL variable.
+   does not answer during `initialize`, or on an unbound SPARQL variable.
 
 ### Other
 
