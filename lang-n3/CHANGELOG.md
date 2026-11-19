@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.4 (2026-11-19)
+
+### Chore
+
+ - <csr-id-3abc6c04fab641feadce0524d5ac271ddbada6fa/> drop the redundant homepage from the manifests
+   Cargo 1.100 warns that `package.homepage` equal to `package.repository` is
+   redundant, once per crate. components-rs keeps its own, different homepage.
+
+### Other
+
+ - <csr-id-63fddf143f877a45b1eb2eb75653432da294c879/> fetch timeouts, no panics on I/O, stdio integration tests (1/4)
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Fetch timeouts, no panics on I/O, stdio integration tests (1/4) ([`63fddf1`](https://github.com/SemanticWebLanguageServer/swls/commit/63fddf143f877a45b1eb2eb75653432da294c879))
+    - Drop the redundant homepage from the manifests ([`3abc6c0`](https://github.com/SemanticWebLanguageServer/swls/commit/3abc6c04fab641feadce0524d5ac271ddbada6fa))
+</details>
+
 ## 0.1.3 (2026-11-18)
+
+<csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/>
+<csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/>
 
 ### Chore
 
@@ -43,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -54,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release swls-lov v0.1.4, swls-core v0.2.3, components-rs v0.1.4, swls-lang-rdf-base v0.2.3, swls-lang-turtle v0.2.3, swls-lang-jsonld v0.2.3, swls-lang-n3 v0.1.3, swls-lang-sparql v0.2.3, swls-lang-trig v0.2.3, swls v0.6.0 ([`e3aa4bf`](https://github.com/SemanticWebLanguageServer/swls/commit/e3aa4bfb5c246842e24de7c37e58415a472fe291))
     - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
     - Cargo fmt --all ([`8160444`](https://github.com/SemanticWebLanguageServer/swls/commit/8160444de14ceb8c86d3b22412e95a6b62974d46))
 </details>

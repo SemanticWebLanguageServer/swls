@@ -5,7 +5,160 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.4 (2026-11-19)
+
+### Chore
+
+ - <csr-id-3abc6c04fab641feadce0524d5ac271ddbada6fa/> drop the redundant homepage from the manifests
+   Cargo 1.100 warns that `package.homepage` equal to `package.repository` is
+   redundant, once per crate. components-rs keeps its own, different homepage.
+
+### New Features
+
+ - <csr-id-3a2b949554225c4c7f6e8d651b2b46285ab9c053/> document links, outline, folding ranges, workspace symbols (4/4)
+ - <csr-id-d72ae659eab3fdc89c5e07b21d853ceed1f4c5ec/> workspace index, watched files, saved edits, settings changes (3/4)
+ - <csr-id-ba311f45d338b4428e492f03a3d46a284ed5a825/> skip git-ignored files in the workspace index
+   The workspace walk now uses the `ignore` crate (ripgrep's), so it skips
+   what git would ignore: `.gitignore` files at every level,
+   `.git/info/exclude`, the global git excludes and `.ignore` files, also
+   outside a git repository. Hidden entries, `node_modules` and `target` stay
+   skipped regardless.
+   
+   Files created after startup follow the same rule: before indexing a new
+   file, `FsTrait::is_ignored` checks the ignore files between the workspace
+   folder and the file (`util::fs::is_ignored`; the global git excludes only
+   apply to the startup walk).
+ - <csr-id-16d398e42e117a6dde0aa406ca327310fa21870f/> document links, outline, folding ranges and workspace symbols
+   Read-only views of what the server already parsed (`core::navigation`):
+   
+   - `textDocument/documentLink`: each `owl:imports` IRI links to the imported
+     document, each `@prefix` IRI to the ontology loaded for it (the cached
+     file, a configured ontology, or the namespace itself).
+   - `textDocument/documentSymbol`: one symbol per subject block, with its
+     types as detail and its predicates as children. The kind follows the
+     types: shapes, classes, properties, ontologies, other resources.
+   - `textDocument/foldingRange`: multi-line subject blocks, multi-line
+     `[ … ]` blank nodes, and the run of prefix declarations (as imports).
+   - `workspace/symbol`: subjects across every known document (open,
+     imported, cached, workspace), matched case-insensitively, at most 256.
+   
+   Each can be disabled (`document_link`, `document_symbol`, `folding_range`,
+   `workspace_symbol`). Anonymous blank nodes get no symbol of their own.
+   
+   Tests over stdio for each.
+ - <csr-id-78ae1d8e1c867a5bb4343775235f6370f5668936/> workspace index, watched files, saved edits and settings changes
+   Workspace index (`core::workspace`)
+   - At startup, the RDF files of the workspace folders (`.ttl`, `.nt`,
+     `.owl`, `.trig`, `.n3`) are loaded as background documents, so their
+     classes, properties and shapes are known without opening them. Hidden
+     folders, `node_modules` and `target` are skipped; at most 500 files of
+     at most 5 MB per folder; RDF/XML and HTML are skipped. Clients that send
+     only a `rootUri` get it as their workspace. Disable with
+     `"disabled": ["workspace_index"]`. `FsTrait::walk` provides the bounded
+     walk (nothing for file systems without one).
+   
+   Files changed on disk (`workspace/didChangeWatchedFiles`)
+   - The server registers a watcher for RDF files when the client supports
+     dynamic registration.
+   - A changed background document is reloaded from disk, a deleted one is
+     dropped (its triples and shapes too), and a new RDF file in the
+     workspace is indexed. A file open in the editor keeps the editor's text.
+   
+   Saved edits (`textDocument/didSave`)
+   - Saving one of the user's own background documents (not a cache file)
+     loads its triples into the shared store, so other documents see the
+     saved classes and properties; closing it restores the saved version.
+     Unsaved edits still never reach the store.
+   
+   Settings changes (`workspace/didChangeConfiguration`)
+   - The settings (either the settings object or `{ "swls": … }`) are applied
+     like `initializationOptions`, combined with the config files. Newly
+     configured ontologies and shapes are loaded (the new `ConfigChanged`
+     schedule; loading is idempotent), and open documents are re-checked.
+     Invalid settings are reported and the current ones kept.
+   
+   Tests over stdio: workspace files are indexed (skipping `node_modules`
+   and hidden folders), watchers are registered, changed / deleted / created
+   files update completions, a saved workspace file makes its changes known,
+   and a settings change applies without a restart.
+
+### Other
+
+ - <csr-id-d0ad03704f3e76071292c0fbbffebea68fee8bba/> fewer completions, single parse, one diagnostics message per pass, shape cache (2/4)
+ - <csr-id-63fddf143f877a45b1eb2eb75653432da294c879/> fetch timeouts, no panics on I/O, stdio integration tests (1/4)
+
+### Performance
+
+ - <csr-id-86bb35d96c579bd664660eff24dfd453d1bf50b0/> keep the shape index between requests
+   Hover, completion and shape templates rebuilt the index of every visible
+   shape triple on each request. `ShapeGraph` now holds shared references
+   (`Arc`) to the shape documents' triples and indexes positions instead of
+   borrowing, so it can outlive a request; `ShapeCache` (a `Local` of each
+   system) reuses it while the visible documents and their triples are the
+   same. Keyed by `Arc` identity: changed triples or another set of documents
+   build a new graph.
+ - <csr-id-0ae7ce3ee36354bbdd0a53ff64f6cdc2c7f550df/> send each document's diagnostics once per pass
+   The publisher sends a document's full, merged diagnostics on every publish,
+   once per reason (syntax, prefixes, namespaces, shapes), so one edit sent 8
+   `publishDiagnostics` messages for the document. The server now lets a pass
+   finish (10 ms), drains what is queued and sends each document's latest set
+   once (`diagnostics::coalesce`).
+ - <csr-id-ebfa4cf13e3a5555e1987387ce5ac23cb3ca59ad/> parse each new document once
+   `spawn_or_insert` ran the parse schedule itself, and its callers (opening a
+   document, loading a background document, configured shapes) ran it again
+   right after, so every new document was parsed twice. It no longer parses;
+   the callers do, once everything is added. The built-in ontologies at
+   startup and the test helper `create_file`, which relied on the implicit
+   parse, now parse explicitly.
+ - <csr-id-d00bd89e0af70823598818095d9738379b9dadb0/> suggest undeclared prefixes only for a typed word, at most 30
+   A completion at an empty predicate position returned about 3,400 items,
+   nearly all of them prefixes from prefix.cc. That was slow to send and
+   buried the useful suggestions.
+   
+   Prefixes the document declares are always suggested. Undeclared prefixes
+   (built-in vocabularies, then prefix.cc in popularity order) are only
+   suggested once something was typed, and at most 30
+   (`MAX_UNDECLARED_PREFIXES`). Removes the commented-out previous version of
+   the helper.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 13 commits contributed to the release.
+ - 12 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Document links, outline, folding ranges, workspace symbols (4/4) ([`3a2b949`](https://github.com/SemanticWebLanguageServer/swls/commit/3a2b949554225c4c7f6e8d651b2b46285ab9c053))
+    - Workspace index, watched files, saved edits, settings changes (3/4) ([`d72ae65`](https://github.com/SemanticWebLanguageServer/swls/commit/d72ae659eab3fdc89c5e07b21d853ceed1f4c5ec))
+    - Merge branch 'claude/correctness' into claude/cheap-features ([`0172a18`](https://github.com/SemanticWebLanguageServer/swls/commit/0172a18c294cedaabab69077e8b0b3967e27c9ae))
+    - Skip git-ignored files in the workspace index ([`ba311f4`](https://github.com/SemanticWebLanguageServer/swls/commit/ba311f45d338b4428e492f03a3d46a284ed5a825))
+    - Fewer completions, single parse, one diagnostics message per pass, shape cache (2/4) ([`d0ad037`](https://github.com/SemanticWebLanguageServer/swls/commit/d0ad03704f3e76071292c0fbbffebea68fee8bba))
+    - Fetch timeouts, no panics on I/O, stdio integration tests (1/4) ([`63fddf1`](https://github.com/SemanticWebLanguageServer/swls/commit/63fddf143f877a45b1eb2eb75653432da294c879))
+    - Document links, outline, folding ranges and workspace symbols ([`16d398e`](https://github.com/SemanticWebLanguageServer/swls/commit/16d398e42e117a6dde0aa406ca327310fa21870f))
+    - Workspace index, watched files, saved edits and settings changes ([`78ae1d8`](https://github.com/SemanticWebLanguageServer/swls/commit/78ae1d8e1c867a5bb4343775235f6370f5668936))
+    - Keep the shape index between requests ([`86bb35d`](https://github.com/SemanticWebLanguageServer/swls/commit/86bb35d96c579bd664660eff24dfd453d1bf50b0))
+    - Send each document's diagnostics once per pass ([`0ae7ce3`](https://github.com/SemanticWebLanguageServer/swls/commit/0ae7ce3ee36354bbdd0a53ff64f6cdc2c7f550df))
+    - Parse each new document once ([`ebfa4cf`](https://github.com/SemanticWebLanguageServer/swls/commit/ebfa4cf13e3a5555e1987387ce5ac23cb3ca59ad))
+    - Suggest undeclared prefixes only for a typed word, at most 30 ([`d00bd89`](https://github.com/SemanticWebLanguageServer/swls/commit/d00bd89e0af70823598818095d9738379b9dadb0))
+    - Drop the redundant homepage from the manifests ([`3abc6c0`](https://github.com/SemanticWebLanguageServer/swls/commit/3abc6c04fab641feadce0524d5ac271ddbada6fa))
+</details>
+
 ## 0.2.3 (2026-11-18)
+
+<csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/>
+<csr-id-f0d9f31379a47547d665ee36ee7eb5a3704b5187/>
+<csr-id-8f28aa0b47d503e5ea2a06a276f238850d737166/>
+<csr-id-ef9b50600ab106ff4b3f6178c5f172269c9d9605/>
+<csr-id-15493a8bfeea01bd5d813e13f68d9d52672081b5/>
+<csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/>
 
 ### Chore
 
@@ -58,11 +211,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    applies to it for this subject:
    
    - `sh:name` and `sh:description`, and also the property shape's
-     `rdfs:label` and `rdfs:comment` (unless they repeat the SHACL text),
+   `rdfs:label` and `rdfs:comment` (unless they repeat the SHACL text),
    - the alternatives of an `sh:alternativePath`,
    - a constraint summary: cardinality, node kind, datatype, class, `sh:in`,
-     `sh:hasValue`, `sh:node` and `sh:or` / `sh:xone` shapes, pattern,
-     lengths and ranges, languages, and a non-default severity.
+   `sh:hasValue`, `sh:node` and `sh:or` / `sh:xone` shapes, pattern,
+   lengths and ranges, languages, and a non-default severity.
    
    Shapes apply by the same targets as the shape templates. That code moved
    to `shapes::model`, so hover, completion and templates agree. Property
@@ -81,19 +234,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    Fixes found on the way:
    - `MyTerm`'s sophia `Term` impl reported no datatype or language for
-     literals, so every literal entered the store as a plain string. It now
-     reports `xsd:string`, `rdf:langString` or the literal's datatype, and
-     its language tag.
+   literals, so every literal entered the store as a plain string. It now
+   reports `xsd:string`, `rdf:langString` or the literal's datatype, and
+   its language tag.
    - The conversions to oxigraph checked the datatype before the language,
-     which would turn a language-tagged literal into an `rdf:langString`
-     typed literal without a language.
+   which would turn a language-tagged literal into an `rdf:langString`
+   typed literal without a language.
    - Removed imports `open_imports` left behind in `lov::fetch`.
  - <csr-id-0bb608f3d344b59f4820c4ee2b3bffd43a783d41/> SHACL shape templates in completion
    At a predicate position, offer two snippet completions built from the
    SHACL shapes that apply to the subject:
    
    - "shape template: required properties": every property with
-     `sh:minCount >= 1`,
+   `sh:minCount >= 1`,
    - "shape template: all properties": every property the shapes declare.
    
    Properties the subject already has are left out.
@@ -107,14 +260,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    Values are snippet placeholders shaped by the constraints:
    - `sh:hasValue` is filled in, and `sh:in` becomes a choice.
    - `sh:alternativePath` becomes a choice of predicates. Optional
-     declarations it covers are folded into it, and it is satisfied by any
-     one of its paths.
+   declarations it covers are folded into it, and it is satisfied by any
+   one of its paths.
    - A nested value (`sh:node`, the first `sh:or` / `sh:xone` branch with a
-     node shape, shapes targeting the objects of the predicate, or shapes
-     for its `sh:class`) expands to `[ … ]` with its required properties,
-     up to two levels deep.
+   node shape, shapes targeting the objects of the predicate, or shapes
+   for its `sh:class`) expands to `[ … ]` with its required properties,
+   up to two levels deep.
    - `sh:nodeKind` / `sh:datatype` choose between `<…>`, `"…"`, typed
-     literals and plain placeholders.
+   literals and plain placeholders.
    
    The template is inserted at the cursor without eating a following `.` or
    `]`, replaces a partially typed predicate, and continuation lines follow
@@ -128,45 +281,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    names for one namespace each loaded their own copy.
    
    - `PreferredPrefixes` maps every known namespace to its preferred name:
-     the built-in LOV vocabularies first, then prefix.cc, which lists the
-     most popular name first. It is built once at startup.
+   the built-in LOV vocabularies first, then prefix.cc, which lists the
+   most popular name first. It is built once at startup.
    - `namespace_sources` uses that name for the cache file
-     (`lov/<preferred>.ttl`) and the LOV lookup, so fetching, links and
-     goto-definition agree and every document shares one ontology document.
-     The typed name is only used for namespaces that are not known.
+   (`lov/<preferred>.ttl`) and the LOV lookup, so fetching, links and
+   goto-definition agree and every document shares one ontology document.
+   The typed name is only used for namespaces that are not known.
    - A vocabulary fetched from LOV by name must mention the namespace it is
-     loaded for (either scheme). Otherwise it is ignored and not cached, so
-     a guessed name can no longer load an unrelated vocabulary.
+   loaded for (either scheme). Otherwise it is ignored and not cached, so
+   a guessed name can no longer load an unrelated vocabulary.
  - <csr-id-18f6bde08999c3f6bb77f64ce2f4e0a19a6ac20a/> load remote owl:imports and make imported documents navigable
    `open_imports` read every import through `Fs::read_file`, which only
    handles `file:` URLs, so remote imports never loaded. Import handling now
    lives in `systems::imports`:
    
    - `http(s):` imports are fetched with content negotiation (Turtle,
-     N-Triples) and go through the ontology cache at
-     `sources/<host>/<path>`, like configured remote ontologies.
-     `file:` imports keep their own URL.
+   N-Triples) and go through the ontology cache at
+   `sources/<host>/<path>`, like configured remote ontologies.
+   `file:` imports keep their own URL.
    - RDF/XML and HTML responses (common for `.owl` files and for IRIs that
-     serve a web page) are skipped with a warning instead of being parsed
-     as Turtle, and are not cached.
+   serve a web page) are skipped with a warning instead of being parsed
+   as Turtle, and are not cached.
    - An import's language follows its file extension. Forcing `turtle`
-     gave e.g. a `.jsonld` import both the Turtle and the JSON-LD language.
+   gave e.g. a `.jsonld` import both the Turtle and the JSON-LD language.
    - `import_url` is the single mapping from an imported IRI to its
-     document, used for loading, document links and goto-definition, so
-     goto-definition on an `owl:imports` IRI opens the imported document.
+   document, used for loading, document links and goto-definition, so
+   goto-definition on an `owl:imports` IRI opens the imported document.
    - Imports are followed transitively, each IRI at most once.
    
    Related fixes:
    
    - `validate_shapes` also revalidates every open document when shapes
-     change. Shapes usually arrive after the document was opened (imports,
-     LOV, configuration), so before this their violations only appeared
-     after the next edit.
+   change. Shapes usually arrive after the document was opened (imports,
+   LOV, configuration), so before this their violations only appeared
+   after the next edit.
    - Shape links are matched exactly instead of by prefix: a link to
-     `http://x/ont2` matched a document labelled `http://x/ont`.
+   `http://x/ont2` matched a document labelled `http://x/ont`.
    - `spawn_or_insert` always creates `DocumentLinks`. When it was missing,
-     the prefix and import link systems each inserted their own in the same
-     pass and one overwrote the other.
+   the prefix and import link systems each inserted their own in the same
+   pass and one overwrote the other.
  - <csr-id-945c7d3136db2c20ac1a90ee1dcb84c56cf0569a/> persistent read-only ontology cache, didClose and cached-copy rules
    Replace the per-process `/tmp/swls/<n>` folder with one cache in the user's
    cache directory (`~/.cache/swls`, `~/Library/Caches/swls`,
@@ -174,23 +327,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -201,23 +354,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -233,18 +386,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    only the first module's classes and properties ever became known.
    
    - Resolve the documents for a namespace in one place
-     (`namespace_sources`), used by fetching, document links and prefix
-     goto-definition. Configured ontologies are identified by their location:
-     local files keep their own URL, remote files are cached at
-     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
-     the built-in / LOV ontology for that namespace.
+   (`namespace_sources`), used by fetching, document links and prefix
+   goto-definition. Configured ontologies are identified by their location:
+   local files keep their own URL, remote files are cached at
+   `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+   the built-in / LOV ontology for that namespace.
    - Load every background document into its own named graph and reload it
-     when its triples change, so replaced or edited documents no longer leave
-     stale triples; queries use the union of all graphs.
+   when its triples change, so replaced or edited documents no longer leave
+   stale triples; queries use the union of all graphs.
    - Re-resolve open documents when configured ontologies arrive after the
-     document was opened.
+   document was opened.
    - `spawn_background`: background loads (LOV, owl:imports, configured
-     shapes) no longer overwrite the text of a document open in the editor.
+   shapes) no longer overwrite the text of a document open in the editor.
    - Only write cache files for cache locations, never over a user's file.
  - <csr-id-2f8a0661a463c8666bad9b81ccd6c8dff9066069/> give each ontology document its own identity
    Configured ontologies that describe the same namespace (e.g. the RML
@@ -254,19 +407,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    only the first module's classes and properties ever became known.
    
    - Resolve the documents for a namespace in one place
-     (`namespace_sources`), used by fetching, document links and prefix
-     goto-definition. Configured ontologies are identified by their location:
-     local files keep their own URL, remote files are cached at
-     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
-     the built-in / LOV ontology for that namespace.
+   (`namespace_sources`), used by fetching, document links and prefix
+   goto-definition. Configured ontologies are identified by their location:
+   local files keep their own URL, remote files are cached at
+   `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+   the built-in / LOV ontology for that namespace.
    - Load every background document into its own named graph and reload it
-     when its triples change, so replaced or edited documents no longer leave
-     stale triples; queries use the union of all graphs.
+   when its triples change, so replaced or edited documents no longer leave
+   stale triples; queries use the union of all graphs.
    - Re-resolve open documents when configured ontologies arrive after the
-     document was opened.
+   document was opened.
    - `spawn_background`: background loads (LOV, owl:imports, configured
-     shapes) no longer overwrite the text of a document open in the editor.
+   shapes) no longer overwrite the text of a document open in the editor.
    - Only write cache files for cache locations, never over a user's file.
+ - <csr-id-ac42b779da1bb02e382eeefbbabd8057a3a13cba/> time out remote fetches and stop panicking on network and I/O errors
+   - One shared HTTP client for all fetches, with a 10 s connect and a 30 s
+     request timeout. Before, every fetch built a new client without timeouts,
+     so a host that never answered kept that load pending forever.
+   - A response whose body cannot be read is an error instead of a panic
+     (`resp.text().await.unwrap()`).
+   - `file:` URLs are read through `to_file_path`, which decodes
+     percent-escapes; `Url::path` kept them, so a path with a space failed.
+   - No panic when a built-in ontology has no cache location, when the world
+     does not answer during `initialize`, or on an unbound SPARQL variable.
 
 ### Refactor
 
@@ -357,8 +520,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 17 commits contributed to the release.
- - 16 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 19 commits contributed to the release.
+ - 17 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#30](https://github.com/SemanticWebLanguageServer/swls/issues/30)
 
 ### Commit Details
@@ -371,6 +534,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Give each ontology document its own identity ([`f45bd53`](https://github.com/SemanticWebLanguageServer/swls/commit/f45bd539cf78d85895b56e6f5b1780d5ae4b25ed))
     - Give each ontology document its own identity ([`2f8a066`](https://github.com/SemanticWebLanguageServer/swls/commit/2f8a0661a463c8666bad9b81ccd6c8dff9066069))
  * **Uncategorized**
+    - Release swls-lov v0.1.4, swls-core v0.2.3, components-rs v0.1.4, swls-lang-rdf-base v0.2.3, swls-lang-turtle v0.2.3, swls-lang-jsonld v0.2.3, swls-lang-n3 v0.1.3, swls-lang-sparql v0.2.3, swls-lang-trig v0.2.3, swls v0.6.0 ([`e3aa4bf`](https://github.com/SemanticWebLanguageServer/swls/commit/e3aa4bfb5c246842e24de7c37e58415a472fe291))
+    - Time out remote fetches and stop panicking on network and I/O errors ([`ac42b77`](https://github.com/SemanticWebLanguageServer/swls/commit/ac42b779da1bb02e382eeefbbabd8057a3a13cba))
     - Suggest predicates that shapes require first ([`a1dc471`](https://github.com/SemanticWebLanguageServer/swls/commit/a1dc471597db6b8c6b6ddc7d4971fa9f1c0e6a4e))
     - Name type hierarchy walks by what they return ([`f0d9f31`](https://github.com/SemanticWebLanguageServer/swls/commit/f0d9f31379a47547d665ee36ee7eb5a3704b5187))
     - Cursor semantics, a completion context, one shape visibility rule ([`8f28aa0`](https://github.com/SemanticWebLanguageServer/swls/commit/8f28aa0b47d503e5ea2a06a276f238850d737166))

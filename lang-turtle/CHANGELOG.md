@@ -5,7 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.4 (2026-11-19)
+
+### Chore
+
+ - <csr-id-3abc6c04fab641feadce0524d5ac271ddbada6fa/> drop the redundant homepage from the manifests
+   Cargo 1.100 warns that `package.homepage` equal to `package.repository` is
+   redundant, once per crate. components-rs keeps its own, different homepage.
+
+### New Features
+
+ - <csr-id-d72ae659eab3fdc89c5e07b21d853ceed1f4c5ec/> workspace index, watched files, saved edits, settings changes (3/4)
+ - <csr-id-78ae1d8e1c867a5bb4343775235f6370f5668936/> workspace index, watched files, saved edits and settings changes
+   Workspace index (`core::workspace`)
+   - At startup, the RDF files of the workspace folders (`.ttl`, `.nt`,
+     `.owl`, `.trig`, `.n3`) are loaded as background documents, so their
+     classes, properties and shapes are known without opening them. Hidden
+     folders, `node_modules` and `target` are skipped; at most 500 files of
+     at most 5 MB per folder; RDF/XML and HTML are skipped. Clients that send
+     only a `rootUri` get it as their workspace. Disable with
+     `"disabled": ["workspace_index"]`. `FsTrait::walk` provides the bounded
+     walk (nothing for file systems without one).
+   
+   Files changed on disk (`workspace/didChangeWatchedFiles`)
+   - The server registers a watcher for RDF files when the client supports
+     dynamic registration.
+   - A changed background document is reloaded from disk, a deleted one is
+     dropped (its triples and shapes too), and a new RDF file in the
+     workspace is indexed. A file open in the editor keeps the editor's text.
+   
+   Saved edits (`textDocument/didSave`)
+   - Saving one of the user's own background documents (not a cache file)
+     loads its triples into the shared store, so other documents see the
+     saved classes and properties; closing it restores the saved version.
+     Unsaved edits still never reach the store.
+   
+   Settings changes (`workspace/didChangeConfiguration`)
+   - The settings (either the settings object or `{ "swls": … }`) are applied
+     like `initializationOptions`, combined with the config files. Newly
+     configured ontologies and shapes are loaded (the new `ConfigChanged`
+     schedule; loading is idempotent), and open documents are re-checked.
+     Invalid settings are reported and the current ones kept.
+   
+   Tests over stdio: workspace files are indexed (skipping `node_modules`
+   and hidden folders), watchers are registered, changed / deleted / created
+   files update completions, a saved workspace file makes its changes known,
+   and a settings change applies without a restart.
+
+### Other
+
+ - <csr-id-63fddf143f877a45b1eb2eb75653432da294c879/> fetch timeouts, no panics on I/O, stdio integration tests (1/4)
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release.
+ - 4 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Workspace index, watched files, saved edits, settings changes (3/4) ([`d72ae65`](https://github.com/SemanticWebLanguageServer/swls/commit/d72ae659eab3fdc89c5e07b21d853ceed1f4c5ec))
+    - Fetch timeouts, no panics on I/O, stdio integration tests (1/4) ([`63fddf1`](https://github.com/SemanticWebLanguageServer/swls/commit/63fddf143f877a45b1eb2eb75653432da294c879))
+    - Workspace index, watched files, saved edits and settings changes ([`78ae1d8`](https://github.com/SemanticWebLanguageServer/swls/commit/78ae1d8e1c867a5bb4343775235f6370f5668936))
+    - Drop the redundant homepage from the manifests ([`3abc6c0`](https://github.com/SemanticWebLanguageServer/swls/commit/3abc6c04fab641feadce0524d5ac271ddbada6fa))
+</details>
+
 ## 0.2.3 (2026-11-18)
+
+<csr-id-b566e5f3228a4578291186a1eaa985ade4c736ca/>
+<csr-id-ef9b50600ab106ff4b3f6178c5f172269c9d9605/>
+<csr-id-8160444de14ceb8c86d3b22412e95a6b62974d46/>
 
 ### Chore
 
@@ -43,23 +119,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -70,23 +146,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    
    - Readable layout: `lov/<prefix>.ttl` and `sources/<host>/<path>`.
    - Files are written atomically (temp file + rename), so servers running at
-     the same time can share the cache, and are marked read-only on disk so
-     editors warn before they are edited.
+   the same time can share the cache, and are marked read-only on disk so
+   editors warn before they are edited.
    - Entries are reused across restarts and refreshed after 7 days
-     (`util::cache`). When a refresh fails the stale copy is used, so the
-     server works offline with what it fetched before. Configured remote
-     ontologies and shapes go through the cache too, and a non-200 response
-     is no longer treated as an ontology.
+   (`util::cache`). When a refresh fails the stale copy is used, so the
+   server works offline with what it fetched before. Configured remote
+   ontologies and shapes go through the cache too, and a non-200 response
+   is no longer treated as an ontology.
    
    The LSP cannot make a document read-only, so the server enforces the
    snapshot semantics itself (`core::document`):
    
    - Documents the server loads itself are marked `Background`. When the
-     editor opens one, its text is kept as a `Snapshot`, edits never reach
-     the store, and a cache file shows an information notice.
+   editor opens one, its text is kept as a `Snapshot`, edits never reach
+   the store, and a cache file shows an information notice.
    - Implement `textDocument/didClose`: drop `Open`, clear the document's
-     diagnostics, and give a background document the server's copy back
-     (from disk, else the snapshot).
+   diagnostics, and give a background document the server's copy back
+   (from disk, else the snapshot).
    
    Tests get an isolated cache directory per instance instead of a shared
    `/tmp/swls/test` that each test deleted.
@@ -105,18 +181,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    only the first module's classes and properties ever became known.
    
    - Resolve the documents for a namespace in one place
-     (`namespace_sources`), used by fetching, document links and prefix
-     goto-definition. Configured ontologies are identified by their location:
-     local files keep their own URL, remote files are cached at
-     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
-     the built-in / LOV ontology for that namespace.
+   (`namespace_sources`), used by fetching, document links and prefix
+   goto-definition. Configured ontologies are identified by their location:
+   local files keep their own URL, remote files are cached at
+   `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+   the built-in / LOV ontology for that namespace.
    - Load every background document into its own named graph and reload it
-     when its triples change, so replaced or edited documents no longer leave
-     stale triples; queries use the union of all graphs.
+   when its triples change, so replaced or edited documents no longer leave
+   stale triples; queries use the union of all graphs.
    - Re-resolve open documents when configured ontologies arrive after the
-     document was opened.
+   document was opened.
    - `spawn_background`: background loads (LOV, owl:imports, configured
-     shapes) no longer overwrite the text of a document open in the editor.
+   shapes) no longer overwrite the text of a document open in the editor.
    - Only write cache files for cache locations, never over a user's file.
  - <csr-id-2f8a0661a463c8666bad9b81ccd6c8dff9066069/> give each ontology document its own identity
    Configured ontologies that describe the same namespace (e.g. the RML
@@ -126,18 +202,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    only the first module's classes and properties ever became known.
    
    - Resolve the documents for a namespace in one place
-     (`namespace_sources`), used by fetching, document links and prefix
-     goto-definition. Configured ontologies are identified by their location:
-     local files keep their own URL, remote files are cached at
-     `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
-     the built-in / LOV ontology for that namespace.
+   (`namespace_sources`), used by fetching, document links and prefix
+   goto-definition. Configured ontologies are identified by their location:
+   local files keep their own URL, remote files are cached at
+   `<cache>/<host>/<path>` (`FsTrait::cache_url`). They take precedence over
+   the built-in / LOV ontology for that namespace.
    - Load every background document into its own named graph and reload it
-     when its triples change, so replaced or edited documents no longer leave
-     stale triples; queries use the union of all graphs.
+   when its triples change, so replaced or edited documents no longer leave
+   stale triples; queries use the union of all graphs.
    - Re-resolve open documents when configured ontologies arrive after the
-     document was opened.
+   document was opened.
    - `spawn_background`: background loads (LOV, owl:imports, configured
-     shapes) no longer overwrite the text of a document open in the editor.
+   shapes) no longer overwrite the text of a document open in the editor.
    - Only write cache files for cache locations, never over a user's file.
 
 ### Refactor
@@ -178,7 +254,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 8 commits contributed to the release.
+ - 9 commits contributed to the release.
  - 8 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 1 unique issue was worked on: [#30](https://github.com/SemanticWebLanguageServer/swls/issues/30)
 
@@ -192,6 +268,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Give each ontology document its own identity ([`f45bd53`](https://github.com/SemanticWebLanguageServer/swls/commit/f45bd539cf78d85895b56e6f5b1780d5ae4b25ed))
     - Give each ontology document its own identity ([`2f8a066`](https://github.com/SemanticWebLanguageServer/swls/commit/2f8a0661a463c8666bad9b81ccd6c8dff9066069))
  * **Uncategorized**
+    - Release swls-lov v0.1.4, swls-core v0.2.3, components-rs v0.1.4, swls-lang-rdf-base v0.2.3, swls-lang-turtle v0.2.3, swls-lang-jsonld v0.2.3, swls-lang-n3 v0.1.3, swls-lang-sparql v0.2.3, swls-lang-trig v0.2.3, swls v0.6.0 ([`e3aa4bf`](https://github.com/SemanticWebLanguageServer/swls/commit/e3aa4bfb5c246842e24de7c37e58415a472fe291))
     - Remove a redundant test import flagged by newer clippy ([`c66b6c9`](https://github.com/SemanticWebLanguageServer/swls/commit/c66b6c9d92453f2b70f2873d78eec99b8f59b99a))
     - Revision counters for data shared between documents ([`ef9b506`](https://github.com/SemanticWebLanguageServer/swls/commit/ef9b50600ab106ff4b3f6178c5f172269c9d9605))
     - Fix clippy warnings and configure workspace lints ([`b566e5f`](https://github.com/SemanticWebLanguageServer/swls/commit/b566e5f3228a4578291186a1eaa985ade4c736ca))
