@@ -140,6 +140,12 @@ fn normalize_path_segments(path: &str) -> String {
         ("", path)
     };
 
+    // The path's leading `/` is re-added below; splitting it would also yield
+    // an empty first segment and double the slash (`http://a//s`).
+    let (leading, rest) = match rest.strip_prefix('/') {
+        Some(r) => ("/", r),
+        None => ("", rest),
+    };
     let mut stack: Vec<&str> = Vec::new();
     for seg in rest.split('/') {
         match seg {
@@ -151,10 +157,79 @@ fn normalize_path_segments(path: &str) -> String {
         }
     }
     // If the original path ended with /. or /.. keep a trailing slash.
-    let trailing = if rest.ends_with("/..") || rest.ends_with("/.") {
+    let trailing = if rest.ends_with("/..") || rest.ends_with("/.") || rest == ".." || rest == "." {
         "/"
     } else {
         ""
     };
-    format!("{}/{}{}", prefix, stack.join("/"), trailing)
+    format!("{}{}{}{}", prefix, leading, stack.join("/"), trailing)
+}
+
+#[cfg(test)]
+mod resolve_iri_tests {
+    use super::resolve_iri;
+
+    #[test]
+    fn relative_path() {
+        assert_eq!(
+            resolve_iri("http://example.com/doc", "s"),
+            "http://example.com/s"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/doc", "s"),
+            "http://example.com/a/s"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/", "b/c"),
+            "http://example.com/a/b/c"
+        );
+        assert_eq!(
+            resolve_iri("file:///home/u/x.ttl", "y.ttl"),
+            "file:///home/u/y.ttl"
+        );
+    }
+
+    #[test]
+    fn dot_segments() {
+        assert_eq!(
+            resolve_iri("http://example.com/a/b/doc", "../s"),
+            "http://example.com/a/s"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/b/doc", "./s"),
+            "http://example.com/a/b/s"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/b/doc", ".."),
+            "http://example.com/a/"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/b/doc", "."),
+            "http://example.com/a/b/"
+        );
+    }
+
+    #[test]
+    fn absolute_root_fragment() {
+        assert_eq!(
+            resolve_iri("http://example.com/doc", "http://x.org/y"),
+            "http://x.org/y"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/a/doc", "/s"),
+            "http://example.com/s"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/doc#x", "#y"),
+            "http://example.com/doc#y"
+        );
+        assert_eq!(
+            resolve_iri("http://example.com/doc", ""),
+            "http://example.com/doc"
+        );
+        assert_eq!(
+            resolve_iri("https://example.com/doc", "//other.org/s"),
+            "https://other.org/s"
+        );
+    }
 }
