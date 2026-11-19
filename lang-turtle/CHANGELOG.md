@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.2.5 (2026-11-19)
 
 ### Bug Fixes
 
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
 
@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Adjusting changelogs prior to release of swls-core v0.2.5, swls-lang-turtle v0.2.5, swls v0.6.2 ([`8e7bfff`](https://github.com/SemanticWebLanguageServer/swls/commit/8e7bfff0cd89836f2d139f61f9d043c4731a0dae))
     - Adjusting changelogs prior to release of swls-core v0.2.5, swls-lang-turtle v0.2.5, swls v0.6.2 ([`7c31888`](https://github.com/SemanticWebLanguageServer/swls/commit/7c31888965777417cc8e01ad79b623fdc4f1589a))
     - Complete the term being typed inside blank nodes and collections ([`7e93b45`](https://github.com/SemanticWebLanguageServer/swls/commit/7e93b451c94f4de9ec958c0bafb0974bc2efb136))
 </details>
