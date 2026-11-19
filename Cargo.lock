@@ -3375,7 +3375,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "swls"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "bevy_ecs",
  "dirs",
@@ -3411,7 +3411,7 @@ dependencies = [
 
 [[package]]
 name = "swls-core"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "async-trait",
  "bevy_ecs",
@@ -3534,7 +3534,7 @@ dependencies = [
 
 [[package]]
 name = "swls-lang-turtle"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "bevy_ecs",
  "futures",

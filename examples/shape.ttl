@@ -1,7 +1,14 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 <s> a foaf:Image,
   foaf:Other,
   foaf:YetAnotherVeryLongClassName,
   foaf:AndOneMoreLongClassName;
   foaf:name "x", "a very long name that is long".
+
+<bShape> a sh:NodeShape;
+  sh:property [
+    sh:path foaf:name2;
+    sh:minCount 1;
+  ].
