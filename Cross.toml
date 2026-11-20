@@ -1,0 +1,5 @@
+# `cross` builds inside a container and only forwards the environment
+# variables listed here. APP_VERSION sets the version `swls --version`
+# reports, which editor clients compare against the release they downloaded.
+[build.env]
+passthrough = ["APP_VERSION", "GITHUB_REF_NAME"]
